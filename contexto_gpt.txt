@@ -1,0 +1,1075 @@
+hoje 13:18
+consegue ver esse site?
+
+https://spendly.eclipsiasoftware.com/
+
+Sim, mas não diretamente.
+
+O domínio https://spendly.eclipsiasoftware.com/ não apareceu acessível para indexação na busca que fiz. Encontrei apenas outros projetos chamados "Spendly", não essa instância específica. 
+
+Se esse é um sistema privado (login obrigatório ou acesso restrito), eu não consigo navegar nele como um navegador faria.
+
+Se o objetivo é analisar ou ajudar com esse sistema, você pode:
+
+informar qual é a dúvida;
+
+enviar um print da tela;
+
+compartilhar o HTML ou o código da página;
+
+fornecer acesso temporário (por exemplo, um ambiente de demonstração sem dados sensíveis);
+
+ou descrever o problema que está ocorrendo.
+
+Consigo ajudar com análise de interface, bugs, JavaScript, PHP, APIs, banco de dados, desempenho, segurança ou arquitetura desse sistema.
+
+
+ta, enfim, ele é um gerenciador de gastos, e eu quero refazer ele, dessa vez com NEXT, arquitetura hexagonal (modularizada), ele vai ser um monolito (front e backend) e o banco vai ficar desconexo, criar um service para se comunicar com o DB, que por hora vai ser Supabase, mas que fique facil de trocar a conexao num futuro, por isso estou montando ele modular. No caso pensei em um comunicador, que padroniza a saida e entrada do DB, entao se eu trocar o DB, não preciso trocar o conector e etc, so a parte em que diz oq chama e onde
+
+
+a ideia é aplicar boas praticas de UI/UX, e boas praticas de API, como Interfaces, DTO's, Entities, classes, e etc. 
+
+Implementar login por terceiros, e tudo mais, uma aplicação pronta para rodar aberta ao mundo
+
+Sim. A direção que você está tomando faz sentido: Next.js como monólito (UI + API), arquitetura hexagonal, e um adaptador de persistência desacoplado para permitir trocar o banco sem reescrever o domínio.
+
+O ponto mais importante é não deixar o domínio conhecer Supabase, Prisma, SQL, HTTP ou qualquer SDK específico.
+
+Arquitetura recomendada
+Estrutura de alto nível
+Hexagonal
+Camada de apresentação
+
+Next.js App Router
+Pages, layouts, componentes, Server Actions e Route Handlers
+
+Aplicação
+
+Use Cases
+Regras de orquestração e casos de uso
+
+Domínio
+
+Entidades + Interfaces
+Gastos, categorias, usuários e contratos
+
+Infraestrutura
+
+Supabase / PostgreSQL / outro
+Implementações concretas dos repositórios
+
+Regra de ouro: dependências sempre apontam para dentro. O domínio não importa nada da infraestrutura.
+
+Estrutura de pastas
+Exemplo modular
+Monorepo simples
+src/
+
+├─ app/
+
+│ ├─ (auth)/
+
+│ ├─ dashboard/
+
+│ └─ api/
+
+│
+
+├─ modules/
+
+│ ├─ expenses/
+
+│ │ ├─ domain/
+
+│ │ │ ├─ entities/
+
+│ │ │ ├─ repositories/
+
+│ │ │ └─ services/
+
+│ │ ├─ application/
+
+│ │ │ ├─ dto/
+
+│ │ │ ├─ use-cases/
+
+│ │ │ └─ mappers/
+
+│ │ ├─ infrastructure/
+
+│ │ │ ├─ supabase/
+
+│ │ │ └─ postgres/
+
+│ │ └─ presentation/
+
+│ │ ├─ components/
+
+│ │ └─ hooks/
+
+│ └─ auth/
+
+│
+
+└─ shared/
+
+├─ core/
+
+├─ errors/
+
+├─ types/
+
+└─ infrastructure/
+
+O “comunicador” que você imaginou
+Essa é uma boa ideia, mas eu implementaria como Gateway + Repository.
+
+Fluxo recomendado
+Desacoplado
+Driver do banco
+
+Supabase / Prisma / Drizzle / SQL
+
+DatabaseGateway
+
+Padroniza entrada e saída
+
+ExpenseRepository
+
+Implementa os contratos do domínio
+
+Domínio
+
+Entidades e regras de negócio
+
+Interface do gateway
+Implementação Supabase
+Repository do domínio
+Se amanhã trocar Supabase por PostgreSQL puro, PlanetScale ou MongoDB:
+
+o domínio permanece intacto;
+
+os use cases permanecem intactos;
+
+os DTOs permanecem intactos;
+
+você troca apenas SupabaseGateway e os adapters de infraestrutura.
+
+Entidades vs DTOs
+Entidade
+
+DTO
+
+Representa o domínio
+
+Representa transporte de dados
+
+Pode ter regras de negócio
+
+Não deve ter lógica
+
+Imutável quando possível
+
+Estrutura simples
+
+Ex.: Expense
+
+Ex.: CreateExpenseDTO
+
+Exemplo de entidade
+Use Case
+Autenticação
+Para um produto público
+Recomendado
+Auth.js (NextAuth) no Next.js
+
+Login com Google
+
+Login com GitHub
+
+Login com Microsoft
+
+Magic Link opcional
+
+Importante
+não acople o domínio ao provedor de autenticação;
+
+crie uma interface AuthProvider;
+
+mantenha apenas userId no domínio.
+
+UI/UX — o que eu faria
+Dashboard
+Resumo do mês
+
+Gastos por categoria
+
+Tendência vs mês anterior
+
+Saldo projetado
+
+Cadastro rápido
+Modal com Command Palette
+
+Atalho Ctrl/Cmd + K
+
+Autocomplete de categoria
+
+Detecção automática de valor
+
+Mobile first
+Bottom navigation
+
+Botão flutuante “Adicionar gasto”
+
+Gestos de swipe
+
+Acessibilidade
+Contraste AA
+
+Navegação por teclado
+
+ARIA labels
+
+Feedback de loading e erro
+
+Stack técnica sugerida
+Camada
+
+Tecnologia
+
+Framework
+
+
+Linguagem
+
+
+UI
+
+ + 
+
+Validação
+
+
+Estado
+
+ + Zustand (se necessário)
+
+Auth
+
+
+Banco inicial
+
+
+Logs
+
+
+Observabilidade
+
+ / OpenTelemetry
+
+Contrato de resposta da API
+Padronize tudo:
+
+Sucesso
+200
+Erro
+4xx / 5xx
+Roadmap de implementação
+Ordem prática
+MVP → Produção
+1
+Domínio
+
+Entidades, interfaces e erros
+
+2
+Use Cases
+
+Criar, listar, editar e remover gastos
+
+3
+SupabaseGateway
+
+Implementação concreta do gateway
+
+4
+Repositories
+
+Adapters de persistência
+
+5
+Auth.js + OAuth
+
+Google, GitHub e Microsoft
+
+6
+UI do dashboard
+
+Métricas, gráficos e navegação
+
+7
+Relatórios e filtros
+
+Períodos, categorias e exportação
+
+8
+Testes, observabilidade e deploy
+
+Cobertura crítica, logs, Sentry e Vercel
+
+Decisão principal: correta
+Monólito Next.js + arquitetura hexagonal + gateway de banco desacoplado é uma escolha muito sólida para um SaaS de gestão financeira.
+
+Você mantém simplicidade operacional, mas preserva evolução futura (troca de banco, extração de microsserviços, filas, cache, etc.) sem reescrever o núcleo da aplicação.
+
+Se quiser, posso te entregar um boilerplate inicial em Next 15 + TypeScript + arquitetura hexagonal com Auth.js, SupabaseGateway, ExpenseRepository, DTOs, Use Cases e tratamento de erros padronizado, já estruturado para servir como base do projeto.
+
+
+me ajude a iniciar o projeto, vc vai ser meu copiloto nesse projeto, ajudando com o básico
+
+Sim. Eu começaria literalmente do zero e faria isso em etapas. O objetivo da primeira etapa não é implementar funcionalidades, mas criar uma base sólida.
+
+Etapa 1 — Criar o projeto
+Eu utilizaria:
+
+Next.js 15+ (App Router)
+
+TypeScript
+
+React 19
+
+Turbopack (desenvolvimento)
+
+ESLint
+
+Tailwind CSS v4
+
+pnpm (minha recomendação, pela velocidade e gerenciamento de dependências)
+
+Comando:
+
+pnpm create next-app@latest spendly
+Durante o assistente, escolheria:
+
+✔ TypeScript? → Yes
+✔ ESLint? → Yes
+✔ Tailwind CSS? → Yes
+✔ src/ directory? → Yes
+✔ App Router? → Yes
+✔ Turbopack? → Yes
+✔ Import alias? → Yes
+✔ Alias? → @/*
+Depois:
+
+cd spendly
+Antes de instalar qualquer biblioteca
+Eu faria um primeiro commit.
+
+git init
+git add .
+git commit -m "chore: initial Next.js setup"
+Assim temos um ponto de retorno limpo.
+
+Estrutura inicial
+Eu não criaria todas as pastas de uma vez.
+
+Criaria apenas o que realmente será usado.
+
+src/
+│
+├── app/
+│
+├── modules/
+│
+├── core/
+│
+├── infra/
+│
+├── config/
+│
+└── styles/
+E deixaria o restante nascer conforme a necessidade.
+
+Alias do TypeScript
+No tsconfig.json:
+
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@core/*": ["./src/core/*"],
+      "@modules/*": ["./src/modules/*"],
+      "@infra/*": ["./src/infra/*"],
+      "@config/*": ["./src/config/*"]
+    }
+  }
+}
+Assim evitamos imports enormes.
+
+Próximas dependências
+Depois do projeto criado, eu instalaria apenas as ferramentas de base:
+
+pnpm add zod
+pnpm add clsx
+pnpm add tailwind-merge
+pnpm add class-variance-authority
+pnpm add lucide-react
+Essas praticamente todo projeto moderno usa.
+
+Depois as de desenvolvimento:
+
+pnpm add -D prettier
+pnpm add -D prettier-plugin-tailwindcss
+pnpm add -D husky
+pnpm add -D lint-staged
+pnpm add -D @commitlint/cli
+pnpm add -D @commitlint/config-conventional
+Nada de instalar 50 bibliotecas antes de precisar delas.
+
+O que eu não instalaria agora
+Ainda não:
+
+Auth.js
+
+Supabase
+
+React Query
+
+Zustand
+
+TanStack Table
+
+Chart.js
+
+Recharts
+
+React Hook Form
+
+Essas entram quando houver um caso de uso concreto.
+
+Nosso primeiro objetivo
+Quero chegar em algo assim:
+
+src/
+
+app/
+    layout.tsx
+    page.tsx
+
+modules/
+
+core/
+
+infra/
+
+config/
+Sem nenhuma lógica de negócio ainda.
+
+Um detalhe importante
+Quero definir uma convenção desde o início.
+
+Nunca criaremos pastas por tecnologia.
+
+Por exemplo, não teremos:
+
+components/
+hooks/
+services/
+utils/
+repositories/
+na raiz.
+
+Em vez disso:
+
+modules/
+
+    expenses/
+
+    accounts/
+
+    dashboard/
+
+    auth/
+Cada módulo é responsável pelos seus componentes, hooks, casos de uso e infraestrutura. Isso reduz o acoplamento e facilita a manutenção.
+
+Nosso plano para a próxima etapa
+Depois que o projeto estiver criado e subir corretamente com pnpm dev, a próxima tarefa será configurar a qualidade do projeto:
+
+Prettier
+
+Organização de imports
+
+Husky + lint-staged
+
+Commitlint (Conventional Commits)
+
+Variáveis de ambiente
+
+Sistema de configuração (src/config)
+
+Estrutura base da arquitetura hexagonal
+
+Só depois disso começaremos a implementar autenticação e o primeiro módulo (auth ou expenses).
+
+Acho que esse ritmo é o ideal: uma fundação pequena, mas bem definida, antes de adicionar funcionalidades.
+
+
+show, vamos para a proxima etapa então 
+
+Nosso plano para a próxima etapa
+
+Depois que o projeto estiver criado e subir corretamente com pnpm dev, a próxima tarefa será configurar a qualidade do projeto:
+
+Prettier
+Organização de imports
+Husky + lint-staged
+Commitlint (Conventional Commits)
+Variáveis de ambiente
+Sistema de configuração (src/config)
+Estrutura base da arquitetura hexagonal
+
+Só depois disso começaremos a implementar autenticação e o primeiro módulo (auth ou expenses).
+
+Acho que esse ritmo é o ideal: uma fundação pequena, mas bem definida, antes de adicionar funcionalidades.
+
+Ótimo. Essa é a etapa que mais influencia a qualidade do projeto a longo prazo. Vou sugerir uma sequência um pouco diferente da anterior para reduzir retrabalho.
+
+Etapa 2 — Fundação do projeto
+Vamos dividir em blocos.
+
+1. Qualidade de código
+2. Git
+3. Configuração
+4. Estrutura
+5. Core
+1) Qualidade de código
+Prettier
+pnpm add -D prettier prettier-plugin-tailwindcss
+.prettierrc
+
+{
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "plugins": ["prettier-plugin-tailwindcss"]
+}
+.prettierignore
+
+.next
+node_modules
+coverage
+dist
+pnpm-lock.yaml
+ESLint
+O Next já vem configurado.
+
+Eu só adicionaria regras aos poucos. É comum exagerar aqui e acabar brigando com o linter.
+
+Organização de imports
+Eu gosto do eslint-plugin-simple-import-sort.
+
+pnpm add -D eslint-plugin-simple-import-sort
+Depois configuramos o eslint.config.mjs.
+
+Exemplo:
+
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+
+export default [
+  // configuração do Next
+  {
+    plugins: {
+      'simple-import-sort': simpleImportSort,
+    },
+    rules: {
+      'simple-import-sort/imports': 'error',
+      'simple-import-sort/exports': 'error',
+    },
+  },
+];
+Assim os imports ficam sempre organizados automaticamente.
+
+2) Git
+Husky
+pnpm add -D husky lint-staged
+pnpm exec husky init
+package.json
+{
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
+.husky/pre-commit
+
+pnpm lint-staged
+Commitlint
+pnpm add -D @commitlint/cli @commitlint/config-conventional
+commitlint.config.js
+
+export default {
+  extends: ['@commitlint/config-conventional'],
+};
+.husky/commit-msg
+
+pnpm commitlint --edit "$1"
+Agora só aceita commits como:
+
+feat: create expense module
+
+fix: login redirect
+
+refactor: move repositories
+
+docs: update readme
+
+test: add expense tests
+
+chore: configure prettier
+3) Variáveis de ambiente
+Aqui eu faria diferente da maioria.
+
+Criaria uma camada de configuração.
+
+src/
+
+config/
+
+    env.ts
+Não usaríamos process.env espalhado pelo projeto.
+
+Sempre:
+
+env.AUTH_SECRET
+
+env.SUPABASE_URL
+Usando Zod.
+
+pnpm add zod
+Depois:
+
+import { z } from 'zod';
+
+export const env = z
+  .object({
+    NODE_ENV: z.enum([
+      'development',
+      'production',
+      'test',
+    ]),
+
+    NEXT_PUBLIC_APP_URL: z.string(),
+
+    AUTH_SECRET: z.string(),
+  })
+  .parse(process.env);
+Se esquecer uma variável, a aplicação quebra logo no startup.
+
+Muito melhor do que descobrir em produção.
+
+Estrutura
+Agora sim criaria a estrutura definitiva.
+
+src/
+
+app/
+
+modules/
+
+core/
+
+infra/
+
+config/
+Dentro do core:
+
+core/
+
+errors/
+
+types/
+
+database/
+
+logger/
+Logger
+Mesmo sem usar ainda.
+
+core/
+
+logger/
+
+Logger.ts
+
+ConsoleLogger.ts
+No futuro podemos trocar por Pino sem alterar a aplicação.
+
+Errors
+core/errors/
+
+AppError.ts
+
+ValidationError.ts
+
+UnauthorizedError.ts
+
+NotFoundError.ts
+
+ConflictError.ts
+Todo erro do sistema deriva de AppError.
+
+Nunca lançar Error diretamente.
+
+Types
+Evitar colocar interfaces de domínio aqui.
+
+Aqui entram apenas tipos realmente compartilhados.
+
+Exemplo:
+
+UUID
+
+Nullable
+
+Optional
+
+Pagination
+Database
+Ainda sem Supabase.
+
+Apenas:
+
+core/database/
+
+DatabaseClient.ts
+Uma interface.
+
+Nada mais.
+
+5) Primeira arquitetura
+modules/
+
+auth/
+
+expenses/
+
+dashboard/
+
+accounts/
+
+categories/
+Cada módulo começa vazio.
+
+O que NÃO criar agora
+Não faria ainda:
+
+services/
+
+helpers/
+
+utils/
+
+contexts/
+
+providers/
+
+hooks/
+na raiz.
+
+Essas pastas quase sempre viram depósitos de código sem dono.
+
+README
+Eu escreveria um README técnico desde o primeiro dia.
+
+Arquitetura
+
+Como rodar
+
+Padrões
+
+Estrutura
+
+Fluxo
+
+Convenções
+É uma documentação viva e ajuda muito quando o projeto cresce.
+
+Minha única sugestão diferente
+Em vez de começar pelo módulo expenses, eu começaria pelo auth.
+
+Motivos:
+
+Toda entidade dependerá de um usuário.
+
+Precisamos definir como obter o currentUser.
+
+Precisamos decidir como representar identidade no domínio.
+
+Depois disso, todos os módulos já nascem multiusuário.
+
+A ordem que eu seguiria seria:
+
+Fundação
+        ↓
+Auth
+        ↓
+Users
+        ↓
+Accounts
+        ↓
+Categories
+        ↓
+Expenses
+        ↓
+Dashboard
+        ↓
+Reports
+Assim, quando chegarmos ao módulo de despesas, já teremos autenticação, contexto do usuário, contratos de persistência e infraestrutura definidos. A implementação das funcionalidades fica muito mais linear e evita refatorações desnecessárias.
+
+
+assim?
+dan@homelab:~/Projects/hermes$ ls -la
+total 196
+drwxr-xr-x. 1 dan dan    338 Jul 10 16:04 .
+drwxr-xr-x. 1 dan dan     12 Jul 10 15:53 ..
+-rw-r--r--. 1 dan dan    465 Jul 10 15:53 eslint.config.mjs
+drwxr-xr-x. 1 dan dan     92 Jul 10 15:53 .git
+-rw-r--r--. 1 dan dan    480 Jul 10 15:53 .gitignore
+drwxr-xr-x. 1 dan dan      6 Jul 10 16:01 .next
+-rw-r--r--. 1 dan dan    133 Jul 10 15:53 next.config.ts
+-rw-r--r--. 1 dan dan    251 Jul 10 16:01 next-env.d.ts
+drwxr-xr-x. 1 dan dan    536 Jul 10 16:04 node_modules
+-rw-r--r--. 1 dan dan    886 Jul 10 15:59 package.json
+-rw-r--r--. 1 dan dan 162036 Jul 10 16:04 pnpm-lock.yaml
+-rw-r--r--. 1 dan dan    145 Jul 10 15:53 pnpm-workspace.yaml
+-rw-r--r--. 1 dan dan     94 Jul 10 15:53 postcss.config.mjs
+drwxr-xr-x. 1 dan dan     90 Jul 10 15:53 public
+-rw-r--r--. 1 dan dan   1450 Jul 10 15:53 README.md
+drwxr-xr-x. 1 dan dan     62 Jul 10 15:54 src
+-rw-r--r--. 1 dan dan    825 Jul 10 15:56 tsconfig.json
+dan@homelab:~/Projects/hermes$ find .prettierrc
+find: ‘.prettierrc’: No such file or directory
+dan@homelab:~/Projects/hermes$ nano .prettierrc
+dan@homelab:~/Projects/hermes$ nano .prettierignore
+dan@homelab:~/Projects/hermes$ ls -la
+total 204
+drwxr-xr-x. 1 dan dan    390 Jul 10 16:08 .
+drwxr-xr-x. 1 dan dan     12 Jul 10 15:53 ..
+-rw-r--r--. 1 dan dan    465 Jul 10 15:53 eslint.config.mjs
+drwxr-xr-x. 1 dan dan     92 Jul 10 15:53 .git
+-rw-r--r--. 1 dan dan    480 Jul 10 15:53 .gitignore
+drwxr-xr-x. 1 dan dan      6 Jul 10 16:01 .next
+-rw-r--r--. 1 dan dan    133 Jul 10 15:53 next.config.ts
+-rw-r--r--. 1 dan dan    251 Jul 10 16:01 next-env.d.ts
+drwxr-xr-x. 1 dan dan    536 Jul 10 16:04 node_modules
+-rw-r--r--. 1 dan dan    886 Jul 10 15:59 package.json
+-rw-r--r--. 1 dan dan 162036 Jul 10 16:04 pnpm-lock.yaml
+-rw-r--r--. 1 dan dan    145 Jul 10 15:53 pnpm-workspace.yaml
+-rw-r--r--. 1 dan dan     94 Jul 10 15:53 postcss.config.mjs
+-rw-r--r--. 1 dan dan     48 Jul 10 16:08 .prettierignore
+-rw-r--r--. 1 dan dan    114 Jul 10 16:07 .prettierrc
+drwxr-xr-x. 1 dan dan     90 Jul 10 15:53 public
+-rw-r--r--. 1 dan dan   1450 Jul 10 15:53 README.md
+drwxr-xr-x. 1 dan dan     62 Jul 10 15:54 src
+-rw-r--r--. 1 dan dan    825 Jul 10 15:56 tsconfig.json
+dan@homelab:~/Projects/hermes$ 
+
+Sim. Está no caminho certo. Eu só faria alguns ajustes antes de continuarmos.
+
+1. O nome do projeto
+Percebi que você criou o projeto como hermes.
+
+Eu gosto desse nome. Inclusive faz sentido (Hermes = mensageiro, comunicação, velocidade), mas ele não comunica o domínio financeiro.
+
+Tem duas opções:
+
+Hermes → nome interno do projeto (eu gosto bastante)
+
+Spendly → nome comercial/SaaS
+
+É comum manter:
+
+Repositório: hermes
+
+Produto: Spendly
+ou vice-versa.
+
+2. Estrutura inicial
+Vamos criar as pastas base.
+
+mkdir -p src/{config,core,infra,modules}
+Depois:
+
+mkdir -p src/core/{errors,types,logger,database}
+Resultado:
+
+src/
+
+app/
+config/
+core/
+    database/
+    errors/
+    logger/
+    types/
+infra/
+modules/
+3. tsconfig
+Vamos melhorar os aliases.
+
+{
+  "compilerOptions": {
+    ...
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@core/*": ["src/core/*"],
+      "@infra/*": ["src/infra/*"],
+      "@modules/*": ["src/modules/*"],
+      "@config/*": ["src/config/*"]
+    }
+  }
+}
+Isso evita imports como:
+
+../../../../../core/errors
+4. package.json
+Quero adicionar alguns scripts desde o início.
+
+{
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+
+    "typecheck": "tsc --noEmit"
+  }
+}
+Sempre teremos três verificações importantes:
+
+lint
+
+prettier
+
+typecheck
+
+5. Estrutura do domínio
+Ainda não implementaremos nada, mas já criaremos o primeiro módulo.
+
+mkdir -p src/modules/auth
+Só isso.
+
+Sem arquivos ainda.
+
+6. Um detalhe importante que muda bastante a arquitetura
+Aqui eu quero propor uma mudança em relação ao que falamos antes.
+
+Em vez de:
+
+core/
+infra/
+modules/
+eu faria:
+
+src/
+
+app/
+
+modules/
+
+shared/
+
+config/
+Dentro de shared:
+
+shared/
+
+database/
+errors/
+logger/
+types/
+lib/
+Por quê?
+Porque core costuma virar uma caixa-preta.
+
+Já shared deixa claro que aquilo é compartilhado entre módulos.
+
+E tudo que estiver em shared deve ser realmente reutilizável.
+
+Os módulos continuam independentes.
+
+Exemplo:
+
+modules/
+
+auth/
+
+expenses/
+
+categories/
+
+accounts/
+Cada um possui:
+
+application
+
+domain
+
+infrastructure
+
+presentation
+
+Essa organização escala muito bem.
+
+7. A decisão mais importante do projeto
+Gostaria de definir uma regra agora para evitar problemas no futuro.
+
+Os módulos nunca importam uns dos outros.
+Exemplo proibido:
+
+import { ExpenseRepository } from '@/modules/expenses/...';
+dentro de
+
+modules/auth
+Isso cria acoplamento.
+
+Em vez disso, se dois módulos precisarem compartilhar algo:
+
+shared/
+ou
+
+interfaces.
+
+O próximo passo
+Depois dessa estrutura, eu partiria imediatamente para configurar o Auth.js, antes do banco.
+
+Pode parecer estranho, mas a autenticação define toda a arquitetura do restante do sistema:
+
+Usuário
+      ↓
+Sessão
+      ↓
+Permissões
+      ↓
+Conta
+      ↓
+Categorias
+      ↓
+Despesas
+Quando o módulo de despesas nascer, ele já vai saber quem é o usuário, sem precisar de nenhuma refatoração.
+
+Uma observação
+Eu também mudaria uma coisa que mencionei anteriormente: não criaria um DatabaseClient agora.
+
+Primeiro definimos o domínio (Auth, User, contratos e casos de uso). Só depois escolhemos como persisti-lo (Supabase). Isso evita que a infraestrutura dite o formato da aplicação, preservando a ideia da arquitetura hexagonal. Esse é um dos princípios que quero manter durante todo o projeto.
+
+

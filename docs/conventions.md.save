@@ -1,0 +1,139 @@
+# Hermes - Coding Conventions
+
+> Este documento define os padrões de desenvolvimento do projeto Hermes.
+>
+> Todas as contribuições devem seguir estas convenções.
+
+---
+
+# Filosofia
+
+O código deve ser:
+
+- simples;
+- legível;
+- previsível;
+- testável;
+- consistente.
+
+Sempre priorizamos clareza em vez de "código inteligente".
+
+---
+
+# Clean Code
+
+Todo código deve seguir os princípios do Clean Code.
+
+- funções pequenas;
+- nomes descritivos;
+- responsabilidade única;
+- baixo acoplamento;
+- alta coesão.
+
+---
+
+# SOLID
+
+Sempre que aplicável:
+
+- Single Responsibility
+- Open/Closed
+- Liskov Substitution
+- Interface Segregation
+- Dependency Inversion
+
+---
+
+# Estrutura de Pastas
+
+Cada módulo possuí sua própria organização.
+
+Exemplo:
+
+modules/
+
+expenses/
+
+application/
+components/
+repositories/
+schemas/
+types/
+
+---
+
+# Organização dos Arquivos
+
+Um arquivo deve possuir apenas uma responsabilidade.
+
+Evitar arquivos com centenas de linhas.
+
+---
+
+# Nome de Arquivos
+
+Componentes:
+
+Button.tsx
+
+ExpenseCard.tsx
+
+DashboardLayout.tsx
+
+---
+
+Use Cases:
+
+create-expense.use-case.ts
+
+delete-expense.use-case.ts
+
+transfer-money.use-case.ts
+
+---
+
+Repositories:
+
+expense.repository.ts
+
+user.repository.ts
+
+---
+
+Adapters:
+
+drizzle-expense.repository.ts
+
+clerk-auth.adapter.ts
+
+---
+
+Schemas:
+
+expense.schema.ts
+
+login.schema.ts
+
+---
+
+Hooks:
+
+use-expenses.ts
+
+use-sidebar.ts
+
+---
+
+Utils:
+
+format-currency.ts
+
+format-date.ts
+
+slugify.ts
+
+---
+
+# Componentes
+
+Componentes devem ser pequenos
