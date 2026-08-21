@@ -92,6 +92,7 @@ export default async function DashboardPage() {
     1,
     ...summary.cashFlow.map((m) => Math.max(m.income, m.expense)),
   );
+  const today = new Date();
 
   return (
     <AppShell>
@@ -212,6 +213,7 @@ export default async function DashboardPage() {
                     const day = String(date.getDate()).padStart(2, '0');
                     return `${year}-${month}-${day}`;
                   };
+                  const linkEnd = monthEnd > today ? today : monthEnd;
 
                   return (
                     <div
@@ -220,7 +222,7 @@ export default async function DashboardPage() {
                     >
                       <div className="flex h-40 w-full items-end gap-1">
                         <Link
-                          href={`${ROUTES.transactions}?from=${toDateParam(monthStart)}&to=${toDateParam(monthEnd)}&type=income`}
+                          href={`${ROUTES.transactions}?from=${toDateParam(monthStart)}&to=${toDateParam(linkEnd)}&type=income`}
                           className="bg-success hover:bg-success/80 focus-visible:ring-ring flex-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                           style={{
                             height: `${(month.income / maxFlow) * 100}%`,
@@ -229,7 +231,7 @@ export default async function DashboardPage() {
                           aria-label={`Ver receitas de ${formatMonthLabel(month.month)}: ${formatCurrency(month.income)}`}
                         />
                         <Link
-                          href={`${ROUTES.transactions}?from=${toDateParam(monthStart)}&to=${toDateParam(monthEnd)}&type=expense`}
+                          href={`${ROUTES.transactions}?from=${toDateParam(monthStart)}&to=${toDateParam(linkEnd)}&type=expense`}
                           className="bg-destructive hover:bg-destructive/80 focus-visible:ring-ring flex-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                           style={{
                             height: `${(month.expense / maxFlow) * 100}%`,
