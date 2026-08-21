@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ROUTES } from '@/config/routes';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
@@ -34,18 +35,36 @@ export default async function DashboardPage() {
   if (summary.accounts.length === 0) {
     return (
       <AppShell>
-        <Card className="flex flex-col items-center gap-3 p-12 text-center">
-          <CardTitle>Nenhuma conta cadastrada.</CardTitle>
-          <CardDescription>
-            Crie sua primeira conta para começar a acompanhar suas finanças.
-          </CardDescription>
-          <Link
-            href={ROUTES.accounts}
-            className="bg-primary text-primary-foreground mt-2 rounded-md px-4 py-2 text-sm font-medium"
+        <div className="relative">
+          <div
+            aria-hidden
+            className="pointer-events-none space-y-6 opacity-20 blur-[1px]"
           >
-            Criar primeira conta
-          </Link>
-        </Card>
+            <div className="ledger-spine rounded-xl border p-6 sm:p-8">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="mt-3 h-12 w-64" />
+              <div className="mt-6 grid grid-cols-3 gap-4 border-t pt-6">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </div>
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Card className="flex flex-col items-center gap-3 p-12 text-center shadow-lg">
+              <CardTitle>Nenhuma conta cadastrada.</CardTitle>
+              <CardDescription>
+                Crie sua primeira conta para começar a acompanhar suas finanças.
+              </CardDescription>
+              <Link
+                href={ROUTES.accounts}
+                className="bg-primary text-primary-foreground mt-2 rounded-md px-4 py-2 text-sm font-medium"
+              >
+                Criar primeira conta
+              </Link>
+            </Card>
+          </div>
+        </div>
       </AppShell>
     );
   }
