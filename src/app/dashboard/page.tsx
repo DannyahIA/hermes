@@ -176,30 +176,51 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent className="mt-6 p-0">
               <div className="bg-muted/50 flex h-56 items-end gap-3 rounded-md p-4">
-                {summary.cashFlow.map((month) => (
-                  <div
-                    key={month.month.toISOString()}
-                    className="flex flex-1 flex-col items-center gap-1"
-                  >
-                    <div className="flex h-40 w-full items-end gap-1">
-                      <div
-                        className="bg-success flex-1"
-                        style={{ height: `${(month.income / maxFlow) * 100}%` }}
-                        title={`Receitas: ${formatCurrency(month.income)}`}
-                      />
-                      <div
-                        className="bg-destructive flex-1"
-                        style={{
-                          height: `${(month.expense / maxFlow) * 100}%`,
-                        }}
-                        title={`Despesas: ${formatCurrency(month.expense)}`}
-                      />
+                {summary.cashFlow.map((month) => {
+                  const monthStart = new Date(
+                    month.month.getFullYear(),
+                    month.month.getMonth(),
+                    1,
+                  );
+                  const monthEnd = new Date(
+                    month.month.getFullYear(),
+                    month.month.getMonth() + 1,
+                    0,
+                  );
+                  const toDateParam = (date: Date) =>
+                    date.toISOString().slice(0, 10);
+
+                  return (
+                    <div
+                      key={month.month.toISOString()}
+                      className="flex flex-1 flex-col items-center gap-1"
+                    >
+                      <div className="flex h-40 w-full items-end gap-1">
+                        <Link
+                          href={`${ROUTES.transactions}?from=${toDateParam(monthStart)}&to=${toDateParam(monthEnd)}&type=income`}
+                          className="bg-success hover:bg-success/80 focus-visible:ring-ring flex-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                          style={{
+                            height: `${(month.income / maxFlow) * 100}%`,
+                          }}
+                          title={`Receitas: ${formatCurrency(month.income)} — clique para ver as transações`}
+                          aria-label={`Ver receitas de ${formatMonthLabel(month.month)}: ${formatCurrency(month.income)}`}
+                        />
+                        <Link
+                          href={`${ROUTES.transactions}?from=${toDateParam(monthStart)}&to=${toDateParam(monthEnd)}&type=expense`}
+                          className="bg-destructive hover:bg-destructive/80 focus-visible:ring-ring flex-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                          style={{
+                            height: `${(month.expense / maxFlow) * 100}%`,
+                          }}
+                          title={`Despesas: ${formatCurrency(month.expense)} — clique para ver as transações`}
+                          aria-label={`Ver despesas de ${formatMonthLabel(month.month)}: ${formatCurrency(month.expense)}`}
+                        />
+                      </div>
+                      <span className="font-display text-muted-foreground text-xs capitalize">
+                        {formatMonthLabel(month.month)}
+                      </span>
                     </div>
-                    <span className="font-display text-muted-foreground text-xs capitalize">
-                      {formatMonthLabel(month.month)}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="text-muted-foreground mt-3 flex items-center gap-4 text-xs">
                 <span className="flex items-center gap-1.5">
