@@ -87,6 +87,24 @@ export default async function DashboardPage() {
             {formatCurrency(summary.netWorth)}
           </p>
 
+          {(() => {
+            const projectedTotal = summary.accountBalances
+              .filter(({ account }) => !account.hidden)
+              .reduce((sum, { projectedBalance }) => sum + projectedBalance, 0);
+            const difference = projectedTotal - summary.netWorth;
+
+            if (difference <= 0) return null;
+
+            return (
+              <p className="text-muted-foreground mt-1 text-sm">
+                Projetado (com compromissos futuros):{' '}
+                <span className="ledger-figure font-medium">
+                  {formatCurrency(projectedTotal)}
+                </span>
+              </p>
+            );
+          })()}
+
           <div className="border-border mt-6 grid grid-cols-1 gap-4 border-t pt-6 sm:grid-cols-3">
             {subStats.map((stat) => (
               <div key={stat.label}>
@@ -103,6 +121,38 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
+
+          {summary.futureTransactions.length > 0 && (
+            <div className="border-border mt-4 border-t pt-4">
+              <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
+                Compromissos futuros
+              </p>
+              <ul className="space-y-1">
+                {Object.entries(
+                  summary.futureTransactions.reduce<Record<string, number>>(
+                    (groups, t) => {
+                      const label = t.description.replace(
+                        /\s*\(\d+\/\d+\)$/,
+                        '',
+                      );
+                      groups[label] = (groups[label] ?? 0) + t.amount;
+                      return groups;
+                    },
+                    {},
+                  ),
+                )
+                  .slice(0, 5)
+                  .map(([label, total]) => (
+                    <li key={label} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{label}</span>
+                      <span className="ledger-figure">
+                        {formatCurrency(total)}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
         </Card>
 
         <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
