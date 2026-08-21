@@ -14,6 +14,13 @@ const VIEW_MODE_LABELS: Record<TransactionViewMode, string> = {
   grouped_by_month: 'Por mês',
 };
 
+/** The full set of valid modes — the single source of truth other modules
+ * (e.g. `preferences-actions.ts`'s validation, `page.tsx`'s read-side guard)
+ * reuse instead of redefining the union. */
+export const TRANSACTION_VIEW_MODES = Object.keys(
+  VIEW_MODE_LABELS,
+) as TransactionViewMode[];
+
 interface ViewModeSelectorProps {
   value: TransactionViewMode;
 }

@@ -8,7 +8,11 @@ import { TransactionForm } from '@/app/transactions/transaction-form';
 import { TransactionList } from '@/app/transactions/transaction-list';
 import { TransactionsFilters } from '@/app/transactions/transactions-filters';
 import { TransferForm } from '@/app/transactions/transfer-form';
-import { ViewModeSelector } from '@/app/transactions/view-mode-selector';
+import {
+  TRANSACTION_VIEW_MODES,
+  type TransactionViewMode,
+  ViewModeSelector,
+} from '@/app/transactions/view-mode-selector';
 import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,12 +29,19 @@ import { DrizzleInstallmentPlanRepository } from '@/infra/repositories/drizzle-i
 import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { DrizzleViewPreferenceRepository } from '@/infra/repositories/drizzle-view-preference.repository';
-import { GetAccountsUseCase } from '@/modules/accounts/application/get-accounts.use-case';
 import { GetInstallmentPlansUseCase } from '@/modules/installments/application/get-installment-plans.use-case';
 import { GetViewPreferenceUseCase } from '@/modules/preferences/application/get-view-preference.use-case';
 import { GetRecurringTransactionsUseCase } from '@/modules/recurring-transactions/application/get-recurring-transactions.use-case';
 import { GetTransactionsUseCase } from '@/modules/transactions/application/get-transactions.use-case';
 import { encodeTransactionCursor } from '@/shared/lib/transaction-cursor';
+
+/** Defends against a stored view-preference value written by a future
+ * version of the app with a mode this version doesn't know, or genuinely
+ * corrupted data — falls back to the default rather than trusting an
+ * unsafe cast. */
+function isTransactionViewMode(value: string): value is TransactionViewMode {
+  return (TRANSACTION_VIEW_MODES as readonly string[]).includes(value);
+}
 
 interface TransactionsPageProps {
   searchParams: Promise<{
@@ -49,16 +60,13 @@ export default async function TransactionsPage({
   const filters = await searchParams;
 
   const [
-    accountsWithBalances,
+    accounts,
     categories,
     installmentPlans,
     recurringTransactions,
     rawViewMode,
   ] = await Promise.all([
-    new GetAccountsUseCase(
-      new DrizzleAccountRepository(),
-      new DrizzleTransactionRepository(),
-    ).execute(userId),
+    new DrizzleAccountRepository().findByUserId(userId),
     new DrizzleCategoryRepository().findByUserId(userId),
     new GetInstallmentPlansUseCase(
       new DrizzleInstallmentPlanRepository(),
@@ -72,8 +80,9 @@ export default async function TransactionsPage({
       'chronological',
     ),
   ]);
-  const viewMode = rawViewMode as
-    'chronological' | 'grouped_by_category' | 'grouped_by_month';
+  const viewMode = isTransactionViewMode(rawViewMode)
+    ? rawViewMode
+    : 'chronological';
 
   // Fetch one extra row to know whether a next page exists, without a
   // separate COUNT query — a simple, cheap cursor-pagination pattern.
@@ -111,7 +120,6 @@ export default async function TransactionsPage({
   if (filters.from) filterParams.set('from', filters.from);
   if (filters.to) filterParams.set('to', filters.to);
 
-  const accounts = accountsWithBalances.map(({ account }) => account);
   const accountsById = new Map(
     accounts.map((account) => [account.id, account]),
   );

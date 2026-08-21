@@ -15,7 +15,6 @@ import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleInstallmentPlanRepository } from '@/infra/repositories/drizzle-installment-plan.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
-import { GetAccountsUseCase } from '@/modules/accounts/application/get-accounts.use-case';
 import { GetInstallmentPlansUseCase } from '@/modules/installments/application/get-installment-plans.use-case';
 
 export default async function LoansPage() {
@@ -24,15 +23,12 @@ export default async function LoansPage() {
   const accountRepository = new DrizzleAccountRepository();
   const transactionRepository = new DrizzleTransactionRepository();
 
-  const [accountsWithBalances, plans] = await Promise.all([
-    new GetAccountsUseCase(accountRepository, transactionRepository).execute(
-      userId,
-    ),
+  const [accounts, plans] = await Promise.all([
+    accountRepository.findByUserId(userId),
     new GetInstallmentPlansUseCase(
       new DrizzleInstallmentPlanRepository(),
     ).execute(userId),
   ]);
-  const accounts = accountsWithBalances.map(({ account }) => account);
 
   const loans = plans.filter((plan) => plan.kind === 'loan');
   const accountById = new Map(accounts.map((account) => [account.id, account]));
