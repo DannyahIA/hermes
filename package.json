@@ -7,15 +7,27 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/infra/database/migrate.ts",
+    "db:seed": "tsx src/infra/database/seed.ts",
+    "db:studio": "drizzle-kit studio",
     "prepare": "husky"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "^3.14.10",
+    "better-auth": "1.6.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "drizzle-orm": "0.45.2",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
+    "postgres": "3.4.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "resend": "^6.20.0",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
@@ -26,6 +38,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "eslint-plugin-simple-import-sort": "^13.0.0",
@@ -34,7 +47,9 @@
     "prettier": "^3.9.5",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.19.2",
+    "typescript": "^5",
+    "vitest": "^3.0.5"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs,cjs}": [
