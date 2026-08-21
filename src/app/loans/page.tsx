@@ -83,7 +83,9 @@ export default async function LoansPage() {
               <CardTitle>Novo empréstimo</CardTitle>
               <CardDescription>
                 Escolha as contas de recebimento e pagamento, o valor e a taxa
-                de juros mensal.
+                de juros mensal. Um empréstimo é como uma compra parcelada, mas
+                com juros aplicados a cada parcela — use a taxa mensal para
+                calcular automaticamente.
               </CardDescription>
             </CardHeader>
             <CardContent className="mt-4 p-0">

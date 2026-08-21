@@ -39,8 +39,8 @@ export default async function BudgetsPage() {
               Orçamentos
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Defina limites por categoria e acompanhe o quanto já foi
-              consumido.
+              Defina quanto pretende gastar em cada categoria e acompanhe seu
+              progresso ao longo do mês.
             </p>
           </div>
         </section>
