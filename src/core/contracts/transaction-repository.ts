@@ -8,6 +8,10 @@ export interface TransactionFilters {
   to?: Date;
   page?: number;
   pageSize?: number;
+  /** Keyset pagination cursor — when set, only rows strictly "older" than
+   * this (occurredAt, id) pair (in the same DESC order the list is sorted
+   * by) are returned. Takes precedence over `page`/`pageSize`'s offset. */
+  cursor?: { occurredAt: Date; id: string };
 }
 
 export interface TransactionRepository {

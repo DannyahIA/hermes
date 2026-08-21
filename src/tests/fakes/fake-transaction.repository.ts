@@ -21,15 +21,18 @@ export class FakeTransactionRepository implements TransactionRepository {
     _userId: string,
     filters: TransactionFilters = {},
   ): Promise<Transaction[]> {
-    return [...this.transactions.values()].filter((t) => {
-      if (filters.accountId && t.accountId !== filters.accountId) return false;
-      if (filters.categoryId && t.categoryId !== filters.categoryId)
-        return false;
-      if (filters.type && t.type !== filters.type) return false;
-      if (filters.from && t.occurredAt < filters.from) return false;
-      if (filters.to && t.occurredAt > filters.to) return false;
-      return true;
-    });
+    return [...this.transactions.values()]
+      .filter((t) => {
+        if (filters.accountId && t.accountId !== filters.accountId)
+          return false;
+        if (filters.categoryId && t.categoryId !== filters.categoryId)
+          return false;
+        if (filters.type && t.type !== filters.type) return false;
+        if (filters.from && t.occurredAt < filters.from) return false;
+        if (filters.to && t.occurredAt > filters.to) return false;
+        return true;
+      })
+      .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
   }
 
   async findByInstallmentPlanId(

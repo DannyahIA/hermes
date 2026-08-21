@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, lte, or } from 'drizzle-orm';
 
 import type {
   TransactionFilters,
@@ -66,17 +66,36 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       conditions.push(gte(transactions.occurredAt, filters.from));
     if (filters.to) conditions.push(lte(transactions.occurredAt, filters.to));
 
-    const pageSize = filters.pageSize ?? 50;
-    const page = filters.page ?? 1;
+    if (filters.cursor) {
+      const { occurredAt, id } = filters.cursor;
+      // Keyset predicate for a DESC/DESC order: strictly older than the
+      // cursor's occurredAt, OR same occurredAt with a strictly smaller id
+      // (the tie-break that makes the sort order total and stable even
+      // when several transactions share a timestamp).
+      conditions.push(
+        or(
+          lt(transactions.occurredAt, occurredAt),
+          and(eq(transactions.occurredAt, occurredAt), lt(transactions.id, id)),
+        )!,
+      );
+    }
 
-    const rows = await this.executor
+    const limit = filters.pageSize ?? 50;
+    const usesOffset = !filters.cursor && filters.page !== undefined;
+
+    let query = this.executor
       .select({ transaction: transactions })
       .from(transactions)
       .innerJoin(accounts, eq(transactions.accountId, accounts.id))
       .where(and(...conditions))
-      .orderBy(desc(transactions.occurredAt))
-      .limit(pageSize)
-      .offset((page - 1) * pageSize);
+      .orderBy(desc(transactions.occurredAt), desc(transactions.id))
+      .limit(limit);
+
+    if (usesOffset) {
+      query = query.offset(((filters.page ?? 1) - 1) * limit) as typeof query;
+    }
+
+    const rows = await query;
 
     return rows.map((row) => toDomain(row.transaction));
   }
