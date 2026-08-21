@@ -4,8 +4,7 @@ import { ImportDialog } from '@/app/transactions/import-dialog';
 import { RecurringTransactionFormDialog } from '@/app/transactions/recurring-transaction-form-dialog';
 import { RecurringTransactionRow } from '@/app/transactions/recurring-transaction-row';
 import { TransactionForm } from '@/app/transactions/transaction-form';
-import { TransactionRow } from '@/app/transactions/transaction-row';
-import { TransactionRowMobile } from '@/app/transactions/transaction-row-mobile';
+import { TransactionList } from '@/app/transactions/transaction-list';
 import { TransactionsFilters } from '@/app/transactions/transactions-filters';
 import { TransferForm } from '@/app/transactions/transfer-form';
 import { AppShell } from '@/components/layout/app-shell';
@@ -17,7 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { PAGE_SIZE } from '@/config/constants';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
@@ -28,6 +26,7 @@ import { GetAccountsUseCase } from '@/modules/accounts/application/get-accounts.
 import { GetInstallmentPlansUseCase } from '@/modules/installments/application/get-installment-plans.use-case';
 import { GetRecurringTransactionsUseCase } from '@/modules/recurring-transactions/application/get-recurring-transactions.use-case';
 import { GetTransactionsUseCase } from '@/modules/transactions/application/get-transactions.use-case';
+import { encodeTransactionCursor } from '@/shared/lib/transaction-cursor';
 
 interface TransactionsPageProps {
   searchParams: Promise<{
@@ -36,7 +35,6 @@ interface TransactionsPageProps {
     type?: string;
     from?: string;
     to?: string;
-    limit?: string;
   }>;
 }
 
@@ -45,8 +43,6 @@ export default async function TransactionsPage({
 }: TransactionsPageProps) {
   const userId = await requireCurrentUserId();
   const filters = await searchParams;
-
-  const limit = Math.max(PAGE_SIZE, Number(filters.limit) || PAGE_SIZE);
 
   const [accounts, categories, installmentPlans, recurringTransactions] =
     await Promise.all([
@@ -61,11 +57,12 @@ export default async function TransactionsPage({
     ]);
 
   // Fetch one extra row to know whether a next page exists, without a
-  // separate COUNT query — a simple, cheap "load more" pattern.
+  // separate COUNT query — a simple, cheap cursor-pagination pattern.
   const from = filters.from ? new Date(`${filters.from}T00:00:00`) : undefined;
   const to = filters.to ? new Date(`${filters.to}T23:59:59.999`) : undefined;
 
-  const page = await new GetTransactionsUseCase(
+  const TRANSACTIONS_PAGE_SIZE = 50;
+  const rawPage = await new GetTransactionsUseCase(
     new DrizzleTransactionRepository(),
   ).execute(userId, {
     accountId: filters.accountId || undefined,
@@ -75,10 +72,18 @@ export default async function TransactionsPage({
       undefined,
     from,
     to,
-    pageSize: limit + 1,
+    pageSize: TRANSACTIONS_PAGE_SIZE + 1,
   });
-  const hasMore = page.length > limit;
-  const transactions = page.slice(0, limit);
+  const hasMore = rawPage.length > TRANSACTIONS_PAGE_SIZE;
+  const transactions = rawPage.slice(0, TRANSACTIONS_PAGE_SIZE);
+  const lastTransaction = transactions.at(-1);
+  const nextCursor =
+    hasMore && lastTransaction
+      ? encodeTransactionCursor({
+          occurredAt: lastTransaction.occurredAt,
+          id: lastTransaction.id,
+        })
+      : null;
 
   const filterParams = new URLSearchParams();
   if (filters.accountId) filterParams.set('accountId', filters.accountId);
@@ -86,9 +91,6 @@ export default async function TransactionsPage({
   if (filters.type) filterParams.set('type', filters.type);
   if (filters.from) filterParams.set('from', filters.from);
   if (filters.to) filterParams.set('to', filters.to);
-
-  const loadMoreParams = new URLSearchParams(filterParams);
-  loadMoreParams.set('limit', String(limit + PAGE_SIZE));
 
   const accountsById = new Map(
     accounts.map((account) => [account.id, account]),
@@ -146,97 +148,40 @@ export default async function TransactionsPage({
                 </CardDescription>
               </div>
             ) : (
-              <>
-                {/* Mobile: stacked ledger rows. Desktop: the full table. */}
-                <div className="divide-border/70 px-4 sm:hidden">
-                  {transactions.map((transaction) => (
-                    <TransactionRowMobile
-                      key={transaction.id}
-                      id={transaction.id}
-                      description={transaction.description}
-                      amount={transaction.amount}
-                      type={transaction.type}
-                      occurredAt={transaction.occurredAt}
-                      accountName={
-                        accountsById.get(transaction.accountId)?.name ?? '—'
-                      }
-                      categoryId={transaction.categoryId}
-                      categoryName={
-                        transaction.categoryId
-                          ? categoriesById.get(transaction.categoryId)?.name
-                          : undefined
-                      }
-                      categories={categoryOptions}
-                      installmentLabel={
-                        transaction.installmentPlanId &&
-                        transaction.installmentNumber
-                          ? `${transaction.installmentNumber}/${installmentCountByPlanId.get(transaction.installmentPlanId) ?? '?'}`
-                          : undefined
-                      }
-                      isRecurring={Boolean(transaction.recurringRuleId)}
-                    />
-                  ))}
-                </div>
-
-                <div className="hidden overflow-x-auto sm:block">
-                  <table className="w-full text-left">
-                    <thead className="border-border/70 border-b">
-                      <tr className="text-muted-foreground text-xs uppercase">
-                        <th className="px-4 py-3 font-medium">Data</th>
-                        <th className="px-4 py-3 font-medium">Descrição</th>
-                        <th className="px-4 py-3 font-medium">Conta</th>
-                        <th className="px-4 py-3 font-medium">Categoria</th>
-                        <th className="px-4 py-3 font-medium">Tipo</th>
-                        <th className="px-4 py-3 text-right font-medium">
-                          Valor
-                        </th>
-                        <th className="px-4 py-3" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {transactions.map((transaction) => (
-                        <TransactionRow
-                          key={transaction.id}
-                          id={transaction.id}
-                          description={transaction.description}
-                          amount={transaction.amount}
-                          type={transaction.type}
-                          occurredAt={transaction.occurredAt}
-                          accountName={
-                            accountsById.get(transaction.accountId)?.name ?? '—'
-                          }
-                          categoryId={transaction.categoryId}
-                          categoryName={
-                            transaction.categoryId
-                              ? categoriesById.get(transaction.categoryId)?.name
-                              : undefined
-                          }
-                          categories={categoryOptions}
-                          installmentLabel={
-                            transaction.installmentPlanId &&
-                            transaction.installmentNumber
-                              ? `${transaction.installmentNumber}/${installmentCountByPlanId.get(transaction.installmentPlanId) ?? '?'}`
-                              : undefined
-                          }
-                          isRecurring={Boolean(transaction.recurringRuleId)}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
+              <TransactionList
+                initial={{
+                  transactions: transactions.map((transaction) => ({
+                    id: transaction.id,
+                    description: transaction.description,
+                    amount: transaction.amount,
+                    type: transaction.type,
+                    occurredAt: transaction.occurredAt.toISOString(),
+                    accountId: transaction.accountId,
+                    accountName:
+                      accountsById.get(transaction.accountId)?.name ?? '—',
+                    categoryId: transaction.categoryId ?? null,
+                    categoryName: transaction.categoryId
+                      ? (categoriesById.get(transaction.categoryId)?.name ??
+                        null)
+                      : null,
+                    installmentPlanId: transaction.installmentPlanId ?? null,
+                    installmentNumber: transaction.installmentNumber ?? null,
+                    recurringRuleId: transaction.recurringRuleId ?? null,
+                  })),
+                  nextCursor,
+                }}
+                filters={{
+                  accountId: filters.accountId,
+                  categoryId: filters.categoryId,
+                  type: filters.type,
+                  from: filters.from,
+                  to: filters.to,
+                }}
+                categories={categoryOptions}
+                installmentCountByPlanId={installmentCountByPlanId}
+              />
             )}
           </Card>
-
-          {hasMore && (
-            <div className="flex justify-center">
-              <Button variant="outline" asChild>
-                <Link href={`?${loadMoreParams.toString()}`}>
-                  Carregar mais
-                </Link>
-              </Button>
-            </div>
-          )}
         </div>
 
         <div className="space-y-6">
