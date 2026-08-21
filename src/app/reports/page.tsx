@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ROUTES } from '@/config/routes';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
@@ -281,15 +282,18 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             </CardHeader>
             <CardContent className="mt-4 p-0">
               {report.budgetsOverview.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  Nenhum orçamento cadastrado.{' '}
-                  <Link
-                    href={ROUTES.budgets}
-                    className="text-foreground underline"
-                  >
-                    Criar orçamento
-                  </Link>
-                </p>
+                <EmptyState
+                  title="Nenhum orçamento cadastrado."
+                  description="Defina limites por categoria para acompanhar seus gastos aqui."
+                  action={
+                    <Link
+                      href={ROUTES.budgets}
+                      className="text-foreground text-sm underline"
+                    >
+                      Criar orçamento
+                    </Link>
+                  }
+                />
               ) : (
                 <div className="space-y-4">
                   {[...overBudget, ...withinBudget].map(

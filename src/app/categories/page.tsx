@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
 import { GetCategoriesUseCase } from '@/modules/categories/application/get-categories.use-case';
@@ -61,18 +62,15 @@ export default async function CategoriesPage() {
 
         <section className="grid gap-4">
           {categories.length === 0 ? (
-            <Card className="border-border/70 bg-card/80 flex flex-col items-center gap-3 p-10 text-center">
-              <p className="text-lg font-semibold">
-                Nenhuma categoria cadastrada.
-              </p>
-              <p className="text-muted-foreground text-sm">
-                Crie sua primeira categoria para começar a organizar suas
-                transações.
-              </p>
-              <Button asChild>
-                <a href="#create-category">Criar primeira categoria</a>
-              </Button>
-            </Card>
+            <EmptyState
+              title="Nenhuma categoria cadastrada."
+              description="Crie sua primeira categoria para começar a organizar suas transações."
+              action={
+                <Button asChild>
+                  <a href="#create-category">Criar primeira categoria</a>
+                </Button>
+              }
+            />
           ) : (
             categories.map((category) => (
               <CategoryCard

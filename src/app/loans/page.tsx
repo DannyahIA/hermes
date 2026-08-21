@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleInstallmentPlanRepository } from '@/infra/repositories/drizzle-installment-plan.repository';
@@ -93,20 +94,19 @@ export default async function LoansPage() {
 
         <section className="grid gap-4">
           {loanCards.length === 0 ? (
-            <Card className="border-border/70 bg-card/80 p-10 text-center">
-              <p className="text-lg font-semibold">
-                Nenhum empréstimo cadastrado.
-              </p>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Crie seu primeiro empréstimo para acompanhar o cronograma de
-                pagamento.
-              </p>
-              {accountOptions.length > 0 ? (
-                <Button className="mt-4" asChild>
-                  <Link href="#novo-emprestimo">Criar primeiro empréstimo</Link>
-                </Button>
-              ) : null}
-            </Card>
+            <EmptyState
+              title="Nenhum empréstimo cadastrado."
+              description="Crie seu primeiro empréstimo para acompanhar o cronograma de pagamento."
+              action={
+                accountOptions.length > 0 ? (
+                  <Button className="mt-4" asChild>
+                    <Link href="#novo-emprestimo">
+                      Criar primeiro empréstimo
+                    </Link>
+                  </Button>
+                ) : undefined
+              }
+            />
           ) : (
             loanCards.map((loan) => <LoanCard key={loan.id} {...loan} />)
           )}
