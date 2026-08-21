@@ -90,7 +90,7 @@ export function TransactionList({
   return (
     <div
       ref={parentRef}
-      className="max-h-[75vh] overflow-y-auto"
+      className="max-h-[75vh] overflow-x-auto overflow-y-auto"
       role="list"
       aria-label="Transações"
     >
