@@ -3,7 +3,10 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useMemo, useRef } from 'react';
 
-import { TransactionRow } from '@/app/transactions/transaction-row';
+import {
+  TRANSACTION_ROW_GRID_TEMPLATE,
+  TransactionRow,
+} from '@/app/transactions/transaction-row';
 import { TransactionRowMobile } from '@/app/transactions/transaction-row-mobile';
 import {
   TransactionRowSkeleton,
@@ -14,6 +17,8 @@ import {
   type InfiniteTransactionFilters,
   useInfiniteTransactions,
 } from '@/app/transactions/use-infinite-transactions';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { groupTransactionsByPeriod } from '@/shared/lib/group-transactions-by-period';
 
 interface TransactionListProps {
@@ -41,8 +46,14 @@ export function TransactionList({
   categories,
   installmentCountByPlanId,
 }: TransactionListProps) {
-  const { transactions, isFetchingMore, hasMore, sentinelRef } =
-    useInfiniteTransactions(initial, filters);
+  const {
+    transactions,
+    isFetchingMore,
+    hasMore,
+    error,
+    loadMore,
+    sentinelRef,
+  } = useInfiniteTransactions(initial, filters);
 
   const enriched = useMemo<EnrichedTransaction[]>(
     () =>
@@ -88,42 +99,72 @@ export function TransactionList({
   }
 
   return (
-    <div
-      ref={parentRef}
-      className="max-h-[75vh] overflow-x-auto overflow-y-auto"
-      role="list"
-      aria-label="Transações"
-    >
+    <div>
+      {/* Desktop column header — rendered once, outside the virtualized
+          scroll area, so it's always visible and shares the exact same
+          column widths (TRANSACTION_ROW_GRID_TEMPLATE) as every row below
+          it. Not a virtualized item: a real header. */}
       <div
-        style={{
-          height: virtualizer.getTotalSize(),
-          position: 'relative',
-          width: '100%',
-        }}
+        role="row"
+        className="text-muted-foreground border-border/70 hidden border-b text-xs font-semibold tracking-wide uppercase sm:grid"
+        style={{ gridTemplateColumns: TRANSACTION_ROW_GRID_TEMPLATE }}
       >
-        {virtualizer.getVirtualItems().map((virtualRow) => {
-          const item = flatItems[virtualRow.index];
-          return (
-            <div
-              key={virtualRow.key}
-              data-index={virtualRow.index}
-              ref={virtualizer.measureElement}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
-              {item.kind === 'header' ? (
-                <div className="bg-background/95 text-muted-foreground sticky top-0 z-10 px-4 py-2 text-xs font-semibold tracking-wide uppercase backdrop-blur">
-                  {item.label}
-                </div>
-              ) : (
-                <>
-                  <table className="hidden w-full sm:table">
-                    <tbody>
+        <div role="columnheader" className="px-4 py-2">
+          Data
+        </div>
+        <div role="columnheader" className="px-4 py-2">
+          Descrição
+        </div>
+        <div role="columnheader" className="px-4 py-2">
+          Conta
+        </div>
+        <div role="columnheader" className="px-4 py-2">
+          Categoria
+        </div>
+        <div role="columnheader" className="px-4 py-2">
+          Tipo
+        </div>
+        <div role="columnheader" className="px-4 py-2 text-right">
+          Valor
+        </div>
+        <div role="columnheader" className="px-4 py-2" aria-hidden />
+      </div>
+
+      <div
+        ref={parentRef}
+        className="max-h-[75vh] overflow-y-auto"
+        role="list"
+        aria-label="Transações"
+      >
+        <div
+          style={{
+            height: virtualizer.getTotalSize(),
+            position: 'relative',
+            width: '100%',
+          }}
+        >
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const item = flatItems[virtualRow.index];
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                {item.kind === 'header' ? (
+                  <div className="bg-background/95 text-muted-foreground sticky top-0 z-10 px-4 py-2 text-xs font-semibold tracking-wide uppercase backdrop-blur">
+                    {item.label}
+                  </div>
+                ) : (
+                  <>
+                    <div className="hidden sm:block">
                       <TransactionRow
                         id={item.transaction.id}
                         description={item.transaction.description}
@@ -144,57 +185,77 @@ export function TransactionList({
                         }
                         isRecurring={Boolean(item.transaction.recurringRuleId)}
                       />
-                    </tbody>
-                  </table>
-                  <div className="px-4 sm:hidden">
-                    <TransactionRowMobile
-                      id={item.transaction.id}
-                      description={item.transaction.description}
-                      amount={item.transaction.amount}
-                      type={item.transaction.type}
-                      occurredAt={item.transaction.occurredAt}
-                      accountName={item.transaction.accountName}
-                      categoryId={item.transaction.categoryId ?? undefined}
-                      categoryName={item.transaction.categoryName ?? undefined}
-                      categories={categories}
-                      installmentLabel={
-                        item.transaction.installmentPlanId &&
-                        item.transaction.installmentNumber
-                          ? `${item.transaction.installmentNumber}/${installmentCountByPlanId[item.transaction.installmentPlanId] ?? '?'}`
-                          : undefined
-                      }
-                      isRecurring={Boolean(item.transaction.recurringRuleId)}
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div ref={sentinelRef} className="h-px" aria-hidden />
-
-      {isFetchingMore && (
-        <div className="sm:hidden">
-          <TransactionRowSkeletonMobile />
-          <TransactionRowSkeletonMobile />
+                    </div>
+                    <div className="px-4 sm:hidden">
+                      <TransactionRowMobile
+                        id={item.transaction.id}
+                        description={item.transaction.description}
+                        amount={item.transaction.amount}
+                        type={item.transaction.type}
+                        occurredAt={item.transaction.occurredAt}
+                        accountName={item.transaction.accountName}
+                        categoryId={item.transaction.categoryId ?? undefined}
+                        categoryName={
+                          item.transaction.categoryName ?? undefined
+                        }
+                        categories={categories}
+                        installmentLabel={
+                          item.transaction.installmentPlanId &&
+                          item.transaction.installmentNumber
+                            ? `${item.transaction.installmentNumber}/${installmentCountByPlanId[item.transaction.installmentPlanId] ?? '?'}`
+                            : undefined
+                        }
+                        isRecurring={Boolean(item.transaction.recurringRuleId)}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
-      )}
-      {isFetchingMore && (
-        <table className="hidden w-full sm:table">
-          <tbody>
-            <TransactionRowSkeleton />
-            <TransactionRowSkeleton />
-            <TransactionRowSkeleton />
-          </tbody>
-        </table>
-      )}
-      {!hasMore && (
-        <p className="text-muted-foreground py-4 text-center text-xs">
-          Fim da lista.
-        </p>
-      )}
+
+        <div ref={sentinelRef} className="h-px" aria-hidden />
+
+        {error ? (
+          <div className="px-4 py-3">
+            <Alert variant="error">
+              <AlertDescription className="flex items-center justify-between gap-3">
+                <span>{error}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void loadMore()}
+                >
+                  Tentar novamente
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        ) : (
+          <>
+            {isFetchingMore && (
+              <div className="sm:hidden">
+                <TransactionRowSkeletonMobile />
+                <TransactionRowSkeletonMobile />
+              </div>
+            )}
+            {isFetchingMore && (
+              <div className="hidden sm:block">
+                <TransactionRowSkeleton />
+                <TransactionRowSkeleton />
+                <TransactionRowSkeleton />
+              </div>
+            )}
+            {!hasMore && (
+              <p className="text-muted-foreground py-4 text-center text-xs">
+                Fim da lista.
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

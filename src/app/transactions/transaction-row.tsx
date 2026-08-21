@@ -13,6 +13,16 @@ import { toast } from '@/shared/hooks/use-toast';
 import { formatCurrency } from '@/shared/lib/format-currency';
 import { formatDate } from '@/shared/lib/format-date';
 
+/**
+ * Column widths shared by the desktop header row (`TransactionList`) and
+ * every `TransactionRow` — defined once so header cells and data cells
+ * always line up, instead of each row computing its own widths from its
+ * own content (which is what a bare per-row `<table>` would do).
+ * Data | Descrição | Conta | Categoria | Tipo | Valor | ações
+ */
+export const TRANSACTION_ROW_GRID_TEMPLATE =
+  '110px minmax(0,1fr) 140px 140px 90px 120px 160px';
+
 interface TransactionRowProps {
   id: string;
   description: string;
@@ -27,6 +37,12 @@ interface TransactionRowProps {
   isRecurring?: boolean;
 }
 
+/**
+ * Desktop row — rendered as a CSS grid row (not a `<table>` row) so its
+ * column widths come from the shared `TRANSACTION_ROW_GRID_TEMPLATE`
+ * rather than being computed independently per row, which is what left
+ * columns ragged/misaligned between rows before this fix.
+ */
 export function TransactionRow({
   id,
   description,
@@ -53,10 +69,16 @@ export function TransactionRow({
   }
 
   return (
-    <tr className="border-border/70 border-b last:border-0">
-      <td className="px-4 py-3 text-sm">{formatDate(occurredAt)}</td>
-      <td className="px-4 py-3 text-sm font-medium">
-        {description}
+    <div
+      role="row"
+      className="border-border/70 grid items-center border-b last:border-0"
+      style={{ gridTemplateColumns: TRANSACTION_ROW_GRID_TEMPLATE }}
+    >
+      <div role="cell" className="px-4 py-3 text-sm">
+        {formatDate(occurredAt)}
+      </div>
+      <div role="cell" className="min-w-0 px-4 py-3 text-sm font-medium">
+        <span className="truncate">{description}</span>
         {installmentLabel && (
           <Badge variant="outline" className="ml-2 align-middle">
             {installmentLabel}
@@ -67,13 +89,18 @@ export function TransactionRow({
             Recorrente
           </Badge>
         )}
-      </td>
-      <td className="text-muted-foreground px-4 py-3 text-sm">{accountName}</td>
-      <td className="text-muted-foreground px-4 py-3 text-sm">
+      </div>
+      <div role="cell" className="text-muted-foreground px-4 py-3 text-sm">
+        {accountName}
+      </div>
+      <div role="cell" className="text-muted-foreground px-4 py-3 text-sm">
         {categoryName ?? '—'}
-      </td>
-      <td className="px-4 py-3 text-sm">{TRANSACTION_TYPE_LABELS[type]}</td>
-      <td
+      </div>
+      <div role="cell" className="px-4 py-3 text-sm">
+        {TRANSACTION_TYPE_LABELS[type]}
+      </div>
+      <div
+        role="cell"
         className={`ledger-figure px-4 py-3 text-right text-sm font-semibold ${
           type === 'income'
             ? 'text-success'
@@ -83,8 +110,8 @@ export function TransactionRow({
         }`}
       >
         {formatCurrency(amount)}
-      </td>
-      <td className="px-4 py-3 text-right whitespace-nowrap">
+      </div>
+      <div role="cell" className="px-4 py-3 text-right whitespace-nowrap">
         {type !== 'transfer' && (
           <TransactionEditDialog
             id={id}
@@ -106,7 +133,7 @@ export function TransactionRow({
           description={`Tem certeza que deseja excluir "${description}"? O saldo da conta será ajustado.`}
           onConfirm={handleDelete}
         />
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }

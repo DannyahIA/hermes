@@ -1,29 +1,35 @@
+import { TRANSACTION_ROW_GRID_TEMPLATE } from '@/app/transactions/transaction-row';
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** Desktop table row shape — same column count as `TransactionRow`. */
+/** Desktop grid row shape — same columns (and shared grid template) as
+ * `TransactionRow`, so loading skeletons line up with real rows. */
 export function TransactionRowSkeleton() {
   return (
-    <tr className="border-border/70 border-b last:border-0">
-      <td className="px-4 py-3">
+    <div
+      role="row"
+      className="border-border/70 grid items-center border-b last:border-0"
+      style={{ gridTemplateColumns: TRANSACTION_ROW_GRID_TEMPLATE }}
+    >
+      <div role="cell" className="px-4 py-3">
         <Skeleton className="h-4 w-20" />
-      </td>
-      <td className="px-4 py-3">
+      </div>
+      <div role="cell" className="px-4 py-3">
         <Skeleton className="h-4 w-40" />
-      </td>
-      <td className="px-4 py-3">
+      </div>
+      <div role="cell" className="px-4 py-3">
         <Skeleton className="h-4 w-24" />
-      </td>
-      <td className="px-4 py-3">
+      </div>
+      <div role="cell" className="px-4 py-3">
         <Skeleton className="h-4 w-24" />
-      </td>
-      <td className="px-4 py-3">
+      </div>
+      <div role="cell" className="px-4 py-3">
         <Skeleton className="h-4 w-16" />
-      </td>
-      <td className="px-4 py-3 text-right">
+      </div>
+      <div role="cell" className="px-4 py-3 text-right">
         <Skeleton className="ml-auto h-4 w-20" />
-      </td>
-      <td className="px-4 py-3" />
-    </tr>
+      </div>
+      <div role="cell" className="px-4 py-3" />
+    </div>
   );
 }
 

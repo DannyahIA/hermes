@@ -45,6 +45,7 @@ export function useInfiniteTransactions(
   const [transactions, setTransactions] = useState(initial.transactions);
   const [nextCursor, setNextCursor] = useState(initial.nextCursor);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isFetchingRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -65,6 +66,7 @@ export function useInfiniteTransactions(
     if (isFetchingRef.current || !nextCursor) return;
     isFetchingRef.current = true;
     setIsFetchingMore(true);
+    setError(null);
 
     try {
       const params = new URLSearchParams();
@@ -77,11 +79,16 @@ export function useInfiniteTransactions(
       if (filters.to) params.set('to', filters.to);
 
       const response = await fetch(`/api/transactions?${params.toString()}`);
-      if (!response.ok) return;
+      if (!response.ok) {
+        setError('Não foi possível carregar mais transações.');
+        return;
+      }
 
       const data = (await response.json()) as TransactionsResponse;
       setTransactions((current) => [...current, ...data.transactions]);
       setNextCursor(data.nextCursor);
+    } catch {
+      setError('Não foi possível carregar mais transações.');
     } finally {
       isFetchingRef.current = false;
       setIsFetchingMore(false);
@@ -114,6 +121,8 @@ export function useInfiniteTransactions(
     transactions,
     isFetchingMore,
     hasMore: nextCursor !== null,
+    error,
+    loadMore,
     sentinelRef,
   };
 }
