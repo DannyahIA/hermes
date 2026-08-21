@@ -96,10 +96,14 @@ function DialogFormInner<State extends { success: boolean }>({
       if (closeOnSuccess) onClose();
       onSuccess?.(state);
     }
-    // Only react to a transition into success — onClose/onSuccess/closeOnSuccess
-    // identity changing on every parent render must not re-trigger this.
+    // React to every genuine state change (a fresh action result is always a
+    // new object reference), not just a transition into success — otherwise
+    // a second submission that also resolves to `success: true` while the
+    // dialog stays open (closeOnSuccess={false}) would not re-fire this
+    // effect. onClose/onSuccess/closeOnSuccess identity changing on every
+    // parent render must still not re-trigger this on its own.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.success]);
+  }, [state]);
 
   return children({ state, formAction });
 }
