@@ -101,7 +101,7 @@ export default async function LoansPage() {
               description="Crie seu primeiro empréstimo para acompanhar o cronograma de pagamento."
               action={
                 accountOptions.length > 0 ? (
-                  <Button className="mt-4" asChild>
+                  <Button asChild>
                     <Link href="#novo-emprestimo">
                       Criar primeiro empréstimo
                     </Link>

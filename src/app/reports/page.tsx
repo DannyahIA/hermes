@@ -73,6 +73,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   );
   const overBudget = report.budgetsOverview.filter((b) => b.percentage > 1);
   const withinBudget = report.budgetsOverview.filter((b) => b.percentage <= 1);
+  const growingCategories = report.categoryComparison.filter(
+    (c) => c.currentTotal - c.previousTotal > 0,
+  );
 
   return (
     <AppShell>
@@ -345,38 +348,31 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               </CardDescription>
             </CardHeader>
             <CardContent className="mt-4 p-0">
-              {report.categoryComparison.filter(
-                (c) => c.currentTotal - c.previousTotal > 0,
-              ).length === 0 ? (
+              {growingCategories.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   Nenhuma categoria cresceu neste período em relação ao
                   anterior.
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {report.categoryComparison
-                    .filter((c) => c.currentTotal - c.previousTotal > 0)
-                    .slice(0, 5)
-                    .map((comparison) => (
-                      <div
-                        key={comparison.categoryId}
-                        className="ledger-row flex items-center justify-between"
-                      >
-                        <span className="text-sm">
-                          {comparison.categoryName}
+                  {growingCategories.slice(0, 5).map((comparison) => (
+                    <div
+                      key={comparison.categoryId}
+                      className="ledger-row flex items-center justify-between"
+                    >
+                      <span className="text-sm">{comparison.categoryName}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="ledger-figure text-destructive text-sm font-semibold">
+                          {formatCurrency(comparison.currentTotal)}
                         </span>
-                        <span className="flex items-center gap-2">
-                          <span className="ledger-figure text-destructive text-sm font-semibold">
-                            {formatCurrency(comparison.currentTotal)}
+                        {comparison.deltaPercent !== null && (
+                          <span className="text-muted-foreground text-xs">
+                            (+{comparison.deltaPercent.toFixed(0)}%)
                           </span>
-                          {comparison.deltaPercent !== null && (
-                            <span className="text-muted-foreground text-xs">
-                              (+{comparison.deltaPercent.toFixed(0)}%)
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    ))}
+                        )}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
