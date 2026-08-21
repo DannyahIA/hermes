@@ -100,4 +100,91 @@ describe('CreateInstallmentPlanUseCase', () => {
     const totalDebited = installments.reduce((sum, i) => sum + i.amount, 0);
     expect(account!.balance).toBeCloseTo(-totalDebited, 2);
   });
+
+  it('computes totalAmount from installmentAmount when only the per-installment value is given', async () => {
+    const installmentPlanRepository = new FakeInstallmentPlanRepository();
+    const transactionRepository = new FakeTransactionRepository();
+    const accountRepository = new FakeAccountRepository();
+    const categoryRepository = new FakeCategoryRepository();
+
+    await accountRepository.save(
+      new Account({
+        id: 'acc-1',
+        userId: 'user-1',
+        name: 'Conta',
+        type: 'checking',
+        balance: 1000,
+        currency: 'BRL',
+        archived: false,
+        hidden: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+
+    const useCase = new CreateInstallmentPlanUseCase(
+      installmentPlanRepository,
+      transactionRepository,
+      accountRepository,
+      categoryRepository,
+    );
+
+    const plan = await useCase.execute({
+      id: 'plan-1',
+      userId: 'user-1',
+      accountId: 'acc-1',
+      description: 'Compra parcelada',
+      kind: 'purchase',
+      installmentAmount: 150,
+      installmentCount: 10,
+      installmentIds: Array.from({ length: 10 }, (_, i) => `tx-${i}`),
+    });
+
+    expect(plan.totalAmount).toBe(1500);
+    const installments =
+      await transactionRepository.findByInstallmentPlanId('plan-1');
+    expect(installments.every((t) => t.amount === 150)).toBe(true);
+  });
+
+  it('still uses totalAmount directly when installmentAmount is not given (existing behavior unchanged)', async () => {
+    const installmentPlanRepository = new FakeInstallmentPlanRepository();
+    const transactionRepository = new FakeTransactionRepository();
+    const accountRepository = new FakeAccountRepository();
+    const categoryRepository = new FakeCategoryRepository();
+
+    await accountRepository.save(
+      new Account({
+        id: 'acc-1',
+        userId: 'user-1',
+        name: 'Conta',
+        type: 'checking',
+        balance: 1000,
+        currency: 'BRL',
+        archived: false,
+        hidden: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+
+    const useCase = new CreateInstallmentPlanUseCase(
+      installmentPlanRepository,
+      transactionRepository,
+      accountRepository,
+      categoryRepository,
+    );
+
+    const plan = await useCase.execute({
+      id: 'plan-2',
+      userId: 'user-1',
+      accountId: 'acc-1',
+      description: 'Compra parcelada',
+      kind: 'purchase',
+      totalAmount: 1000,
+      installmentCount: 3,
+      installmentIds: ['tx-a', 'tx-b', 'tx-c'],
+    });
+
+    expect(plan.totalAmount).toBe(1000);
+  });
 });

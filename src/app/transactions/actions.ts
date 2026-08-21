@@ -96,11 +96,16 @@ export async function createInstallmentAction(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const amountMode =
+    formData.get('amountMode') === 'installment' ? 'installment' : 'total';
+  const amountValue = formData.get('amount');
+
   const parsed = createInstallmentPlanSchema.safeParse({
     accountId: formData.get('accountId'),
     categoryId: formData.get('categoryId'),
     description: formData.get('description'),
-    totalAmount: formData.get('amount'),
+    totalAmount: amountMode === 'total' ? amountValue : undefined,
+    installmentAmount: amountMode === 'installment' ? amountValue : undefined,
     installmentCount: formData.get('installmentCount'),
     startDate: formData.get('occurredAt') || undefined,
   });

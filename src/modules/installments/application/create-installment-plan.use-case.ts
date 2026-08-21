@@ -19,8 +19,10 @@ export interface CreateInstallmentPlanInput {
   categoryId?: string;
   description: string;
   kind: InstallmentPlanKind;
-  /** Purchase: the total price. Loan: the principal borrowed. */
-  totalAmount: number;
+  /** Purchase: the total price. Loan: the principal borrowed. Provide this OR `installmentAmount`. */
+  totalAmount?: number;
+  /** Per-installment value — provide this OR `totalAmount`; the other is derived. Purchases only (loans always specify totalAmount, since interest makes a flat per-installment value meaningless before amortization is computed). */
+  installmentAmount?: number;
   installmentCount: number;
   /** Monthly decimal rate — loans only, ignored for purchases. */
   interestRate?: number;
@@ -77,6 +79,18 @@ export class CreateInstallmentPlanUseCase {
       );
     }
 
+    if (
+      input.totalAmount === undefined &&
+      input.installmentAmount === undefined
+    ) {
+      throw new DomainError(
+        'Informe o valor total ou o valor da parcela.',
+        'INSTALLMENT_AMOUNT_MISSING',
+      );
+    }
+    const resolvedTotalAmount =
+      input.totalAmount ?? input.installmentAmount! * input.installmentCount;
+
     const plan = new InstallmentPlan({
       id: input.id,
       userId: input.userId,
@@ -84,7 +98,7 @@ export class CreateInstallmentPlanUseCase {
       categoryId: input.categoryId,
       description: input.description,
       kind: input.kind,
-      totalAmount: input.totalAmount,
+      totalAmount: resolvedTotalAmount,
       installmentCount: input.installmentCount,
       interestRate: input.interestRate,
       createdAt: new Date(),
