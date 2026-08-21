@@ -3,6 +3,8 @@ import type { BudgetRepository } from '@/core/contracts/budget-repository';
 import type { TransactionRepository } from '@/core/contracts/transaction-repository';
 import type { Account } from '@/core/entities/account';
 import type { Transaction } from '@/core/entities/transaction';
+import { computeCurrentBalance } from '@/core/value-objects/current-balance';
+import type { AccountWithBalances } from '@/modules/accounts/application/get-accounts.use-case';
 import {
   type BudgetProgress,
   GetBudgetProgressUseCase,
@@ -17,6 +19,12 @@ export type { MonthlyCashFlow };
 export interface DashboardSummary {
   netWorth: number;
   accounts: Account[];
+  accountBalances: AccountWithBalances[];
+  /** Every not-yet-occurred transaction across all accounts — already
+   * fetched to compute `accountBalances`, exposed here too so the UI can
+   * list upcoming commitments (e.g. remaining installments) without a
+   * second query. */
+  futureTransactions: Transaction[];
   monthIncome: number;
   monthExpense: number;
   recentTransactions: Transaction[];
@@ -26,10 +34,17 @@ export interface DashboardSummary {
 
 const CASH_FLOW_MONTHS = 6;
 
+function startOfTomorrow(): Date {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 1);
+  return date;
+}
+
 /**
  * Answers, in one call, the questions ui-ux.md requires the dashboard to
- * answer immediately: "Quanto tenho?" (netWorth — computed from account
- * balances, per domain.md, never stored), "Quanto gastei?"/"Quanto
+ * answer immediately: "Quanto tenho?" (netWorth — computed from current
+ * account balances, per domain.md, never stored), "Quanto gastei?"/"Quanto
  * recebi?" (monthIncome/monthExpense), "Estou dentro do orçamento?"
  * (budgets), "Como evoluíram minhas finanças?" (cashFlow).
  */
@@ -49,24 +64,49 @@ export class GetDashboardSummaryUseCase {
     );
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [accounts, transactionsInRange, allRecent, budgetProgress] =
-      await Promise.all([
-        this.accountRepository.findByUserId(userId),
-        this.transactionRepository.findByUserId(userId, {
-          from: rangeStart,
-          to: now,
-          pageSize: 1000,
-        }),
-        this.transactionRepository.findByUserId(userId, { pageSize: 5 }),
-        new GetBudgetProgressUseCase(
-          this.budgetRepository,
-          this.transactionRepository,
-        ).execute(userId),
-      ]);
+    const [
+      accounts,
+      transactionsInRange,
+      futureTransactions,
+      allRecent,
+      budgetProgress,
+    ] = await Promise.all([
+      this.accountRepository.findByUserId(userId),
+      this.transactionRepository.findByUserId(userId, {
+        from: rangeStart,
+        to: now,
+        pageSize: 1000,
+      }),
+      this.transactionRepository.findByUserId(userId, {
+        from: startOfTomorrow(),
+        pageSize: 10_000,
+      }),
+      this.transactionRepository.findByUserId(userId, { pageSize: 5 }),
+      new GetBudgetProgressUseCase(
+        this.budgetRepository,
+        this.transactionRepository,
+      ).execute(userId),
+    ]);
 
-    const netWorth = accounts
-      .filter((account) => !account.hidden)
-      .reduce((sum, account) => sum + account.balance, 0);
+    const futureByAccountId = new Map<string, typeof futureTransactions>();
+    for (const transaction of futureTransactions) {
+      const list = futureByAccountId.get(transaction.accountId) ?? [];
+      list.push(transaction);
+      futureByAccountId.set(transaction.accountId, list);
+    }
+
+    const accountBalances: AccountWithBalances[] = accounts.map((account) => {
+      const future = futureByAccountId.get(account.id) ?? [];
+      return {
+        account,
+        projectedBalance: account.balance,
+        currentBalance: computeCurrentBalance(account.balance, future, account),
+      };
+    });
+
+    const netWorth = accountBalances
+      .filter(({ account }) => !account.hidden)
+      .reduce((sum, { currentBalance }) => sum + currentBalance, 0);
 
     const cashFlow = buildMonthlyCashFlow(rangeStart, now, transactionsInRange);
 
@@ -79,6 +119,8 @@ export class GetDashboardSummaryUseCase {
     return {
       netWorth,
       accounts,
+      accountBalances,
+      futureTransactions,
       monthIncome,
       monthExpense,
       recentTransactions: allRecent,
