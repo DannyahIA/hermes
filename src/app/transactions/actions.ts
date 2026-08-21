@@ -319,8 +319,9 @@ type ImportRowParseResult =
   | { ok: false; lineNumber: number; reason: string };
 
 /**
- * Validates and parses a single CSV data row, shared by `createImportAction`
- * and `previewImportAction` so the two paths can never drift apart.
+ * Validates and parses a single CSV data row, shared by `previewImportAction`
+ * and `confirmImportAction`'s upstream preview step so parsing logic lives
+ * in one place.
  */
 function parseImportRow(
   row: string[],
@@ -389,120 +390,6 @@ function parseImportRow(
       categoryName: category?.name,
     },
   };
-}
-
-/**
- * Imports income/expense transactions from a CSV in the same shape the
- * export route produces. Transfers are flagged, not silently dropped —
- * reconstructing a two-leg transfer from one flat CSV row is ambiguous, and
- * deleting/recreating one already works via the transfer form. Each valid
- * row runs its own `withTransaction`, so one bad row never rolls back the
- * good rows already imported.
- */
-export async function createImportAction(
-  _prev: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const file = formData.get('file');
-  if (!(file instanceof File) || file.size === 0) {
-    return { success: false, error: 'Selecione um arquivo CSV.' };
-  }
-
-  const text = await file.text();
-  const rows = parseCsv(text).filter((row) =>
-    row.some((field) => field.trim() !== ''),
-  );
-
-  if (rows.length === 0) {
-    return { success: false, error: 'O arquivo está vazio.' };
-  }
-
-  const [header, ...dataRows] = rows;
-  const columnIndexByKey = new Map<ImportColumnKey, number>();
-  header.forEach((cell, index) => {
-    const key = IMPORT_HEADER_KEYS[normalizeText(cell)];
-    if (key) columnIndexByKey.set(key, index);
-  });
-
-  const missingColumn = REQUIRED_IMPORT_COLUMNS.find(
-    (key) => !columnIndexByKey.has(key),
-  );
-  if (missingColumn) {
-    return {
-      success: false,
-      error:
-        'Cabeçalho do CSV inválido. Use o mesmo formato do arquivo exportado.',
-    };
-  }
-
-  try {
-    const userId = await requireCurrentUserId();
-
-    const [accounts, categories] = await Promise.all([
-      new DrizzleAccountRepository().findByUserId(userId),
-      new DrizzleCategoryRepository().findByUserId(userId),
-    ]);
-    const accountByName = new Map(
-      accounts.map((account) => [normalizeText(account.name), account]),
-    );
-    const categoryByName = new Map(
-      categories.map((category) => [normalizeText(category.name), category]),
-    );
-
-    let imported = 0;
-    const reasons: string[] = [];
-
-    for (const [rowIndex, row] of dataRows.entries()) {
-      const lineNumber = rowIndex + 2; // 1 for the header row, 1 for 1-based counting
-      const result = parseImportRow(
-        row,
-        lineNumber,
-        columnIndexByKey,
-        accountByName,
-        categoryByName,
-      );
-
-      if (!result.ok) {
-        reasons.push(`linha ${result.lineNumber}: ${result.reason}`);
-        continue;
-      }
-
-      try {
-        await withTransaction(async (tx) => {
-          const useCase = new CreateTransactionUseCase(
-            new DrizzleTransactionRepository(tx),
-            new DrizzleAccountRepository(tx),
-            new DrizzleCategoryRepository(tx),
-          );
-          await useCase.execute({
-            id: randomUUID(),
-            userId,
-            accountId: result.row.accountId,
-            categoryId: result.row.categoryId,
-            description: result.row.description,
-            amount: result.row.amount,
-            type: result.row.type,
-            occurredAt: result.row.occurredAt,
-          });
-        });
-        imported += 1;
-      } catch (error) {
-        reasons.push(`linha ${lineNumber}: ${toUserMessage(error)}`);
-      }
-    }
-
-    if (imported > 0) revalidateMoneyPages();
-
-    const summary = `${imported} importada${imported === 1 ? '' : 's'}, ${reasons.length} ignorada${reasons.length === 1 ? '' : 's'}`;
-    const message =
-      reasons.length > 0
-        ? `${summary} (${reasons.slice(0, 5).join('; ')}${reasons.length > 5 ? '…' : ''})`
-        : summary;
-
-    return { success: true, message };
-  } catch (error) {
-    return { success: false, error: toUserMessage(error) };
-  }
 }
 
 export interface ImportPreviewRow {
@@ -645,7 +532,7 @@ export async function previewImportAction(
  * (`ImportPreviewTable`) — already fully validated by `previewImportAction`,
  * so this does not re-parse the CSV, only re-runs `CreateTransactionUseCase`
  * per row (one `withTransaction` each, so one bad row can't roll back the
- * others — matches `createImportAction`'s existing behavior).
+ * others).
  */
 export async function confirmImportAction(
   rows: ImportPreviewRow[],
