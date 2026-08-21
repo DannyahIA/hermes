@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -311,3 +312,33 @@ export const budgets = pgTable('budgets', {
     .defaultNow()
     .notNull(),
 });
+
+/**
+ * A user's chosen way to view a listing screen — deliberately generic
+ * (`screenKey` + `viewMode` as free-form strings, not an enum tied to one
+ * screen) so a future screen can reuse this table with its own key and
+ * view-mode vocabulary without a new migration.
+ */
+export const userViewPreferences = pgTable(
+  'user_view_preferences',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .references(() => user.id, { onDelete: 'cascade' })
+      .notNull(),
+    screenKey: varchar('screen_key', { length: 64 }).notNull(),
+    viewMode: varchar('view_mode', { length: 64 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('user_view_preferences_user_screen_idx').on(
+      table.userId,
+      table.screenKey,
+    ),
+  ],
+);
