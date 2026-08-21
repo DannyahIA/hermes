@@ -93,7 +93,7 @@ export default async function DashboardPage() {
               .reduce((sum, { projectedBalance }) => sum + projectedBalance, 0);
             const difference = projectedTotal - summary.netWorth;
 
-            if (difference <= 0) return null;
+            if (Math.abs(difference) < 0.005) return null;
 
             return (
               <p className="text-muted-foreground mt-1 text-sm">
@@ -129,18 +129,18 @@ export default async function DashboardPage() {
               </p>
               <ul className="space-y-1">
                 {Object.entries(
-                  summary.futureTransactions.reduce<Record<string, number>>(
-                    (groups, t) => {
+                  summary.futureTransactions
+                    .filter((t) => t.type === 'expense')
+                    .reduce<Record<string, number>>((groups, t) => {
                       const label = t.description.replace(
                         /\s*\(\d+\/\d+\)$/,
                         '',
                       );
                       groups[label] = (groups[label] ?? 0) + t.amount;
                       return groups;
-                    },
-                    {},
-                  ),
+                    }, {}),
                 )
+                  .sort(([, a], [, b]) => b - a)
                   .slice(0, 5)
                   .map(([label, total]) => (
                     <li key={label} className="flex justify-between text-sm">
