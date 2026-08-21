@@ -22,6 +22,13 @@
       "when": 1787264882191,
       "tag": "0002_curious_night_nurse",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787275702184,
+      "tag": "0003_blushing_blizzard",
+      "breakpoints": true
     }
   ]
 }

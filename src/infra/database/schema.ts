@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   numeric,
   pgEnum,
@@ -238,36 +239,49 @@ export const recurringTransactions = pgTable('recurring_transactions', {
  * deleting a recurring rule must never erase the transactions it already
  * produced, only detach the label.
  */
-export const transactions = pgTable('transactions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  accountId: uuid('account_id')
-    .references(() => accounts.id, { onDelete: 'cascade' })
-    .notNull(),
-  categoryId: uuid('category_id').references(() => categories.id, {
-    onDelete: 'set null',
-  }),
-  description: varchar('description', { length: 255 }).notNull(),
-  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
-  type: transactionType('type').notNull(),
-  occurredAt: timestamp('occurred_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  installmentPlanId: uuid('installment_plan_id').references(
-    () => installmentPlans.id,
-    { onDelete: 'cascade' },
-  ),
-  installmentNumber: integer('installment_number'),
-  recurringRuleId: uuid('recurring_rule_id').references(
-    () => recurringTransactions.id,
-    { onDelete: 'set null' },
-  ),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const transactions = pgTable(
+  'transactions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    accountId: uuid('account_id')
+      .references(() => accounts.id, { onDelete: 'cascade' })
+      .notNull(),
+    categoryId: uuid('category_id').references(() => categories.id, {
+      onDelete: 'set null',
+    }),
+    description: varchar('description', { length: 255 }).notNull(),
+    amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+    type: transactionType('type').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    installmentPlanId: uuid('installment_plan_id').references(
+      () => installmentPlans.id,
+      { onDelete: 'cascade' },
+    ),
+    installmentNumber: integer('installment_number'),
+    recurringRuleId: uuid('recurring_rule_id').references(
+      () => recurringTransactions.id,
+      { onDelete: 'set null' },
+    ),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    // Backs the keyset-pagination query (WHERE (occurred_at, id) < cursor
+    // ORDER BY occurred_at DESC, id DESC) used by GetTransactionsUseCase's
+    // cursor path — see infra/repositories/drizzle-transaction.repository.ts.
+    index('transactions_account_cursor_idx').on(
+      table.accountId,
+      table.occurredAt.desc(),
+      table.id.desc(),
+    ),
+  ],
+);
 
 /**
  * `budgets.category_id` cascades on category deletion — a budget without
