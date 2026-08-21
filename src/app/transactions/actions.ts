@@ -23,6 +23,7 @@ import { createInstallmentPlanSchema } from '@/modules/installments/schemas/crea
 import { updateInstallmentSchema } from '@/modules/installments/schemas/update-installment.schema';
 import { CreateTransactionUseCase } from '@/modules/transactions/application/create-transaction.use-case';
 import { DeleteTransactionUseCase } from '@/modules/transactions/application/delete-transaction.use-case';
+import { GetTransactionsUseCase } from '@/modules/transactions/application/get-transactions.use-case';
 import { TransferMoneyUseCase } from '@/modules/transactions/application/transfer-money.use-case';
 import { UpdateTransactionUseCase } from '@/modules/transactions/application/update-transaction.use-case';
 import { createTransactionSchema } from '@/modules/transactions/schemas/create-transaction.schema';
@@ -301,6 +302,95 @@ const TYPE_LABEL_TO_TRANSACTION_TYPE: Record<string, TransactionType> =
     ]),
   ) as Record<string, TransactionType>;
 
+interface ParsedImportRow {
+  lineNumber: number;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense';
+  occurredAt: Date;
+  accountId: string;
+  accountName: string;
+  categoryId?: string;
+  categoryName?: string;
+}
+
+type ImportRowParseResult =
+  | { ok: true; row: ParsedImportRow }
+  | { ok: false; lineNumber: number; reason: string };
+
+/**
+ * Validates and parses a single CSV data row, shared by `createImportAction`
+ * and `previewImportAction` so the two paths can never drift apart.
+ */
+function parseImportRow(
+  row: string[],
+  lineNumber: number,
+  columnIndexByKey: Map<ImportColumnKey, number>,
+  accountByName: Map<string, { id: string; name: string }>,
+  categoryByName: Map<string, { id: string; name: string }>,
+): ImportRowParseResult {
+  const field = (key: ImportColumnKey): string => {
+    const columnIndex = columnIndexByKey.get(key);
+    return columnIndex === undefined ? '' : (row[columnIndex] ?? '').trim();
+  };
+
+  const description = field('description');
+  const accountName = field('account');
+  const categoryName = field('category');
+  const type = TYPE_LABEL_TO_TRANSACTION_TYPE[normalizeText(field('type'))];
+  const amount = Number(field('amount').replace(',', '.'));
+  const occurredAt = new Date(`${field('date')}T00:00:00`);
+
+  if (type === 'transfer')
+    return {
+      ok: false,
+      lineNumber,
+      reason: 'transferências não são importadas',
+    };
+  if (type !== 'income' && type !== 'expense')
+    return { ok: false, lineNumber, reason: 'tipo inválido' };
+  if (!description) return { ok: false, lineNumber, reason: 'descrição vazia' };
+
+  const account = accountByName.get(normalizeText(accountName));
+  if (!account)
+    return {
+      ok: false,
+      lineNumber,
+      reason: `conta "${accountName}" não encontrada`,
+    };
+
+  const category = categoryName
+    ? categoryByName.get(normalizeText(categoryName))
+    : undefined;
+  if (categoryName && !category) {
+    return {
+      ok: false,
+      lineNumber,
+      reason: `categoria "${categoryName}" não encontrada`,
+    };
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0)
+    return { ok: false, lineNumber, reason: 'valor inválido' };
+  if (Number.isNaN(occurredAt.getTime()))
+    return { ok: false, lineNumber, reason: 'data inválida' };
+
+  return {
+    ok: true,
+    row: {
+      lineNumber,
+      description,
+      amount,
+      type,
+      occurredAt,
+      accountId: account.id,
+      accountName: account.name,
+      categoryId: category?.id,
+      categoryName: category?.name,
+    },
+  };
+}
+
 /**
  * Imports income/expense transactions from a CSV in the same shape the
  * export route produces. Transfers are flagged, not silently dropped —
@@ -364,56 +454,16 @@ export async function createImportAction(
 
     for (const [rowIndex, row] of dataRows.entries()) {
       const lineNumber = rowIndex + 2; // 1 for the header row, 1 for 1-based counting
+      const result = parseImportRow(
+        row,
+        lineNumber,
+        columnIndexByKey,
+        accountByName,
+        categoryByName,
+      );
 
-      const field = (key: ImportColumnKey): string => {
-        const columnIndex = columnIndexByKey.get(key);
-        return columnIndex === undefined ? '' : (row[columnIndex] ?? '').trim();
-      };
-
-      const description = field('description');
-      const accountName = field('account');
-      const categoryName = field('category');
-      const type = TYPE_LABEL_TO_TRANSACTION_TYPE[normalizeText(field('type'))];
-      const amount = Number(field('amount').replace(',', '.'));
-      const occurredAt = new Date(`${field('date')}T00:00:00`);
-
-      if (type === 'transfer') {
-        reasons.push(`linha ${lineNumber}: transferências não são importadas`);
-        continue;
-      }
-      if (type !== 'income' && type !== 'expense') {
-        reasons.push(`linha ${lineNumber}: tipo inválido`);
-        continue;
-      }
-      if (!description) {
-        reasons.push(`linha ${lineNumber}: descrição vazia`);
-        continue;
-      }
-
-      const account = accountByName.get(normalizeText(accountName));
-      if (!account) {
-        reasons.push(
-          `linha ${lineNumber}: conta "${accountName}" não encontrada`,
-        );
-        continue;
-      }
-
-      const category = categoryName
-        ? categoryByName.get(normalizeText(categoryName))
-        : undefined;
-      if (categoryName && !category) {
-        reasons.push(
-          `linha ${lineNumber}: categoria "${categoryName}" não encontrada`,
-        );
-        continue;
-      }
-
-      if (!Number.isFinite(amount) || amount <= 0) {
-        reasons.push(`linha ${lineNumber}: valor inválido`);
-        continue;
-      }
-      if (Number.isNaN(occurredAt.getTime())) {
-        reasons.push(`linha ${lineNumber}: data inválida`);
+      if (!result.ok) {
+        reasons.push(`linha ${result.lineNumber}: ${result.reason}`);
         continue;
       }
 
@@ -427,12 +477,12 @@ export async function createImportAction(
           await useCase.execute({
             id: randomUUID(),
             userId,
-            accountId: account.id,
-            categoryId: category?.id,
-            description,
-            amount,
-            type,
-            occurredAt,
+            accountId: result.row.accountId,
+            categoryId: result.row.categoryId,
+            description: result.row.description,
+            amount: result.row.amount,
+            type: result.row.type,
+            occurredAt: result.row.occurredAt,
           });
         });
         imported += 1;
@@ -450,6 +500,141 @@ export async function createImportAction(
         : summary;
 
     return { success: true, message };
+  } catch (error) {
+    return { success: false, error: toUserMessage(error) };
+  }
+}
+
+export interface ImportPreviewRow {
+  lineNumber: number;
+  description: string;
+  accountId: string;
+  accountName: string;
+  categoryId?: string;
+  categoryName?: string;
+  type: 'income' | 'expense';
+  amount: number;
+  occurredAt: string; // ISO date, for JSON round-trip to the client and back
+  status: 'valid' | 'valid_possible_duplicate' | 'invalid';
+  reason?: string;
+}
+
+export interface ImportPreviewState {
+  success: boolean;
+  error?: string;
+  rows?: ImportPreviewRow[];
+}
+
+/**
+ * Parses and validates the uploaded CSV (same logic `createImportAction`
+ * uses) but persists nothing — returns every row's status for the client
+ * to render as a preview. Duplicate detection: a `valid` row whose account,
+ * exact amount, and date (±1 day) already match an existing transaction is
+ * marked `valid_possible_duplicate` rather than `invalid` — the user
+ * decides whether to import it anyway in the preview UI.
+ */
+export async function previewImportAction(
+  _prev: ImportPreviewState,
+  formData: FormData,
+): Promise<ImportPreviewState> {
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { success: false, error: 'Selecione um arquivo CSV.' };
+  }
+
+  const text = await file.text();
+  const rows = parseCsv(text).filter((row) =>
+    row.some((field) => field.trim() !== ''),
+  );
+  if (rows.length === 0) {
+    return { success: false, error: 'O arquivo está vazio.' };
+  }
+
+  const [header, ...dataRows] = rows;
+  const columnIndexByKey = new Map<ImportColumnKey, number>();
+  header.forEach((cell, index) => {
+    const key = IMPORT_HEADER_KEYS[normalizeText(cell)];
+    if (key) columnIndexByKey.set(key, index);
+  });
+
+  const missingColumn = REQUIRED_IMPORT_COLUMNS.find(
+    (key) => !columnIndexByKey.has(key),
+  );
+  if (missingColumn) {
+    return {
+      success: false,
+      error:
+        'Cabeçalho do CSV inválido. Use o mesmo formato do arquivo exportado.',
+    };
+  }
+
+  try {
+    const userId = await requireCurrentUserId();
+
+    const [accounts, categories, existingTransactions] = await Promise.all([
+      new DrizzleAccountRepository().findByUserId(userId),
+      new DrizzleCategoryRepository().findByUserId(userId),
+      new GetTransactionsUseCase(new DrizzleTransactionRepository()).execute(
+        userId,
+        { pageSize: 10_000 },
+      ),
+    ]);
+    const accountByName = new Map(
+      accounts.map((account) => [normalizeText(account.name), account]),
+    );
+    const categoryByName = new Map(
+      categories.map((category) => [normalizeText(category.name), category]),
+    );
+
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+    const previewRows: ImportPreviewRow[] = dataRows.map((row, rowIndex) => {
+      const lineNumber = rowIndex + 2;
+      const result = parseImportRow(
+        row,
+        lineNumber,
+        columnIndexByKey,
+        accountByName,
+        categoryByName,
+      );
+
+      if (!result.ok) {
+        return {
+          lineNumber: result.lineNumber,
+          description: '',
+          accountId: '',
+          accountName: '',
+          type: 'expense',
+          amount: 0,
+          occurredAt: '',
+          status: 'invalid',
+          reason: result.reason,
+        };
+      }
+
+      const isDuplicate = existingTransactions.some(
+        (t) =>
+          t.accountId === result.row.accountId &&
+          t.amount === result.row.amount &&
+          Math.abs(t.occurredAt.getTime() - result.row.occurredAt.getTime()) <=
+            ONE_DAY_MS,
+      );
+
+      return {
+        lineNumber: result.row.lineNumber,
+        description: result.row.description,
+        accountId: result.row.accountId,
+        accountName: result.row.accountName,
+        categoryId: result.row.categoryId,
+        categoryName: result.row.categoryName,
+        type: result.row.type,
+        amount: result.row.amount,
+        occurredAt: result.row.occurredAt.toISOString(),
+        status: isDuplicate ? 'valid_possible_duplicate' : 'valid',
+      };
+    });
+
+    return { success: true, rows: previewRows };
   } catch (error) {
     return { success: false, error: toUserMessage(error) };
   }
