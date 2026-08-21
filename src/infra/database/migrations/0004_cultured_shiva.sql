@@ -1,0 +1,2 @@
+DROP INDEX "transactions_account_cursor_idx";--> statement-breakpoint
+CREATE INDEX "transactions_account_cursor_idx" ON "transactions" USING btree ("account_id","occurred_at" DESC NULLS FIRST,"id" DESC NULLS FIRST);

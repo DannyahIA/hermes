@@ -275,10 +275,15 @@ export const transactions = pgTable(
     // Backs the keyset-pagination query (WHERE (occurred_at, id) < cursor
     // ORDER BY occurred_at DESC, id DESC) used by GetTransactionsUseCase's
     // cursor path — see infra/repositories/drizzle-transaction.repository.ts.
+    // .nullsFirst() on both DESC columns matches Postgres's default
+    // DESC NULLS FIRST sort order (used by the plain `desc()` ORDER BY in
+    // the repository query) so the planner can use this index to satisfy
+    // the sort directly, without an explicit Sort node. Both columns are
+    // NOT NULL, so this is a pathkey-matching fix only — no semantic change.
     index('transactions_account_cursor_idx').on(
       table.accountId,
-      table.occurredAt.desc(),
-      table.id.desc(),
+      table.occurredAt.desc().nullsFirst(),
+      table.id.desc().nullsFirst(),
     ),
   ],
 );
