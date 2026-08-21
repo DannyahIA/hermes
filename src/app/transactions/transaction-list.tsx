@@ -20,7 +20,7 @@ interface TransactionListProps {
   initial: { transactions: ClientTransaction[]; nextCursor: string | null };
   filters: InfiniteTransactionFilters;
   categories: Array<{ id: string; name: string }>;
-  installmentCountByPlanId: Map<string, number>;
+  installmentCountByPlanId: Record<string, number>;
 }
 
 /** `ClientTransaction` with `occurredAt` parsed to a real `Date` — both
@@ -139,7 +139,7 @@ export function TransactionList({
                         installmentLabel={
                           item.transaction.installmentPlanId &&
                           item.transaction.installmentNumber
-                            ? `${item.transaction.installmentNumber}/${installmentCountByPlanId.get(item.transaction.installmentPlanId) ?? '?'}`
+                            ? `${item.transaction.installmentNumber}/${installmentCountByPlanId[item.transaction.installmentPlanId] ?? '?'}`
                             : undefined
                         }
                         isRecurring={Boolean(item.transaction.recurringRuleId)}
@@ -160,7 +160,7 @@ export function TransactionList({
                       installmentLabel={
                         item.transaction.installmentPlanId &&
                         item.transaction.installmentNumber
-                          ? `${item.transaction.installmentNumber}/${installmentCountByPlanId.get(item.transaction.installmentPlanId) ?? '?'}`
+                          ? `${item.transaction.installmentNumber}/${installmentCountByPlanId[item.transaction.installmentPlanId] ?? '?'}`
                           : undefined
                       }
                       isRecurring={Boolean(item.transaction.recurringRuleId)}

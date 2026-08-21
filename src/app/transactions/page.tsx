@@ -99,7 +99,10 @@ export default async function TransactionsPage({
   const categoriesById = new Map(
     categories.map((category) => [category.id, category]),
   );
-  const installmentCountByPlanId = new Map(
+  // Plain object, not a Map — Map instances aren't serializable across the
+  // React Server Components boundary and throw a runtime error when passed
+  // as a prop into a 'use client' component like TransactionList.
+  const installmentCountByPlanId: Record<string, number> = Object.fromEntries(
     installmentPlans.map((plan) => [plan.id, plan.installmentCount]),
   );
 
@@ -120,8 +123,8 @@ export default async function TransactionsPage({
         <div className="space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <TransactionsFilters
-              accounts={accounts}
-              categories={categories}
+              accounts={accountOptions}
+              categories={categoryOptions}
               defaultAccountId={filters.accountId}
               defaultCategoryId={filters.categoryId}
               defaultType={filters.type}
