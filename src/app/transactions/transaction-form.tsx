@@ -47,6 +47,23 @@ export function TransactionForm({
       : createTransactionAction;
   const [state, formAction] = useActionState(action, INITIAL_STATE);
 
+  // Making `amount`/`installmentCount` controlled inputs defeats React 19's
+  // automatic reset of *uncontrolled* fields after a successful submit —
+  // reset them manually. This is React's "adjusting state during render"
+  // pattern (setState during render, guarded by a ref-of-previous-state
+  // comparison) rather than an effect, so it happens before paint and
+  // reacts to every genuine state change (a fresh action result is always a
+  // new object reference) — not just a transition into `success`, so a
+  // second successful submit in a row still resets.
+  const [handledState, setHandledState] = useState(state);
+  if (state !== handledState) {
+    setHandledState(state);
+    if (state.success) {
+      setAmountValue('');
+      setInstallmentCountValue(2);
+    }
+  }
+
   return (
     <form action={formAction} className="space-y-4">
       {state.error && (
