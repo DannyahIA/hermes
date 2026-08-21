@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TRANSACTION_TYPE_LABELS } from '@/config/constants';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
+import { formatCurrency } from '@/shared/lib/format-currency';
 
 const INITIAL_STATE: ActionResult = { success: false };
 
@@ -31,6 +32,11 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [installments, setInstallments] = useState(false);
+  const [amountMode, setAmountMode] = useState<'total' | 'installment'>(
+    'total',
+  );
+  const [amountValue, setAmountValue] = useState('');
+  const [installmentCountValue, setInstallmentCountValue] = useState(2);
 
   // Parceling only makes sense for an expense — switch the form's action
   // (and therefore which use-case runs) instead of branching inside one
@@ -69,9 +75,33 @@ export function TransactionForm({
           </select>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="amount">
-            {installments && type === 'expense' ? 'Valor total' : 'Valor'}
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium" htmlFor="amount">
+              {installments && type === 'expense'
+                ? amountMode === 'total'
+                  ? 'Valor total'
+                  : 'Valor da parcela'
+                : 'Valor'}
+            </label>
+            {installments && type === 'expense' && (
+              <div className="flex gap-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setAmountMode('total')}
+                  className={`rounded-full border px-2 py-0.5 ${amountMode === 'total' ? 'border-primary bg-primary/10' : 'border-input'}`}
+                >
+                  Total
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmountMode('installment')}
+                  className={`rounded-full border px-2 py-0.5 ${amountMode === 'installment' ? 'border-primary bg-primary/10' : 'border-input'}`}
+                >
+                  Por parcela
+                </button>
+              </div>
+            )}
+          </div>
           <Input
             id="amount"
             name="amount"
@@ -79,7 +109,19 @@ export function TransactionForm({
             step="0.01"
             min="0.01"
             required
+            value={amountValue}
+            onChange={(event) => setAmountValue(event.target.value)}
           />
+          {installments && type === 'expense' && amountValue && (
+            <p className="text-muted-foreground text-xs">
+              {amountMode === 'total'
+                ? `≈ ${formatCurrency(Number(amountValue) / installmentCountValue)} por parcela`
+                : `≈ ${formatCurrency(Number(amountValue) * installmentCountValue)} no total`}
+            </p>
+          )}
+          {installments && type === 'expense' && (
+            <input type="hidden" name="amountMode" value={amountMode} />
+          )}
         </div>
       </div>
 
@@ -168,7 +210,10 @@ export function TransactionForm({
                 min="2"
                 max="60"
                 step="1"
-                defaultValue={2}
+                value={installmentCountValue}
+                onChange={(event) =>
+                  setInstallmentCountValue(Number(event.target.value) || 2)
+                }
                 required
               />
             </div>
