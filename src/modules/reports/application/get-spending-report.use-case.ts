@@ -1,8 +1,10 @@
 import type { AccountRepository } from '@/core/contracts/account-repository';
 import type { BudgetRepository } from '@/core/contracts/budget-repository';
 import type { CategoryRepository } from '@/core/contracts/category-repository';
+import type { RecurringTransactionRepository } from '@/core/contracts/recurring-transaction-repository';
 import type { TransactionRepository } from '@/core/contracts/transaction-repository';
 import type { Account } from '@/core/entities/account';
+import type { RecurringTransaction } from '@/core/entities/recurring-transaction';
 import type { Transaction } from '@/core/entities/transaction';
 import {
   type BudgetProgress,
@@ -29,6 +31,20 @@ export interface NetWorthPoint {
   netWorth: number;
 }
 
+export interface CategoryComparison {
+  categoryId: string;
+  categoryName: string;
+  currentTotal: number;
+  previousTotal: number;
+  deltaPercent: number | null;
+}
+
+export interface RecurringExpenseShare {
+  monthlyRecurringExpense: number;
+  averageMonthlyIncome: number;
+  percentage: number | null;
+}
+
 export interface SpendingReport {
   totalIncome: number;
   totalExpense: number;
@@ -36,6 +52,8 @@ export interface SpendingReport {
   spendingByCategory: CategorySpending[];
   netWorthByMonth: NetWorthPoint[];
   budgetsOverview: BudgetProgress[];
+  categoryComparison: CategoryComparison[];
+  recurringExpenseShare: RecurringExpenseShare;
 }
 
 const UNCATEGORIZED_KEY = 'uncategorized';
@@ -52,26 +70,45 @@ export class GetSpendingReportUseCase {
     private readonly transactionRepository: TransactionRepository,
     private readonly budgetRepository: BudgetRepository,
     private readonly categoryRepository: CategoryRepository,
+    private readonly recurringTransactionRepository: RecurringTransactionRepository,
   ) {}
 
   async execute(
     userId: string,
     period: SpendingReportPeriod,
   ): Promise<SpendingReport> {
-    const [accounts, transactionsInPeriod, categories, budgetsOverview] =
-      await Promise.all([
-        this.accountRepository.findByUserId(userId),
-        this.transactionRepository.findByUserId(userId, {
-          from: period.from,
-          to: period.to,
-          pageSize: 10000,
-        }),
-        this.categoryRepository.findByUserId(userId),
-        new GetBudgetProgressUseCase(
-          this.budgetRepository,
-          this.transactionRepository,
-        ).execute(userId),
-      ]);
+    const periodDurationMs = period.to.getTime() - period.from.getTime();
+    const previousPeriod: SpendingReportPeriod = {
+      from: new Date(period.from.getTime() - periodDurationMs - 1),
+      to: new Date(period.from.getTime() - 1),
+    };
+
+    const [
+      accounts,
+      transactionsInPeriod,
+      previousPeriodTransactions,
+      categories,
+      budgetsOverview,
+      recurringRules,
+    ] = await Promise.all([
+      this.accountRepository.findByUserId(userId),
+      this.transactionRepository.findByUserId(userId, {
+        from: period.from,
+        to: period.to,
+        pageSize: 10000,
+      }),
+      this.transactionRepository.findByUserId(userId, {
+        from: previousPeriod.from,
+        to: previousPeriod.to,
+        pageSize: 10000,
+      }),
+      this.categoryRepository.findByUserId(userId),
+      new GetBudgetProgressUseCase(
+        this.budgetRepository,
+        this.transactionRepository,
+      ).execute(userId),
+      this.recurringTransactionRepository.findByUserId(userId),
+    ]);
 
     const totalIncome = sumByType(transactionsInPeriod, 'income');
     const totalExpense = sumByType(transactionsInPeriod, 'expense');
@@ -93,6 +130,18 @@ export class GetSpendingReportUseCase {
       period,
     );
 
+    const categoryComparison = this.buildCategoryComparison(
+      transactionsInPeriod,
+      previousPeriodTransactions,
+      categories,
+    );
+
+    const recurringExpenseShare = this.buildRecurringExpenseShare(
+      recurringRules,
+      totalIncome,
+      period,
+    );
+
     return {
       totalIncome,
       totalExpense,
@@ -100,6 +149,8 @@ export class GetSpendingReportUseCase {
       spendingByCategory,
       netWorthByMonth,
       budgetsOverview,
+      categoryComparison,
+      recurringExpenseShare,
     };
   }
 
@@ -132,6 +183,86 @@ export class GetSpendingReportUseCase {
         total,
       }))
       .sort((a, b) => b.total - a.total);
+  }
+
+  private buildCategoryComparison(
+    currentTransactions: Transaction[],
+    previousTransactions: Transaction[],
+    categories: Array<{ id: string; name: string }>,
+  ): CategoryComparison[] {
+    const currentByCategory = this.sumExpenseByCategory(currentTransactions);
+    const previousByCategory = this.sumExpenseByCategory(previousTransactions);
+    const categoriesById = new Map(
+      categories.map((category) => [category.id, category]),
+    );
+
+    const allCategoryIds = new Set([
+      ...currentByCategory.keys(),
+      ...previousByCategory.keys(),
+    ]);
+
+    return [...allCategoryIds]
+      .map((categoryId) => {
+        const currentTotal = currentByCategory.get(categoryId) ?? 0;
+        const previousTotal = previousByCategory.get(categoryId) ?? 0;
+        return {
+          categoryId,
+          categoryName:
+            categoryId === UNCATEGORIZED_KEY
+              ? 'Sem categoria'
+              : (categoriesById.get(categoryId)?.name ?? 'Categoria removida'),
+          currentTotal,
+          previousTotal,
+          deltaPercent:
+            previousTotal === 0
+              ? null
+              : ((currentTotal - previousTotal) / previousTotal) * 100,
+        };
+      })
+      .sort(
+        (a, b) =>
+          b.currentTotal - b.previousTotal - (a.currentTotal - a.previousTotal),
+      );
+  }
+
+  private sumExpenseByCategory(
+    transactions: Transaction[],
+  ): Map<string, number> {
+    const totals = new Map<string, number>();
+    for (const transaction of transactions) {
+      if (transaction.type !== 'expense') continue;
+      const key = transaction.categoryId ?? UNCATEGORIZED_KEY;
+      totals.set(key, (totals.get(key) ?? 0) + transaction.amount);
+    }
+    return totals;
+  }
+
+  private buildRecurringExpenseShare(
+    recurringRules: RecurringTransaction[],
+    totalIncome: number,
+    period: SpendingReportPeriod,
+  ): RecurringExpenseShare {
+    const monthlyRecurringExpense = recurringRules
+      .filter((rule) => rule.active && rule.type === 'expense')
+      .reduce((sum, rule) => sum + rule.amount, 0);
+
+    const monthsInPeriod = Math.max(
+      1,
+      Math.round(
+        (period.to.getTime() - period.from.getTime()) /
+          (30 * 24 * 60 * 60 * 1000),
+      ),
+    );
+    const averageMonthlyIncome = totalIncome / monthsInPeriod;
+
+    return {
+      monthlyRecurringExpense,
+      averageMonthlyIncome,
+      percentage:
+        averageMonthlyIncome === 0
+          ? null
+          : (monthlyRecurringExpense / averageMonthlyIncome) * 100,
+    };
   }
 
   /**

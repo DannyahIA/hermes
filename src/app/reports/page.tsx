@@ -13,6 +13,7 @@ import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleBudgetRepository } from '@/infra/repositories/drizzle-budget.repository';
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
+import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { GetSpendingReportUseCase } from '@/modules/reports/application/get-spending-report.use-case';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
@@ -56,6 +57,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     new DrizzleTransactionRepository(),
     new DrizzleBudgetRepository(),
     new DrizzleCategoryRepository(),
+    new DrizzleRecurringTransactionRepository(),
   ).execute(userId, { from, to });
 
   const maxFlow = Math.max(
