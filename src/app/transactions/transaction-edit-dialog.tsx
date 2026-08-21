@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import {
@@ -11,12 +11,12 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DialogForm } from '@/components/ui/dialog-form';
 import { Input } from '@/components/ui/input';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
 
@@ -55,120 +55,132 @@ export function TransactionEditDialog({
   isInstallment,
 }: TransactionEditDialogProps) {
   const [open, setOpen] = useState(false);
-  const [state, formAction] = useActionState(
-    isInstallment ? updateInstallmentAction : updateTransactionAction,
-    INITIAL_STATE,
-  );
-
-  if (state.success && open) {
-    setOpen(false);
-  }
 
   return (
     <>
       <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
         Editar
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogHeader>
-          <DialogTitle>Editar transação</DialogTitle>
-          <DialogDescription>
-            Altere o valor, a data, a descrição ou a categoria.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogForm
+        open={open}
+        onOpenChange={setOpen}
+        action={
+          isInstallment ? updateInstallmentAction : updateTransactionAction
+        }
+        initialState={INITIAL_STATE}
+      >
+        {({ state, formAction }) => (
+          <>
+            <DialogHeader>
+              <DialogTitle>Editar transação</DialogTitle>
+              <DialogDescription>
+                Altere o valor, a data, a descrição ou a categoria.
+              </DialogDescription>
+            </DialogHeader>
 
-        <form action={formAction} className="space-y-4">
-          <input type="hidden" name="id" value={id} />
+            <form action={formAction} className="space-y-4">
+              <input type="hidden" name="id" value={id} />
 
-          {state.error && (
-            <Alert variant="error">
-              <AlertDescription>{state.error}</AlertDescription>
-            </Alert>
-          )}
+              {state.error && (
+                <Alert variant="error">
+                  <AlertDescription>{state.error}</AlertDescription>
+                </Alert>
+              )}
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="edit-description">
-              Descrição
-            </label>
-            <Input
-              id="edit-description"
-              name="description"
-              defaultValue={description}
-              required
-            />
-          </div>
+              <div className="space-y-2">
+                <label
+                  className="text-sm font-medium"
+                  htmlFor="edit-description"
+                >
+                  Descrição
+                </label>
+                <Input
+                  id="edit-description"
+                  name="description"
+                  defaultValue={description}
+                  required
+                />
+              </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="edit-amount">
-                Valor
-              </label>
-              <Input
-                id="edit-amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                defaultValue={amount}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="edit-occurredAt">
-                Data
-              </label>
-              <Input
-                id="edit-occurredAt"
-                name="occurredAt"
-                type="date"
-                defaultValue={toDateInputValue(occurredAt)}
-                required
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="edit-amount">
+                    Valor
+                  </label>
+                  <Input
+                    id="edit-amount"
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    defaultValue={amount}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="edit-occurredAt"
+                  >
+                    Data
+                  </label>
+                  <Input
+                    id="edit-occurredAt"
+                    name="occurredAt"
+                    type="date"
+                    defaultValue={toDateInputValue(occurredAt)}
+                    required
+                  />
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="edit-categoryId">
-              Categoria
-            </label>
-            <select
-              id="edit-categoryId"
-              name="categoryId"
-              defaultValue={categoryId ?? ''}
-              className={FIELD_BASE_CLASSES}
-            >
-              <option value="">Sem categoria</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
+              <div className="space-y-2">
+                <label
+                  className="text-sm font-medium"
+                  htmlFor="edit-categoryId"
+                >
+                  Categoria
+                </label>
+                <select
+                  id="edit-categoryId"
+                  name="categoryId"
+                  defaultValue={categoryId ?? ''}
+                  className={FIELD_BASE_CLASSES}
+                >
+                  <option value="">Sem categoria</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {isInstallment && (
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                name="propagateToFuture"
-                className="border-input h-4 w-4 rounded"
-              />
-              Aplicar o novo valor às próximas parcelas
-            </label>
-          )}
+              {isInstallment && (
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="propagateToFuture"
+                    className="border-input h-4 w-4 rounded"
+                  />
+                  Aplicar o novo valor às próximas parcelas
+                </label>
+              )}
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <SubmitButton />
-          </DialogFooter>
-        </form>
-      </Dialog>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <SubmitButton />
+              </DialogFooter>
+            </form>
+          </>
+        )}
+      </DialogForm>
     </>
   );
 }
