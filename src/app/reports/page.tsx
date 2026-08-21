@@ -326,6 +326,103 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             </CardContent>
           </Card>
         </section>
+
+        <section className="grid gap-4 xl:grid-cols-2">
+          {/* Comparação com o período anterior — categories whose spending
+              grew, ranked; red ink for growth in expense, same convention
+              as the category-spending card. */}
+          <Card className="p-6">
+            <CardHeader className="p-0">
+              <CardTitle className="text-xl">
+                Comparação com o período anterior
+              </CardTitle>
+              <CardDescription>
+                Categorias que mais cresceram em valor.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="mt-4 p-0">
+              {report.categoryComparison.filter(
+                (c) => c.currentTotal - c.previousTotal > 0,
+              ).length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Nenhuma categoria cresceu neste período em relação ao
+                  anterior.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {report.categoryComparison
+                    .filter((c) => c.currentTotal - c.previousTotal > 0)
+                    .slice(0, 5)
+                    .map((comparison) => (
+                      <div
+                        key={comparison.categoryId}
+                        className="ledger-row flex items-center justify-between"
+                      >
+                        <span className="text-sm">
+                          {comparison.categoryName}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="ledger-figure text-destructive text-sm font-semibold">
+                            {formatCurrency(comparison.currentTotal)}
+                          </span>
+                          {comparison.deltaPercent !== null && (
+                            <span className="text-muted-foreground text-xs">
+                              (+{comparison.deltaPercent.toFixed(0)}%)
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Gastos recorrentes — share of average monthly income committed
+              to active recurring expenses; status color, never a
+              categorical hue, and the percentage is always printed too. */}
+          <Card className="p-6">
+            <CardHeader className="p-0">
+              <CardTitle className="text-xl">Gastos recorrentes</CardTitle>
+              <CardDescription>
+                Quanto da sua renda mensal é comprometido com recorrências
+                ativas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="mt-4 p-0">
+              {report.recurringExpenseShare.percentage === null ? (
+                <p className="text-muted-foreground text-sm">
+                  Sem renda registrada neste período para calcular a proporção.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <span className="ledger-figure text-2xl font-semibold">
+                      {report.recurringExpenseShare.percentage.toFixed(0)}%
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {formatCurrency(
+                        report.recurringExpenseShare.monthlyRecurringExpense,
+                      )}{' '}
+                      de{' '}
+                      {formatCurrency(
+                        report.recurringExpenseShare.averageMonthlyIncome,
+                      )}
+                    </span>
+                  </div>
+                  <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
+                    <div
+                      className={`h-full ${report.recurringExpenseShare.percentage > 50 ? 'bg-destructive' : 'bg-success'}`}
+                      style={{
+                        width: `${Math.min(100, report.recurringExpenseShare.percentage)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
       </div>
     </AppShell>
   );
