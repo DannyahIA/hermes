@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { FilterChips } from '@/app/transactions/filter-chips';
 import { ImportDialog } from '@/app/transactions/import-dialog';
 import { RecurringTransactionFormDialog } from '@/app/transactions/recurring-transaction-form-dialog';
 import { RecurringTransactionRow } from '@/app/transactions/recurring-transaction-row';
@@ -138,6 +139,18 @@ export default async function TransactionsPage({
               <ImportDialog />
             </div>
           </div>
+
+          <FilterChips
+            accounts={accountOptions}
+            categories={categoryOptions}
+            filters={{
+              accountId: filters.accountId,
+              categoryId: filters.categoryId,
+              type: filters.type,
+              from: filters.from,
+              to: filters.to,
+            }}
+          />
 
           <Card className="overflow-hidden p-0">
             {transactions.length === 0 ? (
