@@ -38,7 +38,7 @@ export default async function DashboardPage() {
         <div className="relative">
           <div
             aria-hidden
-            className="pointer-events-none space-y-6 opacity-20 blur-[1px]"
+            className="pointer-events-none absolute inset-0 space-y-6 overflow-hidden opacity-20 blur-[1px]"
           >
             <div className="ledger-spine rounded-xl border p-6 sm:p-8">
               <Skeleton className="h-4 w-32" />
@@ -50,7 +50,7 @@ export default async function DashboardPage() {
               </div>
             </div>
           </div>
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative flex items-center justify-center py-12">
             <Card className="flex flex-col items-center gap-3 p-12 text-center shadow-lg">
               <CardTitle>Nenhuma conta cadastrada.</CardTitle>
               <CardDescription>
