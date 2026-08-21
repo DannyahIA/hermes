@@ -530,15 +530,62 @@ describe('GetSpendingReportUseCase — recurring expense share', () => {
       }),
     );
 
-    // 1-month period: averageMonthlyIncome = totalIncome / 1 = 2000.
+    // 31-day July period: monthsInPeriod = duration / 30 days ≈ 1.0333,
+    // so averageMonthlyIncome = 2000 / 1.0333... ≈ 1935.48 (fractional
+    // month count, not rounded to a whole month).
     const report = await useCase.execute(USER_ID, {
       from: new Date('2026-07-01T00:00:00'),
       to: new Date('2026-07-31T23:59:59'),
     });
 
     expect(report.recurringExpenseShare.monthlyRecurringExpense).toBe(500);
-    expect(report.recurringExpenseShare.averageMonthlyIncome).toBe(2000);
-    expect(report.recurringExpenseShare.percentage).toBe(25);
+    expect(report.recurringExpenseShare.averageMonthlyIncome).toBeCloseTo(
+      1935.48,
+      2,
+    );
+    expect(report.recurringExpenseShare.percentage).toBeCloseTo(25.83, 2);
+  });
+
+  it('scales averageMonthlyIncome proportionally for a short custom period instead of treating it as a full month', async () => {
+    const {
+      useCase,
+      accountRepository,
+      transactionRepository,
+      recurringTransactionRepository,
+    } = await buildUseCase();
+    await accountRepository.save(makeAccount());
+    await recurringTransactionRepository.save(
+      makeRecurringRule({
+        id: 'r1',
+        type: 'expense',
+        amount: 300,
+        active: true,
+      }),
+    );
+    await transactionRepository.save(
+      makeTransaction({
+        id: 'tx-income',
+        type: 'income',
+        amount: 700,
+        occurredAt: new Date('2026-07-03T00:00:00'),
+      }),
+    );
+
+    // 14-day period: monthsInPeriod = 14/30 ≈ 0.4667 (above the 0.25
+    // safety floor), so averageMonthlyIncome = 700 / (14/30) ≈ 1500 —
+    // NOT 700 (which is what Math.max(1, Math.round(...)) would have
+    // produced pre-fix, wrongly treating a two-week window as a full
+    // month).
+    const report = await useCase.execute(USER_ID, {
+      from: new Date('2026-07-01T00:00:00'),
+      to: new Date('2026-07-14T23:59:59'),
+    });
+
+    expect(report.recurringExpenseShare.averageMonthlyIncome).toBeCloseTo(
+      700 / (14 / 30),
+      1,
+    );
+    expect(report.recurringExpenseShare.averageMonthlyIncome).not.toBe(700);
   });
 
   it('returns percentage: null when there is no income in the period', async () => {

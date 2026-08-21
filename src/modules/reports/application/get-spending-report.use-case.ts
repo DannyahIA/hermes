@@ -247,11 +247,9 @@ export class GetSpendingReportUseCase {
       .reduce((sum, rule) => sum + rule.amount, 0);
 
     const monthsInPeriod = Math.max(
-      1,
-      Math.round(
-        (period.to.getTime() - period.from.getTime()) /
-          (30 * 24 * 60 * 60 * 1000),
-      ),
+      0.25,
+      (period.to.getTime() - period.from.getTime()) /
+        (30 * 24 * 60 * 60 * 1000),
     );
     const averageMonthlyIncome = totalIncome / monthsInPeriod;
 
