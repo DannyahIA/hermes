@@ -23,9 +23,9 @@ export default async function AccountsPage() {
   ).execute(userId);
   const accounts = accountsWithBalances.map(({ account }) => account);
 
-  const total = accounts
-    .filter((account) => !account.hidden && !account.archived)
-    .reduce((sum, account) => sum + account.balance, 0);
+  const total = accountsWithBalances
+    .filter(({ account }) => !account.hidden && !account.archived)
+    .reduce((sum, { currentBalance }) => sum + currentBalance, 0);
 
   // Client Components can only receive plain objects — entity class
   // instances aren't serializable — so `nextDueDate` is computed here and
@@ -61,24 +61,31 @@ export default async function AccountsPage() {
             </Card>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {accounts.map((account) => {
-                const nextDue = account.nextDueDate(now);
-                return (
-                  <AccountCard
-                    key={account.id}
-                    id={account.id}
-                    name={account.name}
-                    type={account.type}
-                    balance={account.balance}
-                    currency={account.currency}
-                    archived={account.archived}
-                    closingDay={account.closingDay}
-                    dueDay={account.dueDay}
-                    nextDueLabel={nextDue ? formatDate(nextDue) : undefined}
-                    payingAccounts={payingAccounts}
-                  />
-                );
-              })}
+              {accountsWithBalances.map(
+                ({ account, currentBalance, projectedBalance }) => {
+                  const nextDue = account.nextDueDate(now);
+                  return (
+                    <AccountCard
+                      key={account.id}
+                      id={account.id}
+                      name={account.name}
+                      type={account.type}
+                      balance={currentBalance}
+                      projectedBalance={
+                        projectedBalance !== currentBalance
+                          ? projectedBalance
+                          : undefined
+                      }
+                      currency={account.currency}
+                      archived={account.archived}
+                      closingDay={account.closingDay}
+                      dueDay={account.dueDay}
+                      nextDueLabel={nextDue ? formatDate(nextDue) : undefined}
+                      payingAccounts={payingAccounts}
+                    />
+                  );
+                },
+              )}
             </div>
           )}
         </div>

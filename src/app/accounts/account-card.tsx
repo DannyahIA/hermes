@@ -21,6 +21,8 @@ interface AccountCardProps {
   name: string;
   type: AccountType;
   balance: number;
+  /** Balance including scheduled future commitments (installments, recurring bills), when it differs from `balance`. */
+  projectedBalance?: number;
   currency: string;
   archived: boolean;
   closingDay?: number;
@@ -36,6 +38,7 @@ export function AccountCard({
   name,
   type,
   balance,
+  projectedBalance,
   currency,
   archived,
   closingDay,
@@ -95,6 +98,11 @@ export function AccountCard({
             {isCredit ? 'Fatura atual' : 'Saldo'}
             {isCredit && nextDueLabel ? ` · vence em ${nextDueLabel}` : null}
           </p>
+          {projectedBalance !== undefined && (
+            <p className="text-muted-foreground text-xs">
+              Projetado: {formatCurrency(projectedBalance, currency)}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {isCredit && payingAccounts.length > 0 && !archived && (
