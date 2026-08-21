@@ -35,7 +35,7 @@ export default async function AccountsPage() {
 
   return (
     <AppShell>
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Card className="p-6">
             <CardHeader className="p-0">
@@ -57,7 +57,7 @@ export default async function AccountsPage() {
               </CardDescription>
             </Card>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {accounts.map((account) => {
                 const nextDue = account.nextDueDate(now);
                 return (

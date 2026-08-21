@@ -116,7 +116,7 @@ export default async function TransactionsPage({
 
   return (
     <AppShell>
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <TransactionsFilters

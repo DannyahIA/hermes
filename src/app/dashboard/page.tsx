@@ -105,7 +105,7 @@ export default async function DashboardPage() {
           </div>
         </Card>
 
-        <section className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+        <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
           <Card className="p-6">
             <CardHeader className="p-0">
               <CardTitle className="text-xl">Fluxo de caixa</CardTitle>
