@@ -8,6 +8,7 @@ import { TransactionForm } from '@/app/transactions/transaction-form';
 import { TransactionList } from '@/app/transactions/transaction-list';
 import { TransactionsFilters } from '@/app/transactions/transactions-filters';
 import { TransferForm } from '@/app/transactions/transfer-form';
+import { ViewModeSelector } from '@/app/transactions/view-mode-selector';
 import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,8 +24,10 @@ import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category
 import { DrizzleInstallmentPlanRepository } from '@/infra/repositories/drizzle-installment-plan.repository';
 import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
+import { DrizzleViewPreferenceRepository } from '@/infra/repositories/drizzle-view-preference.repository';
 import { GetAccountsUseCase } from '@/modules/accounts/application/get-accounts.use-case';
 import { GetInstallmentPlansUseCase } from '@/modules/installments/application/get-installment-plans.use-case';
+import { GetViewPreferenceUseCase } from '@/modules/preferences/application/get-view-preference.use-case';
 import { GetRecurringTransactionsUseCase } from '@/modules/recurring-transactions/application/get-recurring-transactions.use-case';
 import { GetTransactionsUseCase } from '@/modules/transactions/application/get-transactions.use-case';
 import { encodeTransactionCursor } from '@/shared/lib/transaction-cursor';
@@ -50,6 +53,7 @@ export default async function TransactionsPage({
     categories,
     installmentPlans,
     recurringTransactions,
+    rawViewMode,
   ] = await Promise.all([
     new GetAccountsUseCase(
       new DrizzleAccountRepository(),
@@ -62,7 +66,14 @@ export default async function TransactionsPage({
     new GetRecurringTransactionsUseCase(
       new DrizzleRecurringTransactionRepository(),
     ).execute(userId),
+    new GetViewPreferenceUseCase(new DrizzleViewPreferenceRepository()).execute(
+      userId,
+      'transactions',
+      'chronological',
+    ),
   ]);
+  const viewMode = rawViewMode as
+    'chronological' | 'grouped_by_category' | 'grouped_by_month';
 
   // Fetch one extra row to know whether a next page exists, without a
   // separate COUNT query — a simple, cheap cursor-pagination pattern.
@@ -140,6 +151,7 @@ export default async function TransactionsPage({
               defaultTo={filters.to}
             />
             <div className="flex shrink-0 gap-2">
+              <ViewModeSelector value={viewMode} />
               <Button variant="outline" asChild>
                 <Link
                   href={`/api/transactions/export?${filterParams.toString()}`}
@@ -203,6 +215,7 @@ export default async function TransactionsPage({
                 }}
                 categories={categoryOptions}
                 installmentCountByPlanId={installmentCountByPlanId}
+                groupBy={viewMode}
               />
             )}
           </Card>

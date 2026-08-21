@@ -19,6 +19,8 @@ import {
 } from '@/app/transactions/use-infinite-transactions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { groupTransactionsByCategory } from '@/shared/lib/group-transactions-by-category';
+import { groupTransactionsByMonth } from '@/shared/lib/group-transactions-by-month';
 import { groupTransactionsByPeriod } from '@/shared/lib/group-transactions-by-period';
 
 interface TransactionListProps {
@@ -26,6 +28,7 @@ interface TransactionListProps {
   filters: InfiniteTransactionFilters;
   categories: Array<{ id: string; name: string }>;
   installmentCountByPlanId: Record<string, number>;
+  groupBy: 'chronological' | 'grouped_by_category' | 'grouped_by_month';
 }
 
 /** `ClientTransaction` with `occurredAt` parsed to a real `Date` — both
@@ -45,6 +48,7 @@ export function TransactionList({
   filters,
   categories,
   installmentCountByPlanId,
+  groupBy,
 }: TransactionListProps) {
   const {
     transactions,
@@ -61,10 +65,13 @@ export function TransactionList({
     [transactions],
   );
 
-  const groups = useMemo(
-    () => groupTransactionsByPeriod(enriched, new Date()),
-    [enriched],
-  );
+  const groups = useMemo(() => {
+    if (groupBy === 'grouped_by_category')
+      return groupTransactionsByCategory(enriched);
+    if (groupBy === 'grouped_by_month')
+      return groupTransactionsByMonth(enriched);
+    return groupTransactionsByPeriod(enriched, new Date());
+  }, [enriched, groupBy]);
 
   // Each group's `items` are already the exact EnrichedTransaction objects
   // from `enriched` (groupTransactionsByPeriod only buckets, never clones),

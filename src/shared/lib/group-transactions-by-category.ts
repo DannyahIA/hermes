@@ -12,7 +12,11 @@ const UNCATEGORIZED_LABEL = 'Sem categoria';
  * sorts last, regardless of its total, since it isn't a real category to
  * rank against the others. */
 export function groupTransactionsByCategory<
-  T extends { categoryId?: string; categoryName?: string; amount: number },
+  T extends {
+    categoryId?: string | null;
+    categoryName?: string | null;
+    amount: number;
+  },
 >(items: T[]): CategoryGroup<T>[] {
   const groupsByLabel = new Map<string, T[]>();
 
