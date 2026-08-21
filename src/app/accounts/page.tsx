@@ -10,15 +10,18 @@ import {
 } from '@/components/ui/card';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
+import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { GetAccountsUseCase } from '@/modules/accounts/application/get-accounts.use-case';
 import { formatCurrency } from '@/shared/lib/format-currency';
 import { formatDate } from '@/shared/lib/format-date';
 
 export default async function AccountsPage() {
   const userId = await requireCurrentUserId();
-  const accounts = await new GetAccountsUseCase(
+  const accountsWithBalances = await new GetAccountsUseCase(
     new DrizzleAccountRepository(),
+    new DrizzleTransactionRepository(),
   ).execute(userId);
+  const accounts = accountsWithBalances.map(({ account }) => account);
 
   const total = accounts
     .filter((account) => !account.hidden && !account.archived)

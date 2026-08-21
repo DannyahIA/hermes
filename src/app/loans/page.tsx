@@ -24,12 +24,15 @@ export default async function LoansPage() {
   const accountRepository = new DrizzleAccountRepository();
   const transactionRepository = new DrizzleTransactionRepository();
 
-  const [accounts, plans] = await Promise.all([
-    new GetAccountsUseCase(accountRepository).execute(userId),
+  const [accountsWithBalances, plans] = await Promise.all([
+    new GetAccountsUseCase(accountRepository, transactionRepository).execute(
+      userId,
+    ),
     new GetInstallmentPlansUseCase(
       new DrizzleInstallmentPlanRepository(),
     ).execute(userId),
   ]);
+  const accounts = accountsWithBalances.map(({ account }) => account);
 
   const loans = plans.filter((plan) => plan.kind === 'loan');
   const accountById = new Map(accounts.map((account) => [account.id, account]));

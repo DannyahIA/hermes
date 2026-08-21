@@ -45,17 +45,24 @@ export default async function TransactionsPage({
   const userId = await requireCurrentUserId();
   const filters = await searchParams;
 
-  const [accounts, categories, installmentPlans, recurringTransactions] =
-    await Promise.all([
-      new GetAccountsUseCase(new DrizzleAccountRepository()).execute(userId),
-      new DrizzleCategoryRepository().findByUserId(userId),
-      new GetInstallmentPlansUseCase(
-        new DrizzleInstallmentPlanRepository(),
-      ).execute(userId),
-      new GetRecurringTransactionsUseCase(
-        new DrizzleRecurringTransactionRepository(),
-      ).execute(userId),
-    ]);
+  const [
+    accountsWithBalances,
+    categories,
+    installmentPlans,
+    recurringTransactions,
+  ] = await Promise.all([
+    new GetAccountsUseCase(
+      new DrizzleAccountRepository(),
+      new DrizzleTransactionRepository(),
+    ).execute(userId),
+    new DrizzleCategoryRepository().findByUserId(userId),
+    new GetInstallmentPlansUseCase(
+      new DrizzleInstallmentPlanRepository(),
+    ).execute(userId),
+    new GetRecurringTransactionsUseCase(
+      new DrizzleRecurringTransactionRepository(),
+    ).execute(userId),
+  ]);
 
   // Fetch one extra row to know whether a next page exists, without a
   // separate COUNT query — a simple, cheap cursor-pagination pattern.
@@ -93,6 +100,7 @@ export default async function TransactionsPage({
   if (filters.from) filterParams.set('from', filters.from);
   if (filters.to) filterParams.set('to', filters.to);
 
+  const accounts = accountsWithBalances.map(({ account }) => account);
   const accountsById = new Map(
     accounts.map((account) => [account.id, account]),
   );
