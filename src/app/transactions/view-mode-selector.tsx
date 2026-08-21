@@ -3,23 +3,8 @@
 import { useTransition } from 'react';
 
 import { setViewPreferenceAction } from '@/app/transactions/preferences-actions';
+import { type TransactionViewMode, VIEW_MODE_LABELS } from '@/config/constants';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
-
-export type TransactionViewMode =
-  'chronological' | 'grouped_by_category' | 'grouped_by_month';
-
-const VIEW_MODE_LABELS: Record<TransactionViewMode, string> = {
-  chronological: 'Cronológico',
-  grouped_by_category: 'Por categoria',
-  grouped_by_month: 'Por mês',
-};
-
-/** The full set of valid modes — the single source of truth other modules
- * (e.g. `preferences-actions.ts`'s validation, `page.tsx`'s read-side guard)
- * reuse instead of redefining the union. */
-export const TRANSACTION_VIEW_MODES = Object.keys(
-  VIEW_MODE_LABELS,
-) as TransactionViewMode[];
 
 interface ViewModeSelectorProps {
   value: TransactionViewMode;

@@ -413,7 +413,7 @@ export interface ImportPreviewState {
 }
 
 /**
- * Parses and validates the uploaded CSV (same logic `createImportAction`
+ * Parses and validates the uploaded CSV (same logic `parseImportRow`
  * uses) but persists nothing — returns every row's status for the client
  * to render as a preview. Duplicate detection: a `valid` row whose account,
  * exact amount, and date (±1 day) already match an existing transaction is

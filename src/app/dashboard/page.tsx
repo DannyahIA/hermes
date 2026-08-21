@@ -122,37 +122,48 @@ export default async function DashboardPage() {
             ))}
           </div>
 
-          {summary.futureTransactions.length > 0 && (
-            <div className="border-border mt-4 border-t pt-4">
-              <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
-                Compromissos futuros
-              </p>
-              <ul className="space-y-1">
-                {Object.entries(
-                  summary.futureTransactions
-                    .filter((t) => t.type === 'expense')
-                    .reduce<Record<string, number>>((groups, t) => {
-                      const label = t.description.replace(
-                        /\s*\(\d+\/\d+\)$/,
-                        '',
-                      );
-                      groups[label] = (groups[label] ?? 0) + t.amount;
-                      return groups;
-                    }, {}),
-                )
-                  .sort(([, a], [, b]) => b - a)
-                  .slice(0, 5)
-                  .map(([label, total]) => (
-                    <li key={label} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{label}</span>
-                      <span className="ledger-figure">
-                        {formatCurrency(total)}
-                      </span>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          )}
+          {(() => {
+            const futureExpenses = summary.futureTransactions.filter(
+              (t) => t.type === 'expense',
+            );
+            return (
+              futureExpenses.length > 0 && (
+                <div className="border-border mt-4 border-t pt-4">
+                  <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
+                    Compromissos futuros
+                  </p>
+                  <ul className="space-y-1">
+                    {Object.entries(
+                      futureExpenses.reduce<Record<string, number>>(
+                        (groups, t) => {
+                          const label = t.description.replace(
+                            /\s*\(\d+\/\d+\)$/,
+                            '',
+                          );
+                          groups[label] = (groups[label] ?? 0) + t.amount;
+                          return groups;
+                        },
+                        {},
+                      ),
+                    )
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 5)
+                      .map(([label, total]) => (
+                        <li
+                          key={label}
+                          className="flex justify-between text-sm"
+                        >
+                          <span className="text-muted-foreground">{label}</span>
+                          <span className="ledger-figure">
+                            {formatCurrency(total)}
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )
+            );
+          })()}
         </Card>
 
         <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 
-import { TRANSACTION_VIEW_MODES } from '@/app/transactions/view-mode-selector';
+import { TRANSACTION_VIEW_MODES } from '@/config/constants';
 import { ROUTES } from '@/config/routes';
 import { DomainError } from '@/core/errors/domain-error';
 import { requireCurrentUserId } from '@/infra/auth/session';

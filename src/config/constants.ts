@@ -24,6 +24,26 @@ export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   transfer: 'Transferência',
 };
 
+export type TransactionViewMode =
+  'chronological' | 'grouped_by_category' | 'grouped_by_month';
+
+export const VIEW_MODE_LABELS: Record<TransactionViewMode, string> = {
+  chronological: 'Cronológico',
+  grouped_by_category: 'Por categoria',
+  grouped_by_month: 'Por mês',
+};
+
+/** The full set of valid modes — the single source of truth other modules
+ * (e.g. `preferences-actions.ts`'s validation, `page.tsx`'s read-side guard)
+ * reuse instead of redefining the union. Kept in this plain (non `'use
+ * client'`) module so it's safely importable from Server Components/Actions
+ * — importing it from a `'use client'` module instead would make Next's
+ * flight loader replace it with a throwing client-reference stub on the
+ * server. */
+export const TRANSACTION_VIEW_MODES = Object.keys(
+  VIEW_MODE_LABELS,
+) as TransactionViewMode[];
+
 /**
  * Spacing scale referenced by ui-ux.md — kept here as the single source of
  * truth for any place that needs the raw pixel values (e.g. chart layout

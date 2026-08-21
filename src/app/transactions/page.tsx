@@ -8,11 +8,7 @@ import { TransactionForm } from '@/app/transactions/transaction-form';
 import { TransactionList } from '@/app/transactions/transaction-list';
 import { TransactionsFilters } from '@/app/transactions/transactions-filters';
 import { TransferForm } from '@/app/transactions/transfer-form';
-import {
-  TRANSACTION_VIEW_MODES,
-  type TransactionViewMode,
-  ViewModeSelector,
-} from '@/app/transactions/view-mode-selector';
+import { ViewModeSelector } from '@/app/transactions/view-mode-selector';
 import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +18,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  TRANSACTION_VIEW_MODES,
+  type TransactionViewMode,
+} from '@/config/constants';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
