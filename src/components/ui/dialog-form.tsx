@@ -16,6 +16,13 @@ export interface DialogFormProps<
   initialState: State;
   /** Called in addition to the automatic close-on-success, e.g. for a toast. */
   onSuccess?: (state: State) => void;
+  /**
+   * Whether `state.success` should auto-close the dialog. Defaults to `true`
+   * (Round 1 behavior). Set `false` when "success" means "ready for a next
+   * step within the same dialog" rather than "done" — e.g. a preview step
+   * that hands off to a confirm step, both rendered inside one open dialog.
+   */
+  closeOnSuccess?: boolean;
   children: (args: DialogFormRenderArgs<State>) => React.ReactNode;
 }
 
@@ -36,6 +43,7 @@ export function DialogForm<State extends { success: boolean }>({
   action,
   initialState,
   onSuccess,
+  closeOnSuccess = true,
   children,
 }: DialogFormProps<State>) {
   return (
@@ -46,6 +54,7 @@ export function DialogForm<State extends { success: boolean }>({
           initialState={initialState}
           onClose={() => onOpenChange(false)}
           onSuccess={onSuccess}
+          closeOnSuccess={closeOnSuccess}
         >
           {children}
         </DialogFormInner>
@@ -59,12 +68,14 @@ function DialogFormInner<State extends { success: boolean }>({
   initialState,
   onClose,
   onSuccess,
+  closeOnSuccess,
   children,
 }: {
   action: (state: State, formData: FormData) => Promise<State>;
   initialState: State;
   onClose: () => void;
   onSuccess?: (state: State) => void;
+  closeOnSuccess: boolean;
   children: (args: DialogFormRenderArgs<State>) => React.ReactNode;
 }) {
   // `useActionState`'s declaration types the reducer over `Awaited<State>`,
@@ -82,11 +93,11 @@ function DialogFormInner<State extends { success: boolean }>({
 
   React.useEffect(() => {
     if (state.success) {
-      onClose();
+      if (closeOnSuccess) onClose();
       onSuccess?.(state);
     }
-    // Only react to a transition into success — onClose/onSuccess identity
-    // changing on every parent render must not re-trigger this.
+    // Only react to a transition into success — onClose/onSuccess/closeOnSuccess
+    // identity changing on every parent render must not re-trigger this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.success]);
 

@@ -640,6 +640,60 @@ export async function previewImportAction(
   }
 }
 
+/**
+ * Persists exactly the rows the user kept checked in the preview
+ * (`ImportPreviewTable`) — already fully validated by `previewImportAction`,
+ * so this does not re-parse the CSV, only re-runs `CreateTransactionUseCase`
+ * per row (one `withTransaction` each, so one bad row can't roll back the
+ * others — matches `createImportAction`'s existing behavior).
+ */
+export async function confirmImportAction(
+  rows: ImportPreviewRow[],
+): Promise<ActionResult> {
+  try {
+    const userId = await requireCurrentUserId();
+    let imported = 0;
+    const reasons: string[] = [];
+
+    for (const row of rows) {
+      try {
+        await withTransaction(async (tx) => {
+          const useCase = new CreateTransactionUseCase(
+            new DrizzleTransactionRepository(tx),
+            new DrizzleAccountRepository(tx),
+            new DrizzleCategoryRepository(tx),
+          );
+          await useCase.execute({
+            id: randomUUID(),
+            userId,
+            accountId: row.accountId,
+            categoryId: row.categoryId,
+            description: row.description,
+            amount: row.amount,
+            type: row.type,
+            occurredAt: new Date(row.occurredAt),
+          });
+        });
+        imported += 1;
+      } catch (error) {
+        reasons.push(`linha ${row.lineNumber}: ${toUserMessage(error)}`);
+      }
+    }
+
+    if (imported > 0) revalidateMoneyPages();
+
+    const summary = `${imported} importada${imported === 1 ? '' : 's'}, ${reasons.length} ignorada${reasons.length === 1 ? '' : 's'}`;
+    const message =
+      reasons.length > 0
+        ? `${summary} (${reasons.slice(0, 5).join('; ')}${reasons.length > 5 ? '…' : ''})`
+        : summary;
+
+    return { success: true, message };
+  } catch (error) {
+    return { success: false, error: toUserMessage(error) };
+  }
+}
+
 export async function transferMoneyAction(
   _prev: ActionResult,
   formData: FormData,
