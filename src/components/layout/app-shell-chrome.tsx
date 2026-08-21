@@ -1,0 +1,177 @@
+'use client';
+
+import { LogOut, Menu, PanelLeftClose, Plus, X } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+
+import { signOutAction } from '@/app/(auth)/actions';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { APP_NAME } from '@/config/constants';
+import { PRIMARY_NAVIGATION } from '@/config/navigation';
+import { ROUTES } from '@/config/routes';
+import { ThemeToggle } from '@/shared/components/theme-toggle';
+import { cn } from '@/shared/lib/cn';
+
+interface AppShellChromeProps {
+  userLabel: string;
+  children: React.ReactNode;
+}
+
+function isActiveRoute(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const currentPage = PRIMARY_NAVIGATION.find((item) =>
+    isActiveRoute(pathname, item.href),
+  );
+
+  const navLinks = (onNavigate?: () => void) =>
+    PRIMARY_NAVIGATION.map((item) => {
+      const Icon = item.icon;
+      const active = isActiveRoute(pathname, item.href);
+      return (
+        <Link
+          key={item.href}
+          href={item.href}
+          onClick={onNavigate}
+          aria-current={active ? 'page' : undefined}
+          className={cn(
+            'flex items-center gap-3 border-l-[3px] px-3 py-2.5 text-sm font-medium transition-colors',
+            active
+              ? 'border-ring bg-sidebar-accent text-sidebar-accent-foreground'
+              : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-transparent',
+          )}
+        >
+          <Icon className="h-4 w-4" />
+          {item.label}
+        </Link>
+      );
+    });
+
+  return (
+    <div className="text-foreground min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(156,122,60,0.08),_transparent_40%)]">
+      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 lg:px-6 lg:py-6">
+        <div className="border-border/70 bg-background/80 flex flex-1 overflow-hidden rounded-[1.25rem] border shadow-[var(--shadow-elevation)] backdrop-blur-xl">
+          <aside className="border-border/70 bg-sidebar hidden w-72 flex-col border-r py-6 lg:flex">
+            <div className="px-5">
+              <SidebarBrand />
+            </div>
+            <nav className="space-y-0.5 px-2">{navLinks()}</nav>
+            <div className="mt-auto px-5">
+              <Card className="ledger-spine bg-card/70 p-4">
+                <p className="text-sm font-semibold">{userLabel}</p>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Sua central de comando financeira.
+                </p>
+              </Card>
+            </div>
+          </aside>
+
+          {mobileOpen && (
+            <div className="fixed inset-0 z-40 lg:hidden">
+              <div
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={() => setMobileOpen(false)}
+              />
+              <aside className="bg-sidebar relative flex h-full w-72 flex-col py-6">
+                <div className="mb-8 flex items-center justify-between px-5">
+                  <SidebarBrand compact />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Fechar menu"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <nav className="space-y-0.5 px-2">
+                  {navLinks(() => setMobileOpen(false))}
+                </nav>
+              </aside>
+            </div>
+          )}
+
+          <div className="flex flex-1 flex-col">
+            <header className="border-border/70 flex items-center justify-between border-b px-4 py-4 sm:px-6 lg:px-6">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="lg:hidden"
+                  aria-label="Abrir menu"
+                  onClick={() => setMobileOpen(true)}
+                >
+                  <Menu className="h-4 w-4" />
+                </Button>
+                <div>
+                  <p className="font-display text-sm font-semibold">
+                    {currentPage?.label ?? APP_NAME}
+                  </p>
+                  <p className="text-muted-foreground hidden text-sm sm:block">
+                    Bem-vindo(a) de volta
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <ThemeToggle />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="hidden lg:inline-flex"
+                  disabled
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </Button>
+                <form action={signOutAction}>
+                  <Button
+                    variant="outline"
+                    type="submit"
+                    size="sm"
+                    aria-label="Sair"
+                  >
+                    <LogOut className="h-4 w-4 sm:hidden" />
+                    <span className="hidden sm:inline">Sair</span>
+                  </Button>
+                </form>
+                <Button asChild size="sm">
+                  <Link href={ROUTES.transactions} aria-label="Nova transação">
+                    <Plus className="h-4 w-4 sm:hidden" />
+                    <span className="hidden sm:inline">Nova transação</span>
+                  </Link>
+                </Button>
+              </div>
+            </header>
+
+            <main className="flex-1 p-4 sm:p-6 lg:p-6">{children}</main>
+
+            <footer className="border-border/70 text-muted-foreground border-t px-4 py-4 text-sm sm:px-6">
+              {APP_NAME} © 2026
+            </footer>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SidebarBrand({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={cn('flex items-center gap-3', compact ? '' : 'mb-8')}>
+      <div className="bg-primary text-primary-foreground font-display flex h-10 w-10 items-center justify-center rounded-md text-base font-semibold">
+        H
+      </div>
+      <div>
+        <p className="font-display text-sm font-semibold">{APP_NAME}</p>
+        <p className="text-muted-foreground text-xs">Seu livro-razão pessoal</p>
+      </div>
+    </div>
+  );
+}

@@ -1,26 +1,195 @@
 @import 'tailwindcss';
 
+/*
+ * Design tokens (ui-ux.md: "Toda estilização deve utilizar tokens").
+ *
+ * Concept: "The Ledger" — Hermes borrows its visual language from bound
+ * bookkeeping ledgers. Amounts run in tabular monospace like ruled ledger
+ * columns; income/expense use the literal historical convention (black ink
+ * for credits, red ink for debits — where "in the black"/"in the red" come
+ * from) instead of generic green/red pills. Every color still carries
+ * semantic meaning per ui-ux.md; components only ever reference the
+ * semantic Tailwind utility (bg-primary, text-muted-foreground, ...), never
+ * a raw hex value, so both themes stay correct automatically.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f3ec;
+  --foreground: #1b1f2a;
+
+  --card: #fcfaf5;
+  --card-foreground: #1b1f2a;
+  --popover: #fcfaf5;
+  --popover-foreground: #1b1f2a;
+
+  --primary: #22406b;
+  --primary-foreground: #f6f3ec;
+  --secondary: #eae4d4;
+  --secondary-foreground: #1b1f2a;
+  --muted: #efeae0;
+  --muted-foreground: #6b6355;
+  --accent: #f0e6ce;
+  --accent-foreground: #6b4f1d;
+
+  --destructive: #8c2f2f;
+  --destructive-foreground: #f6f3ec;
+  --success: #1f3d2b;
+  --success-foreground: #f6f3ec;
+  --warning: #96631f;
+  --warning-foreground: #f6f3ec;
+  --info: #2c4a66;
+  --info-foreground: #f6f3ec;
+
+  --border: #d9d0bc;
+  --input: #d9d0bc;
+  --ring: #9c7a3c;
+
+  --sidebar: #efe8d8;
+  --sidebar-foreground: #1b1f2a;
+  --sidebar-accent: #e0d3ae;
+  --sidebar-accent-foreground: #22406b;
+
+  --radius: 0.5rem;
+  --shell-radius: 1.25rem;
+  --shadow-elevation: 0 24px 48px -28px rgba(27, 31, 42, 0.28);
+}
+
+.dark {
+  --background: #14171d;
+  --foreground: #e8e2d0;
+
+  --card: #1b1f27;
+  --card-foreground: #e8e2d0;
+  --popover: #1b1f27;
+  --popover-foreground: #e8e2d0;
+
+  --primary: #7fa0c9;
+  --primary-foreground: #12202f;
+  --secondary: #232a34;
+  --secondary-foreground: #e8e2d0;
+  --muted: #232a34;
+  --muted-foreground: #9a9384;
+  --accent: #2b2417;
+  --accent-foreground: #d8b876;
+
+  --destructive: #d98686;
+  --destructive-foreground: #3a1414;
+  --success: #8fbf9e;
+  --success-foreground: #0e2016;
+  --warning: #d8b876;
+  --warning-foreground: #3a2a0c;
+  --info: #7fa0c9;
+  --info-foreground: #12202f;
+
+  --border: #2a303b;
+  --input: #2a303b;
+  --ring: #c9a467;
+
+  --sidebar: #191d24;
+  --sidebar-foreground: #e8e2d0;
+  --sidebar-accent: #232a34;
+  --sidebar-accent-foreground: #c9a467;
+
+  --shadow-elevation: 0 24px 48px -28px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+
+  --radius-lg: var(--radius);
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-ledger-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Layered as Tailwind "components" — not left unlayered — so an explicit
+   utility class (e.g. `block` to turn a multi-line ledger entry's flex row
+   off) can still override these as intended. Unlayered CSS always beats
+   `@layer utilities` in the cascade regardless of source order, which would
+   otherwise make such overrides silently fail. */
+@layer components {
+  .card-surface {
+    background: var(--color-card);
+    color: var(--color-card-foreground);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+  }
+
+  /* The signature element: a ruled ledger row. Used for every transaction,
+     account and budget list instead of boxed cards — a hairline stands in
+     for the card's border/shadow, and figures are tabular so decimal points
+     line up down the column, exactly like a paper ledger. */
+  .ledger-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.875rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .ledger-row:last-child {
+    border-bottom: none;
+  }
+
+  .ledger-figure {
+    font-family: var(--font-ledger-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.01em;
+  }
+
+  /* A brass "spine" mark — a nod to a ledger book's bound edge — reserved
+     for the one or two most important surfaces per screen (see
+     docs/ui-ux.md's "Hierarquia Visual": not every card gets one). */
+  .ledger-spine {
+    border-left: 3px solid var(--ring);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
