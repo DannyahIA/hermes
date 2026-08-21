@@ -1,17 +1,6 @@
-import * as React from 'react';
-
 import { cn } from '@/shared/lib/cn';
 
-const Skeleton = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn('bg-muted/70 animate-pulse rounded-lg', className)}
-    {...props}
-  />
-));
-Skeleton.displayName = 'Skeleton';
-
-export { Skeleton };
+/** A single pulsing placeholder block — compose with width/height utility classes. */
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn('bg-muted animate-pulse rounded-md', className)} />;
+}
