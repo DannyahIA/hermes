@@ -187,4 +187,50 @@ describe('CreateInstallmentPlanUseCase', () => {
 
     expect(plan.totalAmount).toBe(1000);
   });
+
+  it('produces installments exactly equal to the typed installmentAmount, not a re-split of the total (regression for C3)', async () => {
+    const installmentPlanRepository = new FakeInstallmentPlanRepository();
+    const transactionRepository = new FakeTransactionRepository();
+    const accountRepository = new FakeAccountRepository();
+    const categoryRepository = new FakeCategoryRepository();
+
+    await accountRepository.save(
+      new Account({
+        id: 'acc-1',
+        userId: 'user-1',
+        name: 'Conta',
+        type: 'checking',
+        balance: 1000,
+        currency: 'BRL',
+        archived: false,
+        hidden: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+
+    const useCase = new CreateInstallmentPlanUseCase(
+      installmentPlanRepository,
+      transactionRepository,
+      accountRepository,
+      categoryRepository,
+    );
+
+    await useCase.execute({
+      id: 'plan-3',
+      userId: 'user-1',
+      accountId: 'acc-1',
+      description: 'Compra parcelada',
+      kind: 'purchase',
+      installmentAmount: 10.03,
+      installmentCount: 4,
+      installmentIds: ['tx-x', 'tx-y', 'tx-z', 'tx-w'],
+    });
+
+    const installments =
+      await transactionRepository.findByInstallmentPlanId('plan-3');
+    expect(installments.map((i) => i.amount)).toEqual([
+      10.03, 10.03, 10.03, 10.03,
+    ]);
+  });
 });

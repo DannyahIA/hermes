@@ -112,7 +112,15 @@ export class CreateInstallmentPlanUseCase {
             monthlyInterestRate: plan.interestRate ?? 0,
             installmentCount: plan.installmentCount,
           }).map((installment) => installment.amount)
-        : splitEvenly(plan.totalAmount, plan.installmentCount);
+        : input.installmentAmount !== undefined
+          ? // Per-installment amount was given directly: use it verbatim for
+            // every installment rather than re-splitting their sum, so each
+            // installment is exactly what the user typed (no rounding drift).
+            Array.from(
+              { length: plan.installmentCount },
+              () => input.installmentAmount!,
+            )
+          : splitEvenly(plan.totalAmount, plan.installmentCount);
 
     const startDate = input.startDate ?? new Date();
     const now = new Date();
