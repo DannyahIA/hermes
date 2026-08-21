@@ -78,7 +78,7 @@ export function TransactionRow({
         {formatDate(occurredAt)}
       </div>
       <div role="cell" className="min-w-0 px-4 py-3 text-sm font-medium">
-        <span className="truncate">{description}</span>
+        <span className="inline-block truncate">{description}</span>
         {installmentLabel && (
           <Badge variant="outline" className="ml-2 align-middle">
             {installmentLabel}

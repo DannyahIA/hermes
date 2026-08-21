@@ -58,7 +58,7 @@ export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
     <div className="text-foreground min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(156,122,60,0.08),_transparent_40%)]">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 lg:px-6 lg:py-6">
         <div className="border-border/70 bg-background/80 flex flex-1 overflow-hidden rounded-[1.25rem] border shadow-[var(--shadow-elevation)] backdrop-blur-xl">
-          <aside className="border-border/70 bg-sidebar hidden w-72 flex-col border-r py-6 lg:flex">
+          <aside className="border-border/70 bg-sidebar hidden w-72 shrink-0 flex-col border-r py-6 lg:flex">
             <div className="px-5">
               <SidebarBrand />
             </div>

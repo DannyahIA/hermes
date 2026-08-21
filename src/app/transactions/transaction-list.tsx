@@ -99,7 +99,7 @@ export function TransactionList({
   }
 
   return (
-    <div>
+    <div role="table" aria-label="Transações">
       {/* Desktop column header — rendered once, outside the virtualized
           scroll area, so it's always visible and shares the exact same
           column widths (TRANSACTION_ROW_GRID_TEMPLATE) as every row below
@@ -127,14 +127,15 @@ export function TransactionList({
         <div role="columnheader" className="px-4 py-2 text-right">
           Valor
         </div>
-        <div role="columnheader" className="px-4 py-2" aria-hidden />
+        <div role="columnheader" className="px-4 py-2">
+          <span className="sr-only">Ações</span>
+        </div>
       </div>
 
       <div
         ref={parentRef}
         className="max-h-[75vh] overflow-y-auto"
-        role="list"
-        aria-label="Transações"
+        role="rowgroup"
       >
         <div
           style={{
