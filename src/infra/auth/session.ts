@@ -1,6 +1,8 @@
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { cache } from 'react';
 
+import { ROUTES } from '@/config/routes';
 import { auth } from '@/infra/auth/server';
 
 /**
@@ -19,11 +21,21 @@ export async function getCurrentUserId(): Promise<string | null> {
   return session?.user.id ?? null;
 }
 
+/**
+ * The authoritative check every protected Server Component/action must
+ * call. Middleware's cookie-presence check (`infra/auth/middleware.ts`) is
+ * only optimistic — a cookie can be present but expired, revoked, or
+ * otherwise fail the real database-backed lookup (e.g. right after a
+ * baseURL/cookie-config change invalidates old sessions). That gap used to
+ * surface here as an unhandled `throw`, which Next.js rendered as a raw
+ * "Runtime Error" page instead of sending the visitor to sign in again —
+ * `redirect()` is the graceful equivalent middleware already uses.
+ */
 export async function requireCurrentUserId(): Promise<string> {
   const userId = await getCurrentUserId();
 
   if (!userId) {
-    throw new Error('No authenticated user in context.');
+    redirect(ROUTES.login);
   }
 
   return userId;
