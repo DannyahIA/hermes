@@ -8,6 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { DimensionLine } from '@/components/ui/dimension-line';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ROUTES } from '@/config/routes';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
@@ -34,18 +36,36 @@ export default async function DashboardPage() {
   if (summary.accounts.length === 0) {
     return (
       <AppShell>
-        <Card className="flex flex-col items-center gap-3 p-12 text-center">
-          <CardTitle>Nenhuma conta cadastrada.</CardTitle>
-          <CardDescription>
-            Crie sua primeira conta para começar a acompanhar suas finanças.
-          </CardDescription>
-          <Link
-            href={ROUTES.accounts}
-            className="bg-primary text-primary-foreground mt-2 rounded-md px-4 py-2 text-sm font-medium"
+        <div className="relative">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 space-y-6 overflow-hidden opacity-20 blur-[1px]"
           >
-            Criar primeira conta
-          </Link>
-        </Card>
+            <div className="registration-frame rounded-xl border p-6 sm:p-8">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="mt-3 h-12 w-64" />
+              <div className="mt-6 grid grid-cols-3 gap-4 border-t pt-6">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </div>
+          </div>
+          <div className="relative flex items-center justify-center py-12">
+            <Card className="flex flex-col items-center gap-3 p-12 text-center shadow-lg">
+              <CardTitle>Nenhuma conta cadastrada.</CardTitle>
+              <CardDescription>
+                Crie sua primeira conta para começar a acompanhar suas finanças.
+              </CardDescription>
+              <Link
+                href={ROUTES.accounts}
+                className="bg-primary text-primary-foreground mt-2 rounded-md px-4 py-2 text-sm font-medium"
+              >
+                Criar primeira conta
+              </Link>
+            </Card>
+          </div>
+        </div>
       </AppShell>
     );
   }
@@ -73,17 +93,18 @@ export default async function DashboardPage() {
     1,
     ...summary.cashFlow.map((m) => Math.max(m.income, m.expense)),
   );
+  const today = new Date();
 
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Hero — the ledger's opening line: today's balance, dated like an
-            actual page in a ledger book. */}
-        <Card className="ledger-spine p-6 sm:p-8">
+        {/* Hero — the sheet's title-block figure: today's net worth,
+            measured like a dimensioned drawing's headline span. */}
+        <Card className="registration-frame p-6 sm:p-8">
           <p className="font-display text-muted-foreground text-sm italic">
             Patrimônio · {formatDate(new Date())}
           </p>
-          <p className="ledger-figure mt-2 text-4xl font-semibold sm:text-5xl">
+          <p className="dimension-figure mt-2 text-3xl font-semibold break-all sm:text-4xl md:text-5xl">
             {formatCurrency(summary.netWorth)}
           </p>
 
@@ -96,12 +117,15 @@ export default async function DashboardPage() {
             if (Math.abs(difference) < 0.005) return null;
 
             return (
-              <p className="text-muted-foreground mt-1 text-sm">
-                Projetado (com compromissos futuros):{' '}
-                <span className="ledger-figure font-medium">
-                  {formatCurrency(projectedTotal)}
-                </span>
-              </p>
+              <div className="mt-3 max-w-xs">
+                <DimensionLine label="compromissos futuros" />
+                <p className="text-muted-foreground flex items-baseline justify-between text-sm">
+                  <span>Projetado</span>
+                  <span className="dimension-figure font-medium">
+                    {formatCurrency(projectedTotal)}
+                  </span>
+                </p>
+              </div>
             );
           })()}
 
@@ -110,7 +134,7 @@ export default async function DashboardPage() {
               <div key={stat.label}>
                 <p className="text-muted-foreground text-sm">{stat.label}</p>
                 <p
-                  className={`ledger-figure mt-1 text-xl font-semibold ${
+                  className={`dimension-figure mt-1 text-xl font-semibold ${
                     stat.tone === 'success'
                       ? 'text-success'
                       : 'text-destructive'
@@ -154,7 +178,7 @@ export default async function DashboardPage() {
                           className="flex justify-between text-sm"
                         >
                           <span className="text-muted-foreground">{label}</span>
-                          <span className="ledger-figure">
+                          <span className="dimension-figure">
                             {formatCurrency(total)}
                           </span>
                         </li>
@@ -176,39 +200,65 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent className="mt-6 p-0">
               <div className="bg-muted/50 flex h-56 items-end gap-3 rounded-md p-4">
-                {summary.cashFlow.map((month) => (
-                  <div
-                    key={month.month.toISOString()}
-                    className="flex flex-1 flex-col items-center gap-1"
-                  >
-                    <div className="flex h-40 w-full items-end gap-1">
-                      <div
-                        className="bg-success flex-1"
-                        style={{ height: `${(month.income / maxFlow) * 100}%` }}
-                        title={`Receitas: ${formatCurrency(month.income)}`}
-                      />
-                      <div
-                        className="bg-destructive flex-1"
-                        style={{
-                          height: `${(month.expense / maxFlow) * 100}%`,
-                        }}
-                        title={`Despesas: ${formatCurrency(month.expense)}`}
-                      />
+                {summary.cashFlow.map((month) => {
+                  const monthStart = new Date(
+                    month.month.getFullYear(),
+                    month.month.getMonth(),
+                    1,
+                  );
+                  const monthEnd = new Date(
+                    month.month.getFullYear(),
+                    month.month.getMonth() + 1,
+                    0,
+                  );
+                  const toDateParam = (date: Date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                  };
+                  const linkEnd = monthEnd > today ? today : monthEnd;
+
+                  return (
+                    <div
+                      key={month.month.toISOString()}
+                      className="flex flex-1 flex-col items-center gap-1"
+                    >
+                      <div className="flex h-40 w-full items-end gap-1">
+                        <Link
+                          href={`${ROUTES.transactions}?from=${toDateParam(monthStart)}&to=${toDateParam(linkEnd)}&type=income`}
+                          className="bg-success hover:bg-success/80 focus-visible:ring-ring flex-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                          style={{
+                            height: `${(month.income / maxFlow) * 100}%`,
+                          }}
+                          title={`Receitas: ${formatCurrency(month.income)} — clique para ver as transações`}
+                          aria-label={`Ver receitas de ${formatMonthLabel(month.month)}: ${formatCurrency(month.income)}`}
+                        />
+                        <Link
+                          href={`${ROUTES.transactions}?from=${toDateParam(monthStart)}&to=${toDateParam(linkEnd)}&type=expense`}
+                          className="bg-destructive hover:bg-destructive/80 focus-visible:ring-ring flex-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                          style={{
+                            height: `${(month.expense / maxFlow) * 100}%`,
+                          }}
+                          title={`Despesas: ${formatCurrency(month.expense)} — clique para ver as transações`}
+                          aria-label={`Ver despesas de ${formatMonthLabel(month.month)}: ${formatCurrency(month.expense)}`}
+                        />
+                      </div>
+                      <span className="font-display text-muted-foreground text-xs capitalize">
+                        {formatMonthLabel(month.month)}
+                      </span>
                     </div>
-                    <span className="font-display text-muted-foreground text-xs capitalize">
-                      {formatMonthLabel(month.month)}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="text-muted-foreground mt-3 flex items-center gap-4 text-xs">
                 <span className="flex items-center gap-1.5">
                   <span className="bg-success inline-block h-2 w-2" /> Receitas
-                  (tinta preta)
+                  (traço azul)
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="bg-destructive inline-block h-2 w-2" />{' '}
-                  Despesas (tinta vermelha)
+                  Despesas (redline)
                 </span>
               </div>
             </CardContent>
@@ -232,12 +282,12 @@ export default async function DashboardPage() {
                 </p>
               ) : (
                 summary.budgets.slice(0, 4).map(({ budget, percentage }) => (
-                  <div key={budget.id} className="ledger-row block">
+                  <div key={budget.id} className="dimension-row block">
                     <div className="mb-2 flex items-center justify-between text-sm">
-                      <span className="ledger-figure">
+                      <span className="dimension-figure">
                         {formatCurrency(budget.amount, budget.currency)}
                       </span>
-                      <span className="text-muted-foreground ledger-figure">
+                      <span className="text-muted-foreground dimension-figure">
                         {Math.round(percentage * 100)}%
                       </span>
                     </div>
@@ -279,7 +329,7 @@ export default async function DashboardPage() {
                 </p>
               ) : (
                 summary.recentTransactions.map((transaction) => (
-                  <div key={transaction.id} className="ledger-row">
+                  <div key={transaction.id} className="dimension-row">
                     <div>
                       <p className="font-medium">{transaction.description}</p>
                       <p className="text-muted-foreground text-sm">
@@ -287,7 +337,7 @@ export default async function DashboardPage() {
                       </p>
                     </div>
                     <p
-                      className={`ledger-figure font-semibold ${
+                      className={`dimension-figure font-semibold ${
                         transaction.type === 'income'
                           ? 'text-success'
                           : transaction.type === 'expense'

@@ -1,29 +1,31 @@
 import './globals.css';
 
 import type { Metadata } from 'next';
-import { Fraunces, IBM_Plex_Mono, Public_Sans } from 'next/font/google';
+import { IBM_Plex_Mono, IBM_Plex_Sans, Space_Grotesk } from 'next/font/google';
 
 import { Toaster } from '@/components/ui/toaster';
 import { APP_DESCRIPTION, APP_NAME } from '@/config/constants';
 
-// Display face — Fraunces carries the "bound ledger" personality (soft,
-// ink-like terminals) but is used sparingly: page titles and hero figures
-// only, never body copy.
-const fraunces = Fraunces({
+// Display face — Space Grotesk carries the drafting-table personality (a
+// geometric grotesk with a technical, instrument-panel character) but is
+// used sparingly: page titles and hero figures only, never body copy.
+const spaceGrotesk = Space_Grotesk({
   variable: '--font-display',
   subsets: ['latin'],
-  axes: ['opsz', 'SOFT'],
 });
 
-// Body/UI face — a precise, form-like sans for everything a person reads
-// or clicks: labels, buttons, navigation, paragraphs.
-const publicSans = Public_Sans({
+// Body/UI face — IBM Plex Sans, drawn from the same technical type family
+// as the mono figures below, for everything a person reads or clicks:
+// labels, buttons, navigation, paragraphs.
+const ibmPlexSans = IBM_Plex_Sans({
   variable: '--font-body',
   subsets: ['latin'],
+  weight: ['400', '500', '600'],
 });
 
 // Every currency figure in the app renders in this — tabular lining
-// numerals so amounts line up down a column, like a real ledger page.
+// numerals so amounts line up down a column, like a dimensioned drawing's
+// measurements read in sequence.
 const ibmPlexMono = IBM_Plex_Mono({
   variable: '--font-ledger-mono',
   subsets: ['latin'],
@@ -54,7 +56,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${fraunces.variable} ${publicSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
+      className={`${spaceGrotesk.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

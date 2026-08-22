@@ -8,11 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ROUTES } from '@/config/routes';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleBudgetRepository } from '@/infra/repositories/drizzle-budget.repository';
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
+import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { GetSpendingReportUseCase } from '@/modules/reports/application/get-spending-report.use-case';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
@@ -56,6 +58,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     new DrizzleTransactionRepository(),
     new DrizzleBudgetRepository(),
     new DrizzleCategoryRepository(),
+    new DrizzleRecurringTransactionRepository(),
   ).execute(userId, { from, to });
 
   const maxFlow = Math.max(
@@ -70,6 +73,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   );
   const overBudget = report.budgetsOverview.filter((b) => b.percentage > 1);
   const withinBudget = report.budgetsOverview.filter((b) => b.percentage <= 1);
+  const growingCategories = report.categoryComparison.filter(
+    (c) => c.currentTotal - c.previousTotal > 0,
+  );
 
   return (
     <AppShell>
@@ -99,7 +105,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           </button>
         </form>
 
-        <Card className="ledger-spine p-6 sm:p-8">
+        <Card className="registration-frame p-6 sm:p-8">
           <p className="font-display text-muted-foreground text-sm italic">
             Relatório · {formatDate(from)} — {formatDate(to)}
           </p>
@@ -108,7 +114,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               <p className="text-muted-foreground text-sm">
                 Receitas no período
               </p>
-              <p className="ledger-figure text-success mt-1 text-2xl font-semibold">
+              <p className="dimension-figure text-success mt-1 text-2xl font-semibold">
                 {formatCurrency(report.totalIncome)}
               </p>
             </div>
@@ -116,14 +122,14 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               <p className="text-muted-foreground text-sm">
                 Despesas no período
               </p>
-              <p className="ledger-figure text-destructive mt-1 text-2xl font-semibold">
+              <p className="dimension-figure text-destructive mt-1 text-2xl font-semibold">
                 {formatCurrency(report.totalExpense)}
               </p>
             </div>
           </div>
         </Card>
 
-        <section className="grid gap-4 xl:grid-cols-2">
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {/* Net worth over time — a single series (magnitude), so one hue
               and no legend box needed; the card title already names it. */}
           <Card className="p-6">
@@ -211,11 +217,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                   <div className="text-muted-foreground mt-3 flex items-center gap-4 text-xs">
                     <span className="flex items-center gap-1.5">
                       <span className="bg-success inline-block h-2 w-2" />{' '}
-                      Receitas (tinta preta)
+                      Receitas (traço azul)
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="bg-destructive inline-block h-2 w-2" />{' '}
-                      Despesas (tinta vermelha)
+                      Despesas (redline)
                     </span>
                   </div>
                 </>
@@ -224,7 +230,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           </Card>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
           {/* Gastos por categoria — a ranked list, all the same "job" (an
               expense), so a single red-ink bar carries the mark; identity
               comes from the row label, not a categorical hue. */}
@@ -243,10 +249,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               ) : (
                 <div className="space-y-3">
                   {report.spendingByCategory.map((category) => (
-                    <div key={category.categoryId} className="ledger-row block">
+                    <div
+                      key={category.categoryId}
+                      className="dimension-row block"
+                    >
                       <div className="mb-2 flex items-center justify-between text-sm">
                         <span>{category.categoryName}</span>
-                        <span className="ledger-figure text-destructive font-semibold">
+                        <span className="dimension-figure text-destructive font-semibold">
                           {formatCurrency(category.total)}
                         </span>
                       </div>
@@ -279,26 +288,29 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             </CardHeader>
             <CardContent className="mt-4 p-0">
               {report.budgetsOverview.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  Nenhum orçamento cadastrado.{' '}
-                  <Link
-                    href={ROUTES.budgets}
-                    className="text-foreground underline"
-                  >
-                    Criar orçamento
-                  </Link>
-                </p>
+                <EmptyState
+                  title="Nenhum orçamento cadastrado."
+                  description="Defina limites por categoria para acompanhar seus gastos aqui."
+                  action={
+                    <Link
+                      href={ROUTES.budgets}
+                      className="text-foreground text-sm underline"
+                    >
+                      Criar orçamento
+                    </Link>
+                  }
+                />
               ) : (
                 <div className="space-y-4">
                   {[...overBudget, ...withinBudget].map(
                     ({ budget, percentage, spent }) => (
-                      <div key={budget.id} className="ledger-row block">
+                      <div key={budget.id} className="dimension-row block">
                         <div className="mb-2 flex items-center justify-between text-sm">
-                          <span className="ledger-figure">
+                          <span className="dimension-figure">
                             {formatCurrency(spent, budget.currency)} /{' '}
                             {formatCurrency(budget.amount, budget.currency)}
                           </span>
-                          <span className="text-muted-foreground ledger-figure">
+                          <span className="text-muted-foreground dimension-figure">
                             {Math.round(percentage * 100)}%
                           </span>
                         </div>
@@ -319,6 +331,96 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                       </div>
                     ),
                   )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {/* Comparação com o período anterior — categories whose spending
+              grew, ranked; red ink for growth in expense, same convention
+              as the category-spending card. */}
+          <Card className="p-6">
+            <CardHeader className="p-0">
+              <CardTitle className="text-xl">
+                Comparação com o período anterior
+              </CardTitle>
+              <CardDescription>
+                Categorias que mais cresceram em valor.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="mt-4 p-0">
+              {growingCategories.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Nenhuma categoria cresceu neste período em relação ao
+                  anterior.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {growingCategories.slice(0, 5).map((comparison) => (
+                    <div
+                      key={comparison.categoryId}
+                      className="dimension-row flex items-center justify-between"
+                    >
+                      <span className="text-sm">{comparison.categoryName}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="dimension-figure text-destructive text-sm font-semibold">
+                          {formatCurrency(comparison.currentTotal)}
+                        </span>
+                        {comparison.deltaPercent !== null && (
+                          <span className="text-muted-foreground text-xs">
+                            (+{comparison.deltaPercent.toFixed(0)}%)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Gastos recorrentes — share of average monthly income committed
+              to active recurring expenses; status color, never a
+              categorical hue, and the percentage is always printed too. */}
+          <Card className="p-6">
+            <CardHeader className="p-0">
+              <CardTitle className="text-xl">Gastos recorrentes</CardTitle>
+              <CardDescription>
+                Quanto da sua renda mensal é comprometido com recorrências
+                ativas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="mt-4 p-0">
+              {report.recurringExpenseShare.percentage === null ? (
+                <p className="text-muted-foreground text-sm">
+                  Sem renda registrada neste período para calcular a proporção.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <span className="dimension-figure text-2xl font-semibold">
+                      {report.recurringExpenseShare.percentage.toFixed(0)}%
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {formatCurrency(
+                        report.recurringExpenseShare.monthlyRecurringExpense,
+                      )}{' '}
+                      de{' '}
+                      {formatCurrency(
+                        report.recurringExpenseShare.averageMonthlyIncome,
+                      )}
+                    </span>
+                  </div>
+                  <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
+                    <div
+                      className={`h-full ${report.recurringExpenseShare.percentage > 50 ? 'bg-destructive' : 'bg-success'}`}
+                      style={{
+                        width: `${Math.min(100, report.recurringExpenseShare.percentage)}%`,
+                      }}
+                    />
+                  </div>
                 </div>
               )}
             </CardContent>

@@ -141,7 +141,7 @@ export function TransactionList({
 
       <div
         ref={parentRef}
-        className="max-h-[75vh] overflow-y-auto"
+        className="max-h-[75vh] overflow-x-auto overflow-y-auto"
         role="rowgroup"
       >
         <div

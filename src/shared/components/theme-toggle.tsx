@@ -35,6 +35,7 @@ export function ThemeToggle() {
     <Button
       variant="outline"
       size="icon"
+      className="h-9 w-9"
       onClick={toggle}
       aria-label={isDark ? 'Ativar tema claro' : 'Ativar tema escuro'}
     >

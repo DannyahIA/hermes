@@ -49,11 +49,11 @@ export function BudgetProgressCard({
 
       <div className="mt-4">
         <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="ledger-figure">
+          <span className="dimension-figure">
             {formatCurrency(spent, budget.currency)} de{' '}
             {formatCurrency(budget.amount, budget.currency)}
           </span>
-          <span className="text-muted-foreground ledger-figure">
+          <span className="text-muted-foreground dimension-figure">
             {Math.round(percentage * 100)}%
           </span>
         </div>

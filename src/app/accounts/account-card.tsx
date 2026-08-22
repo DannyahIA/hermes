@@ -91,7 +91,7 @@ export function AccountCard({
           <p className="text-muted-foreground text-xs">
             {ACCOUNT_TYPE_LABELS[type]}
           </p>
-          <p className="ledger-figure mt-1 text-2xl font-semibold">
+          <p className="dimension-figure mt-1 text-2xl font-semibold">
             {formatCurrency(balance, currency)}
           </p>
           <p className="text-muted-foreground mt-1 text-xs">

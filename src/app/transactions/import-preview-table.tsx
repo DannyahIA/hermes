@@ -63,7 +63,7 @@ export function ImportPreviewTable({
         {rows.map((row) => (
           <label
             key={row.lineNumber}
-            className={`ledger-row flex items-center gap-2 text-sm ${
+            className={`dimension-row flex items-center gap-2 text-sm ${
               row.status === 'invalid' ? 'text-muted-foreground opacity-60' : ''
             }`}
           >
@@ -89,7 +89,7 @@ export function ImportPreviewTable({
                 <span className="text-muted-foreground text-xs">
                   {formatDate(new Date(row.occurredAt))}
                 </span>
-                <span className="ledger-figure">
+                <span className="dimension-figure">
                   {formatCurrency(row.amount)}
                 </span>
               </>

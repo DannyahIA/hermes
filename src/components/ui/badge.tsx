@@ -3,8 +3,10 @@ import * as React from 'react';
 
 import { cn } from '@/shared/lib/cn';
 
+// Sharp-cornered like a stamped drawing-revision tag, not a soft pill —
+// consistent with the "Prancheta" system's drafted-sheet vocabulary.
 const badgeVariants = cva(
-  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+  'inline-flex items-center rounded-[2px] border px-2.5 py-0.5 font-mono text-xs font-medium tracking-tight transition-colors',
   {
     variants: {
       variant: {

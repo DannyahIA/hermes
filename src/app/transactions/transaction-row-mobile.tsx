@@ -24,7 +24,7 @@ interface TransactionRowMobileProps {
 }
 
 /**
- * The narrow-viewport counterpart to `TransactionRow` — a stacked ledger
+ * The narrow-viewport counterpart to `TransactionRow` — a stacked
  * row instead of a table row, since a 7-column table has nowhere to go on
  * a 375px screen (ui-ux.md: Mobile First, "nenhuma funcionalidade deve
  * existir apenas no desktop").
@@ -55,7 +55,7 @@ export function TransactionRowMobile({
   }
 
   return (
-    <div className="ledger-row flex-col items-stretch gap-2 sm:hidden">
+    <div className="dimension-row flex-col items-stretch gap-2 sm:hidden">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium">
@@ -77,7 +77,7 @@ export function TransactionRowMobile({
           </p>
         </div>
         <p
-          className={`ledger-figure shrink-0 text-sm font-semibold ${
+          className={`dimension-figure shrink-0 text-sm font-semibold ${
             type === 'income'
               ? 'text-success'
               : type === 'expense'

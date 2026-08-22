@@ -101,7 +101,7 @@ export function TransactionRow({
       </div>
       <div
         role="cell"
-        className={`ledger-figure px-4 py-3 text-right text-sm font-semibold ${
+        className={`dimension-figure px-4 py-3 text-right text-sm font-semibold ${
           type === 'income'
             ? 'text-success'
             : type === 'expense'

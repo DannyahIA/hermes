@@ -74,7 +74,7 @@ export function RecurringTransactionRow({
       : RULE_LABELS[dayRuleKind];
 
   return (
-    <div className="ledger-row flex-col items-stretch gap-2">
+    <div className="dimension-row flex-col items-stretch gap-2">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium">
@@ -88,7 +88,7 @@ export function RecurringTransactionRow({
           <p className="text-muted-foreground mt-0.5 text-xs">{ruleLabel}</p>
         </div>
         <p
-          className={`ledger-figure shrink-0 text-sm font-semibold ${
+          className={`dimension-figure shrink-0 text-sm font-semibold ${
             type === 'income' ? 'text-success' : 'text-destructive'
           }`}
         >
