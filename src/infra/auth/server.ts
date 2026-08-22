@@ -30,6 +30,17 @@ export const auth = betterAuth({
   }),
   baseURL: env.NEXT_PUBLIC_APP_URL,
   secret: env.BETTER_AUTH_SECRET,
+  // better-auth rejects any state-changing request (POST/PUT/DELETE — every
+  // sign-in, sign-out, and mutating action in this app) whose Origin header
+  // isn't in this list, defaulting to just `[baseURL]`. This app is reached
+  // from more than one origin in practice (localhost during local dev, plus
+  // whatever `NEXT_PUBLIC_APP_URL` is set to for real access, e.g. a domain
+  // in front of a tunnel) — every origin that's actually used to reach this
+  // server must be listed here, or every button behind a server action
+  // silently 403s from that origin with no visible error on the client.
+  trustedOrigins: Array.from(
+    new Set(['http://localhost:3000', env.NEXT_PUBLIC_APP_URL]),
+  ),
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
