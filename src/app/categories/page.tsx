@@ -48,7 +48,7 @@ export default async function CategoriesPage() {
                 <p className="text-muted-foreground text-sm">
                   Total de categorias
                 </p>
-                <p className="ledger-figure mt-2 text-3xl font-semibold">
+                <p className="dimension-figure mt-2 text-3xl font-semibold">
                   {categories.length}
                 </p>
                 <p className="text-muted-foreground mt-2 text-sm">

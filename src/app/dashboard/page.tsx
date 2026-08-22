@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { DimensionLine } from '@/components/ui/dimension-line';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ROUTES } from '@/config/routes';
 import { requireCurrentUserId } from '@/infra/auth/session';
@@ -40,7 +41,7 @@ export default async function DashboardPage() {
             aria-hidden
             className="pointer-events-none absolute inset-0 space-y-6 overflow-hidden opacity-20 blur-[1px]"
           >
-            <div className="ledger-spine rounded-xl border p-6 sm:p-8">
+            <div className="registration-frame rounded-xl border p-6 sm:p-8">
               <Skeleton className="h-4 w-32" />
               <Skeleton className="mt-3 h-12 w-64" />
               <div className="mt-6 grid grid-cols-3 gap-4 border-t pt-6">
@@ -97,13 +98,13 @@ export default async function DashboardPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Hero — the ledger's opening line: today's balance, dated like an
-            actual page in a ledger book. */}
-        <Card className="ledger-spine p-6 sm:p-8">
+        {/* Hero — the sheet's title-block figure: today's net worth,
+            measured like a dimensioned drawing's headline span. */}
+        <Card className="registration-frame p-6 sm:p-8">
           <p className="font-display text-muted-foreground text-sm italic">
             Patrimônio · {formatDate(new Date())}
           </p>
-          <p className="ledger-figure mt-2 text-4xl font-semibold sm:text-5xl">
+          <p className="dimension-figure mt-2 text-3xl font-semibold break-all sm:text-4xl md:text-5xl">
             {formatCurrency(summary.netWorth)}
           </p>
 
@@ -116,12 +117,15 @@ export default async function DashboardPage() {
             if (Math.abs(difference) < 0.005) return null;
 
             return (
-              <p className="text-muted-foreground mt-1 text-sm">
-                Projetado (com compromissos futuros):{' '}
-                <span className="ledger-figure font-medium">
-                  {formatCurrency(projectedTotal)}
-                </span>
-              </p>
+              <div className="mt-3 max-w-xs">
+                <DimensionLine label="compromissos futuros" />
+                <p className="text-muted-foreground flex items-baseline justify-between text-sm">
+                  <span>Projetado</span>
+                  <span className="dimension-figure font-medium">
+                    {formatCurrency(projectedTotal)}
+                  </span>
+                </p>
+              </div>
             );
           })()}
 
@@ -130,7 +134,7 @@ export default async function DashboardPage() {
               <div key={stat.label}>
                 <p className="text-muted-foreground text-sm">{stat.label}</p>
                 <p
-                  className={`ledger-figure mt-1 text-xl font-semibold ${
+                  className={`dimension-figure mt-1 text-xl font-semibold ${
                     stat.tone === 'success'
                       ? 'text-success'
                       : 'text-destructive'
@@ -174,7 +178,7 @@ export default async function DashboardPage() {
                           className="flex justify-between text-sm"
                         >
                           <span className="text-muted-foreground">{label}</span>
-                          <span className="ledger-figure">
+                          <span className="dimension-figure">
                             {formatCurrency(total)}
                           </span>
                         </li>
@@ -250,11 +254,11 @@ export default async function DashboardPage() {
               <div className="text-muted-foreground mt-3 flex items-center gap-4 text-xs">
                 <span className="flex items-center gap-1.5">
                   <span className="bg-success inline-block h-2 w-2" /> Receitas
-                  (tinta preta)
+                  (traço azul)
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="bg-destructive inline-block h-2 w-2" />{' '}
-                  Despesas (tinta vermelha)
+                  Despesas (redline)
                 </span>
               </div>
             </CardContent>
@@ -278,12 +282,12 @@ export default async function DashboardPage() {
                 </p>
               ) : (
                 summary.budgets.slice(0, 4).map(({ budget, percentage }) => (
-                  <div key={budget.id} className="ledger-row block">
+                  <div key={budget.id} className="dimension-row block">
                     <div className="mb-2 flex items-center justify-between text-sm">
-                      <span className="ledger-figure">
+                      <span className="dimension-figure">
                         {formatCurrency(budget.amount, budget.currency)}
                       </span>
-                      <span className="text-muted-foreground ledger-figure">
+                      <span className="text-muted-foreground dimension-figure">
                         {Math.round(percentage * 100)}%
                       </span>
                     </div>
@@ -325,7 +329,7 @@ export default async function DashboardPage() {
                 </p>
               ) : (
                 summary.recentTransactions.map((transaction) => (
-                  <div key={transaction.id} className="ledger-row">
+                  <div key={transaction.id} className="dimension-row">
                     <div>
                       <p className="font-medium">{transaction.description}</p>
                       <p className="text-muted-foreground text-sm">
@@ -333,7 +337,7 @@ export default async function DashboardPage() {
                       </p>
                     </div>
                     <p
-                      className={`ledger-figure font-semibold ${
+                      className={`dimension-figure font-semibold ${
                         transaction.type === 'income'
                           ? 'text-success'
                           : transaction.type === 'expense'

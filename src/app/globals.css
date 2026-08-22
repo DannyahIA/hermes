@@ -3,93 +3,97 @@
 /*
  * Design tokens (ui-ux.md: "Toda estilização deve utilizar tokens").
  *
- * Concept: "The Ledger" — Hermes borrows its visual language from bound
- * bookkeeping ledgers. Amounts run in tabular monospace like ruled ledger
- * columns; income/expense use the literal historical convention (black ink
- * for credits, red ink for debits — where "in the black"/"in the red" come
- * from) instead of generic green/red pills. Every color still carries
- * semantic meaning per ui-ux.md; components only ever reference the
- * semantic Tailwind utility (bg-primary, text-muted-foreground, ...), never
- * a raw hex value, so both themes stay correct automatically.
+ * Concept: "Prancheta" — Hermes borrows its visual language from technical
+ * drafting: a personal finance app treated as something engineered and
+ * measured, not just recorded. Light mode reads like a modern blueline
+ * diazo print (blue lines on pale paper); dark mode reads like a true
+ * cyanotype (pale lines on deep Prussian blue). Amounts run in tabular
+ * monospace like a dimensioned drawing's measurements; income/expense use a
+ * drafting convention instead of generic green/red pills — "redlining" is
+ * the literal term for marking up a drawing with corrections, which maps
+ * directly onto marking an expense. Every color still carries semantic
+ * meaning per ui-ux.md; components only ever reference the semantic
+ * Tailwind utility (bg-primary, text-muted-foreground, ...), never a raw
+ * hex value, so both themes stay correct automatically.
  */
 :root {
-  --background: #f6f3ec;
-  --foreground: #1b1f2a;
+  --background: #f4f7fa;
+  --foreground: #12233d;
 
-  --card: #fcfaf5;
-  --card-foreground: #1b1f2a;
-  --popover: #fcfaf5;
-  --popover-foreground: #1b1f2a;
+  --card: #fbfdfe;
+  --card-foreground: #12233d;
+  --popover: #fbfdfe;
+  --popover-foreground: #12233d;
 
-  --primary: #22406b;
-  --primary-foreground: #f6f3ec;
-  --secondary: #eae4d4;
-  --secondary-foreground: #1b1f2a;
-  --muted: #efeae0;
-  --muted-foreground: #6b6355;
-  --accent: #f0e6ce;
-  --accent-foreground: #6b4f1d;
+  --primary: #1d4e89;
+  --primary-foreground: #f4f7fa;
+  --secondary: #dce8f0;
+  --secondary-foreground: #12233d;
+  --muted: #e5edf3;
+  --muted-foreground: #5a7185;
+  --accent: #fce8cf;
+  --accent-foreground: #8a5a16;
 
-  --destructive: #8c2f2f;
-  --destructive-foreground: #f6f3ec;
-  --success: #1f3d2b;
-  --success-foreground: #f6f3ec;
-  --warning: #96631f;
-  --warning-foreground: #f6f3ec;
-  --info: #2c4a66;
-  --info-foreground: #f6f3ec;
+  --destructive: #b23a2c;
+  --destructive-foreground: #fbeeea;
+  --success: #1d4e89;
+  --success-foreground: #f4f7fa;
+  --warning: #e8a23d;
+  --warning-foreground: #4a2e05;
+  --info: #3e7cb1;
+  --info-foreground: #f4f7fa;
 
-  --border: #d9d0bc;
-  --input: #d9d0bc;
-  --ring: #9c7a3c;
+  --border: #b8cedd;
+  --input: #b8cedd;
+  --ring: #e8a23d;
 
-  --sidebar: #efe8d8;
-  --sidebar-foreground: #1b1f2a;
-  --sidebar-accent: #e0d3ae;
-  --sidebar-accent-foreground: #22406b;
+  --sidebar: #0f2a4a;
+  --sidebar-foreground: #dceaf3;
+  --sidebar-accent: #1d4e89;
+  --sidebar-accent-foreground: #f4f7fa;
 
-  --radius: 0.5rem;
-  --shell-radius: 1.25rem;
-  --shadow-elevation: 0 24px 48px -28px rgba(27, 31, 42, 0.28);
+  --radius: 0.125rem;
+  --shell-radius: 0.5rem;
+  --shadow-elevation: 0 12px 32px -20px rgba(15, 42, 74, 0.35);
 }
 
 .dark {
-  --background: #14171d;
-  --foreground: #e8e2d0;
+  --background: #0b2038;
+  --foreground: #c9e4f2;
 
-  --card: #1b1f27;
-  --card-foreground: #e8e2d0;
-  --popover: #1b1f27;
-  --popover-foreground: #e8e2d0;
+  --card: #10294a;
+  --card-foreground: #c9e4f2;
+  --popover: #10294a;
+  --popover-foreground: #c9e4f2;
 
-  --primary: #7fa0c9;
-  --primary-foreground: #12202f;
-  --secondary: #232a34;
-  --secondary-foreground: #e8e2d0;
-  --muted: #232a34;
-  --muted-foreground: #9a9384;
-  --accent: #2b2417;
-  --accent-foreground: #d8b876;
+  --primary: #8fd3e8;
+  --primary-foreground: #0b2038;
+  --secondary: #16375c;
+  --secondary-foreground: #c9e4f2;
+  --muted: #16375c;
+  --muted-foreground: #7fa3be;
+  --accent: #3a2e12;
+  --accent-foreground: #e8a23d;
 
-  --destructive: #d98686;
-  --destructive-foreground: #3a1414;
-  --success: #8fbf9e;
-  --success-foreground: #0e2016;
-  --warning: #d8b876;
-  --warning-foreground: #3a2a0c;
-  --info: #7fa0c9;
-  --info-foreground: #12202f;
+  --destructive: #e0685a;
+  --destructive-foreground: #2a0e09;
+  --success: #8fd3e8;
+  --success-foreground: #0b2038;
+  --warning: #e8a23d;
+  --warning-foreground: #2e1d03;
+  --info: #6fb3d8;
+  --info-foreground: #0b2038;
 
-  --border: #2a303b;
-  --input: #2a303b;
-  --ring: #c9a467;
+  --border: #244567;
+  --input: #244567;
+  --ring: #e8a23d;
 
-  --sidebar: #191d24;
-  --sidebar-foreground: #e8e2d0;
-  --sidebar-accent: #232a34;
-  --sidebar-accent-foreground: #c9a467;
+  --sidebar: #081729;
+  --sidebar-foreground: #c9e4f2;
+  --sidebar-accent: #16375c;
+  --sidebar-accent-foreground: #e8a23d;
 
-  --shadow-elevation: 0 24px 48px -28px rgba(0, 0, 0, 0.6);
+  --shadow-elevation: 0 24px 48px -28px rgba(0, 0, 0, 0.65);
 }
 
 @theme inline {
@@ -140,46 +144,99 @@ body {
 }
 
 /* Layered as Tailwind "components" — not left unlayered — so an explicit
-   utility class (e.g. `block` to turn a multi-line ledger entry's flex row
-   off) can still override these as intended. Unlayered CSS always beats
+   utility class (e.g. `block` to turn a multi-line row's flex layout off)
+   can still override these as intended. Unlayered CSS always beats
    `@layer utilities` in the cascade regardless of source order, which would
    otherwise make such overrides silently fail. */
 @layer components {
-  .card-surface {
+  .sheet-surface {
     background: var(--color-card);
     color: var(--color-card-foreground);
     border-radius: var(--radius);
     border: 1px solid var(--color-border);
   }
 
-  /* The signature element: a ruled ledger row. Used for every transaction,
-     account and budget list instead of boxed cards — a hairline stands in
-     for the card's border/shadow, and figures are tabular so decimal points
-     line up down the column, exactly like a paper ledger. */
-  .ledger-row {
+  /* The base row treatment: used for every transaction, account and budget
+     line instead of a boxed card. A dashed rule stands in for a drafted
+     construction/guide line (dashed strokes are how a technical drawing
+     marks a non-permanent reference edge); figures stay tabular so decimal
+     points line up down the column, like a dimensioned drawing's
+     measurements read in sequence. */
+  .dimension-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
     padding-block: 0.875rem;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px dashed var(--color-border);
   }
-  .ledger-row:last-child {
+  .dimension-row:last-child {
     border-bottom: none;
   }
 
-  .ledger-figure {
+  .dimension-figure {
     font-family: var(--font-ledger-mono);
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1;
     letter-spacing: -0.01em;
   }
 
-  /* A brass "spine" mark — a nod to a ledger book's bound edge — reserved
-     for the one or two most important surfaces per screen (see
-     docs/ui-ux.md's "Hierarquia Visual": not every card gets one). */
-  .ledger-spine {
-    border-left: 3px solid var(--ring);
+  /* Corner registration marks — the small crosshair/target marks printed
+     at the edges of a technical drawing sheet to align overlaid layers.
+     Reserved for the one or two most important surfaces per screen (see
+     docs/ui-ux.md's "Hierarquia Visual": not every surface gets one) —
+     spending this signature everywhere would cancel it out. */
+  .registration-frame {
+    position: relative;
+    border: 1px solid var(--color-border);
+  }
+  .registration-frame::before,
+  .registration-frame::after {
+    content: '';
+    position: absolute;
+    width: 0.625rem;
+    height: 0.625rem;
+    pointer-events: none;
+  }
+  .registration-frame::before {
+    top: -1px;
+    left: -1px;
+    border-top: 1.5px solid var(--ring);
+    border-left: 1.5px solid var(--ring);
+  }
+  .registration-frame::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 1.5px solid var(--ring);
+    border-right: 1.5px solid var(--ring);
+  }
+
+  /* The signature element: a dimension-line annotation, exactly like a
+     measured span in a technical drawing — tick marks at both ends of a
+     hairline, a centered label. Used to annotate the gap between two
+     related figures (e.g. saldo atual vs. projetado) instead of just
+     stacking the two numbers, so the *relationship* between them is what
+     the eye reads first. */
+  .dimension-line {
+    position: relative;
+    height: 1px;
+    background: var(--color-border);
+    margin-block: 0.375rem;
+  }
+  .dimension-line::before,
+  .dimension-line::after {
+    content: '';
+    position: absolute;
+    top: -0.25rem;
+    width: 1px;
+    height: 0.5rem;
+    background: var(--color-border);
+  }
+  .dimension-line::before {
+    left: 0;
+  }
+  .dimension-line::after {
+    right: 0;
   }
 }
 

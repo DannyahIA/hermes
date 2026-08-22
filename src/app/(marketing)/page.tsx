@@ -76,16 +76,16 @@ export default function MarketingPage() {
 
           {/* The thesis, made visible: every entry black or red ink, tabular
               figures — this is the product's whole idea in one glance. */}
-          <Card className="ledger-spine p-6">
+          <Card className="registration-frame p-6">
             <p className="font-display text-muted-foreground mb-2 text-sm italic">
               Hoje · Conta corrente
             </p>
             <div>
               {LEDGER_SAMPLE.map((row) => (
-                <div key={row.description} className="ledger-row">
+                <div key={row.description} className="dimension-row">
                   <span className="text-sm">{row.description}</span>
                   <span
-                    className={`ledger-figure text-sm font-semibold ${
+                    className={`dimension-figure text-sm font-semibold ${
                       row.tone === 'success'
                         ? 'text-success'
                         : row.tone === 'error'

@@ -48,7 +48,7 @@ export function LoanCard({
         <div>
           <CardTitle>{description}</CardTitle>
           <div className="text-muted-foreground mt-1 flex items-center gap-2 text-sm">
-            <span className="ledger-figure">
+            <span className="dimension-figure">
               {formatCurrency(principal, currency)}
             </span>
             <Badge variant="secondary">
@@ -81,7 +81,7 @@ export function LoanCard({
           <span className="text-muted-foreground">
             {paidCount} de {installmentCount} parcelas
           </span>
-          <span className="text-muted-foreground ledger-figure">
+          <span className="text-muted-foreground dimension-figure">
             {Math.round(progress)}%
           </span>
         </div>
@@ -108,16 +108,16 @@ export function LoanCard({
                 className="border-border/70 border-b last:border-none"
               >
                 <td className="py-2 pr-4">{installment.number}</td>
-                <td className="ledger-figure py-2 pr-4 text-right">
+                <td className="dimension-figure py-2 pr-4 text-right">
                   {formatCurrency(installment.amount, currency)}
                 </td>
-                <td className="ledger-figure py-2 pr-4 text-right">
+                <td className="dimension-figure py-2 pr-4 text-right">
                   {formatCurrency(installment.interestPortion, currency)}
                 </td>
-                <td className="ledger-figure py-2 pr-4 text-right">
+                <td className="dimension-figure py-2 pr-4 text-right">
                   {formatCurrency(installment.principalPortion, currency)}
                 </td>
-                <td className="ledger-figure py-2 text-right">
+                <td className="dimension-figure py-2 text-right">
                   {formatCurrency(installment.remainingBalance, currency)}
                 </td>
               </tr>

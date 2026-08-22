@@ -105,7 +105,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           </button>
         </form>
 
-        <Card className="ledger-spine p-6 sm:p-8">
+        <Card className="registration-frame p-6 sm:p-8">
           <p className="font-display text-muted-foreground text-sm italic">
             Relatório · {formatDate(from)} — {formatDate(to)}
           </p>
@@ -114,7 +114,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               <p className="text-muted-foreground text-sm">
                 Receitas no período
               </p>
-              <p className="ledger-figure text-success mt-1 text-2xl font-semibold">
+              <p className="dimension-figure text-success mt-1 text-2xl font-semibold">
                 {formatCurrency(report.totalIncome)}
               </p>
             </div>
@@ -122,14 +122,14 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               <p className="text-muted-foreground text-sm">
                 Despesas no período
               </p>
-              <p className="ledger-figure text-destructive mt-1 text-2xl font-semibold">
+              <p className="dimension-figure text-destructive mt-1 text-2xl font-semibold">
                 {formatCurrency(report.totalExpense)}
               </p>
             </div>
           </div>
         </Card>
 
-        <section className="grid gap-4 xl:grid-cols-2">
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {/* Net worth over time — a single series (magnitude), so one hue
               and no legend box needed; the card title already names it. */}
           <Card className="p-6">
@@ -217,11 +217,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                   <div className="text-muted-foreground mt-3 flex items-center gap-4 text-xs">
                     <span className="flex items-center gap-1.5">
                       <span className="bg-success inline-block h-2 w-2" />{' '}
-                      Receitas (tinta preta)
+                      Receitas (traço azul)
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="bg-destructive inline-block h-2 w-2" />{' '}
-                      Despesas (tinta vermelha)
+                      Despesas (redline)
                     </span>
                   </div>
                 </>
@@ -230,7 +230,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           </Card>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
           {/* Gastos por categoria — a ranked list, all the same "job" (an
               expense), so a single red-ink bar carries the mark; identity
               comes from the row label, not a categorical hue. */}
@@ -249,10 +249,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               ) : (
                 <div className="space-y-3">
                   {report.spendingByCategory.map((category) => (
-                    <div key={category.categoryId} className="ledger-row block">
+                    <div
+                      key={category.categoryId}
+                      className="dimension-row block"
+                    >
                       <div className="mb-2 flex items-center justify-between text-sm">
                         <span>{category.categoryName}</span>
-                        <span className="ledger-figure text-destructive font-semibold">
+                        <span className="dimension-figure text-destructive font-semibold">
                           {formatCurrency(category.total)}
                         </span>
                       </div>
@@ -301,13 +304,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                 <div className="space-y-4">
                   {[...overBudget, ...withinBudget].map(
                     ({ budget, percentage, spent }) => (
-                      <div key={budget.id} className="ledger-row block">
+                      <div key={budget.id} className="dimension-row block">
                         <div className="mb-2 flex items-center justify-between text-sm">
-                          <span className="ledger-figure">
+                          <span className="dimension-figure">
                             {formatCurrency(spent, budget.currency)} /{' '}
                             {formatCurrency(budget.amount, budget.currency)}
                           </span>
-                          <span className="text-muted-foreground ledger-figure">
+                          <span className="text-muted-foreground dimension-figure">
                             {Math.round(percentage * 100)}%
                           </span>
                         </div>
@@ -334,7 +337,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           </Card>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-2">
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {/* Comparação com o período anterior — categories whose spending
               grew, ranked; red ink for growth in expense, same convention
               as the category-spending card. */}
@@ -358,11 +361,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                   {growingCategories.slice(0, 5).map((comparison) => (
                     <div
                       key={comparison.categoryId}
-                      className="ledger-row flex items-center justify-between"
+                      className="dimension-row flex items-center justify-between"
                     >
                       <span className="text-sm">{comparison.categoryName}</span>
                       <span className="flex items-center gap-2">
-                        <span className="ledger-figure text-destructive text-sm font-semibold">
+                        <span className="dimension-figure text-destructive text-sm font-semibold">
                           {formatCurrency(comparison.currentTotal)}
                         </span>
                         {comparison.deltaPercent !== null && (
@@ -397,7 +400,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               ) : (
                 <div className="space-y-2">
                   <div className="flex items-baseline justify-between">
-                    <span className="ledger-figure text-2xl font-semibold">
+                    <span className="dimension-figure text-2xl font-semibold">
                       {report.recurringExpenseShare.percentage.toFixed(0)}%
                     </span>
                     <span className="text-muted-foreground text-xs">

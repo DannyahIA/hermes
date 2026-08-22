@@ -46,7 +46,7 @@ export default async function AccountsPage() {
               <CardDescription>Soma das contas ativas.</CardDescription>
             </CardHeader>
             <CardContent className="mt-4 p-0">
-              <p className="ledger-figure text-3xl font-semibold">
+              <p className="dimension-figure text-3xl font-semibold">
                 {formatCurrency(total)}
               </p>
             </CardContent>

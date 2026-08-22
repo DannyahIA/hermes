@@ -55,7 +55,7 @@ export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
     });
 
   return (
-    <div className="text-foreground min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(156,122,60,0.08),_transparent_40%)]">
+    <div className="text-foreground min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(232,162,61,0.08),_transparent_40%)]">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 lg:px-6 lg:py-6">
         <div className="border-border/70 bg-background/80 flex flex-1 overflow-hidden rounded-[1.25rem] border shadow-[var(--shadow-elevation)] backdrop-blur-xl">
           <aside className="border-border/70 bg-sidebar hidden w-72 shrink-0 flex-col border-r py-6 lg:flex">
@@ -64,7 +64,7 @@ export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
             </div>
             <nav className="space-y-0.5 px-2">{navLinks()}</nav>
             <div className="mt-auto px-5">
-              <Card className="ledger-spine bg-card/70 p-4">
+              <Card className="registration-frame bg-card/70 p-4">
                 <p className="text-sm font-semibold">{userLabel}</p>
                 <p className="text-muted-foreground mt-1 text-sm">
                   Sua central de comando financeira.
@@ -98,20 +98,20 @@ export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
             </div>
           )}
 
-          <div className="flex flex-1 flex-col">
-            <header className="border-border/70 flex items-center justify-between border-b px-4 py-4 sm:px-6 lg:px-6">
-              <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <header className="border-border/70 flex items-center justify-between gap-2 border-b px-3 py-3 sm:px-6 sm:py-4 lg:px-6">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                 <Button
                   variant="outline"
                   size="icon"
-                  className="lg:hidden"
+                  className="h-9 w-9 shrink-0 lg:hidden"
                   aria-label="Abrir menu"
                   onClick={() => setMobileOpen(true)}
                 >
                   <Menu className="h-4 w-4" />
                 </Button>
-                <div>
-                  <p className="font-display text-sm font-semibold">
+                <div className="min-w-0">
+                  <p className="font-display truncate text-sm font-semibold">
                     {currentPage?.label ?? APP_NAME}
                   </p>
                   <p className="text-muted-foreground hidden text-sm sm:block">
@@ -120,7 +120,7 @@ export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex shrink-0 items-center gap-1 sm:gap-2">
                 <ThemeToggle />
                 <Button
                   variant="outline"
@@ -134,14 +134,19 @@ export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
                   <Button
                     variant="outline"
                     type="submit"
-                    size="sm"
+                    size="icon"
+                    className="h-9 w-9 sm:h-9 sm:w-auto sm:px-3"
                     aria-label="Sair"
                   >
                     <LogOut className="h-4 w-4 sm:hidden" />
                     <span className="hidden sm:inline">Sair</span>
                   </Button>
                 </form>
-                <Button asChild size="sm">
+                <Button
+                  asChild
+                  size="icon"
+                  className="h-9 w-9 sm:h-9 sm:w-auto sm:px-3"
+                >
                   <Link href={ROUTES.transactions} aria-label="Nova transação">
                     <Plus className="h-4 w-4 sm:hidden" />
                     <span className="hidden sm:inline">Nova transação</span>
@@ -170,7 +175,9 @@ function SidebarBrand({ compact = false }: { compact?: boolean }) {
       </div>
       <div>
         <p className="font-display text-sm font-semibold">{APP_NAME}</p>
-        <p className="text-muted-foreground text-xs">Seu livro-razão pessoal</p>
+        <p className="text-muted-foreground text-xs">
+          Sua prancheta financeira
+        </p>
       </div>
     </div>
   );

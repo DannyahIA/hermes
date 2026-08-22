@@ -36,7 +36,7 @@ export function TransactionRowSkeleton() {
 /** Mobile stacked-card shape — same structure as `TransactionRowMobile`. */
 export function TransactionRowSkeletonMobile() {
   return (
-    <div className="ledger-row flex-col items-stretch gap-2 sm:hidden">
+    <div className="dimension-row flex-col items-stretch gap-2 sm:hidden">
       <div className="flex items-start justify-between gap-3">
         <div className="w-2/3 space-y-2">
           <Skeleton className="h-4 w-full" />
