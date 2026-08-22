@@ -2,7 +2,6 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
 
-import { ROUTES } from '@/config/routes';
 import { auth } from '@/infra/auth/server';
 
 /**
@@ -28,14 +27,22 @@ export async function getCurrentUserId(): Promise<string | null> {
  * otherwise fail the real database-backed lookup (e.g. right after a
  * baseURL/cookie-config change invalidates old sessions). That gap used to
  * surface here as an unhandled `throw`, which Next.js rendered as a raw
- * "Runtime Error" page instead of sending the visitor to sign in again —
- * `redirect()` is the graceful equivalent middleware already uses.
+ * "Runtime Error" page instead of sending the visitor to sign in again.
+ *
+ * Redirecting straight to `/login` would seem like the fix, but it isn't:
+ * `authMiddleware` only checks whether a session cookie is *present*, not
+ * whether it's valid, so a stale-but-present cookie makes it bounce every
+ * `/login` visit straight back here — which fails this same check and
+ * redirects again, forever. Redirecting through `/api/auth/session-expired`
+ * instead actually clears the bad cookie first (a Server Component can't do
+ * that itself — only a Server Action or Route Handler can mutate cookies),
+ * which is what breaks the loop.
  */
 export async function requireCurrentUserId(): Promise<string> {
   const userId = await getCurrentUserId();
 
   if (!userId) {
-    redirect(ROUTES.login);
+    redirect('/api/auth/session-expired');
   }
 
   return userId;
