@@ -30,6 +30,28 @@ export const auth = betterAuth({
   }),
   baseURL: env.NEXT_PUBLIC_APP_URL,
   secret: env.BETTER_AUTH_SECRET,
+  session: {
+    // Short by design: a signed-out-after-a-day session matters more here
+    // than never re-typing a password, since this is a personal-finance
+    // app that may be opened on a shared or easily-lost device (a phone).
+    expiresIn: 60 * 60 * 24, // 1 day
+    // Any request within this window of expiry silently extends it — so a
+    // session in daily use never actually expires; only a day of *no* use
+    // does. Kept well under `expiresIn` so activity has room to extend it.
+    updateAge: 60 * 60 * 6, // 6 hours
+    cookieCache: {
+      // A short-lived signed cookie caches the session's validity/expiry,
+      // checked entirely from the cookie's signature — no database round
+      // trip. This is what closes the gap `authMiddleware` always had: its
+      // cookie-*presence* check couldn't tell a live session from a stale
+      // one, which is exactly what produced 2026-08-22's login/dashboard
+      // redirect loop. `maxAge` bounds how stale that cached copy can get —
+      // e.g. a session revoked by a password change elsewhere is still
+      // honored for up to this long before the next real database check.
+      enabled: true,
+      maxAge: 60 * 5, // 5 minutes
+    },
+  },
   // better-auth rejects any state-changing request (POST/PUT/DELETE — every
   // sign-in, sign-out, and mutating action in this app) whose Origin header
   // isn't in this list, defaulting to just `[baseURL]`. This app is reached
