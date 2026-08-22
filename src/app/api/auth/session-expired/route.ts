@@ -1,7 +1,7 @@
 import { headers } from 'next/headers';
-import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+import { env } from '@/config/env';
 import { ROUTES } from '@/config/routes';
 import { auth } from '@/infra/auth/server';
 
@@ -20,7 +20,7 @@ import { auth } from '@/infra/auth/server';
  * the cookie (via the same `auth.api.signOut` the "Sair" button uses)
  * before redirecting is what breaks that loop.
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await auth.api.signOut({ headers: await headers() });
   } catch {
@@ -29,10 +29,12 @@ export async function GET(request: NextRequest) {
     // still needs to land on the login page.
   }
 
-  // Built from the incoming request rather than NEXT_PUBLIC_APP_URL: this
-  // route must redirect correctly no matter which trusted origin the
-  // request actually arrived on (see the `trustedOrigins` note in
-  // `infra/auth/server.ts` — this app is legitimately reached from more
-  // than one).
-  return NextResponse.redirect(new URL(ROUTES.login, request.url));
+  // Deliberately built from NEXT_PUBLIC_APP_URL, not the incoming request's
+  // own URL/Host header: this app sits behind a Cloudflare tunnel that
+  // doesn't forward the public hostname to the origin, so `request.url`
+  // here resolves to the tunnel's internal address (e.g. localhost) — a
+  // redirect built from it sends a phone straight to an address it can
+  // never reach. NEXT_PUBLIC_APP_URL is the one place that's configured to
+  // be the actual public address, so it's the only source trusted here.
+  return NextResponse.redirect(new URL(ROUTES.login, env.NEXT_PUBLIC_APP_URL));
 }
