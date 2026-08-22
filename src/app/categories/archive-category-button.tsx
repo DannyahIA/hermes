@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 
 import { archiveCategoryAction } from '@/app/categories/actions';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/shared/hooks/use-toast';
 
 interface ArchiveCategoryButtonProps {
   categoryId: string;
@@ -14,31 +15,35 @@ export function ArchiveCategoryButton({
   categoryId,
   archived,
 }: ArchiveCategoryButtonProps) {
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleClick() {
-    setError(null);
     startTransition(async () => {
       const result = await archiveCategoryAction(categoryId, !archived);
-      if (!result.success) {
-        setError(result.error ?? 'Não foi possível atualizar esta categoria.');
-      }
+      toast(
+        result.success
+          ? {
+              title: archived ? 'Categoria reativada.' : 'Categoria arquivada.',
+              variant: 'success',
+            }
+          : {
+              title:
+                result.error ?? 'Não foi possível atualizar esta categoria.',
+              variant: 'error',
+            },
+      );
     });
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={handleClick}
-        disabled={isPending}
-      >
-        {isPending ? 'Aguarde...' : archived ? 'Reativar' : 'Arquivar'}
-      </Button>
-      {error ? <p className="text-destructive text-xs">{error}</p> : null}
-    </div>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={handleClick}
+      disabled={isPending}
+    >
+      {isPending ? 'Aguarde…' : archived ? 'Reativar' : 'Arquivar'}
+    </Button>
   );
 }

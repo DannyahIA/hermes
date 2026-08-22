@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { calculatePriceInstallments } from '@/core/value-objects/loan-amortization';
+import { toast } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/format-currency';
 
@@ -73,7 +74,15 @@ export function LoanCard({
           description="Isso reverte o saldo das contas envolvidas e remove todas as parcelas restantes. Essa ação não pode ser desfeita."
           onConfirm={() =>
             startTransition(async () => {
-              await deleteLoanAction(id);
+              const result = await deleteLoanAction(id);
+              toast(
+                result.success
+                  ? { title: 'Empréstimo excluído.', variant: 'success' }
+                  : {
+                      title: result.error ?? 'Não foi possível excluir.',
+                      variant: 'error',
+                    },
+              );
             })
           }
         />

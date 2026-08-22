@@ -1,52 +1,43 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 
 import { deleteBudgetAction } from '@/app/budgets/actions';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from '@/shared/hooks/use-toast';
 
 interface DeleteBudgetButtonProps {
   id: string;
 }
 
-/**
- * A proper Dialog component is being added in parallel by another
- * workstream and isn't available here yet — this uses a simple two-step
- * confirm state instead of inventing a modal.
- */
 export function DeleteBudgetButton({ id }: DeleteBudgetButtonProps) {
-  const [confirming, setConfirming] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  if (!confirming) {
-    return (
-      <Button
-        variant="destructive"
-        size="sm"
-        onClick={() => setConfirming(true)}
-      >
-        Excluir
-      </Button>
-    );
+  function handleDelete() {
+    startTransition(async () => {
+      const result = await deleteBudgetAction(id);
+      toast(
+        result.success
+          ? { title: 'Orçamento excluído.', variant: 'success' }
+          : {
+              title: result.error ?? 'Não foi possível excluir.',
+              variant: 'error',
+            },
+      );
+    });
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Button
-        variant="destructive"
-        size="sm"
-        disabled={isPending}
-        onClick={() =>
-          startTransition(() => {
-            void deleteBudgetAction(id);
-          })
-        }
-      >
-        {isPending ? 'Excluindo...' : 'Confirmar exclusão?'}
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => setConfirming(false)}>
-        Cancelar
-      </Button>
-    </div>
+    <ConfirmDialog
+      trigger={
+        <Button variant="destructive" size="sm" disabled={isPending}>
+          {isPending ? 'Excluindo…' : 'Excluir'}
+        </Button>
+      }
+      title="Excluir orçamento"
+      description="Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita."
+      onConfirm={handleDelete}
+    />
   );
 }
