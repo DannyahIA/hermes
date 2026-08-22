@@ -5,7 +5,6 @@ import {
   LayoutGrid,
   PiggyBank,
   ReceiptText,
-  Settings,
   Tags,
   TrendingUp,
 } from 'lucide-react';
@@ -30,5 +29,4 @@ export const PRIMARY_NAVIGATION: NavigationItem[] = [
   { href: ROUTES.loans, label: 'Empréstimos', icon: Landmark },
   { href: ROUTES.categories, label: 'Categorias', icon: Tags },
   { href: ROUTES.reports, label: 'Relatórios', icon: TrendingUp },
-  { href: ROUTES.settings, label: 'Configurações', icon: Settings },
 ];

@@ -1,9 +1,16 @@
 'use client';
 
-import { LogOut, Menu, PanelLeftClose, Plus, X } from 'lucide-react';
+import {
+  LogOut,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { signOutAction } from '@/app/(auth)/actions';
 import { Button } from '@/components/ui/button';
@@ -23,15 +30,33 @@ function isActiveRoute(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+const SIDEBAR_COLLAPSED_KEY = 'hermes-sidebar-collapsed';
+
 export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    // Same rationale as ThemeToggle: syncing from localStorage (a system
+    // outside React) is what effects are for — reading it during render
+    // would risk a server/client hydration mismatch, since the server has
+    // no localStorage to check against.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
+  }, []);
+
+  function toggleCollapsed() {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0');
+  }
 
   const currentPage = PRIMARY_NAVIGATION.find((item) =>
     isActiveRoute(pathname, item.href),
   );
 
-  const navLinks = (onNavigate?: () => void) =>
+  const navLinks = (onNavigate?: () => void, iconOnly = false) =>
     PRIMARY_NAVIGATION.map((item) => {
       const Icon = item.icon;
       const active = isActiveRoute(pathname, item.href);
@@ -41,15 +66,17 @@ export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
           href={item.href}
           onClick={onNavigate}
           aria-current={active ? 'page' : undefined}
+          title={iconOnly ? item.label : undefined}
           className={cn(
             'flex items-center gap-3 border-l-[3px] px-3 py-2.5 text-sm font-medium transition-colors',
+            iconOnly && 'justify-center px-0',
             active
               ? 'border-ring bg-sidebar-accent text-sidebar-accent-foreground'
               : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-transparent',
           )}
         >
-          <Icon className="h-4 w-4" />
-          {item.label}
+          <Icon className="h-4 w-4 shrink-0" />
+          {!iconOnly && item.label}
         </Link>
       );
     });
@@ -58,19 +85,28 @@ export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
     <div className="text-foreground min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(232,162,61,0.08),_transparent_40%)]">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 lg:px-6 lg:py-6">
         <div className="border-border/70 bg-background/80 flex flex-1 overflow-hidden rounded-[1.25rem] border shadow-[var(--shadow-elevation)] backdrop-blur-xl">
-          <aside className="border-border/70 bg-sidebar hidden w-72 shrink-0 flex-col border-r py-6 lg:flex">
-            <div className="px-5">
-              <SidebarBrand />
+          <aside
+            className={cn(
+              'border-border/70 bg-sidebar hidden shrink-0 flex-col border-r py-6 transition-[width] duration-200 lg:flex',
+              collapsed ? 'w-[4.5rem]' : 'w-72',
+            )}
+          >
+            <div className={cn('px-5', collapsed && 'px-3')}>
+              <SidebarBrand hideText={collapsed} />
             </div>
-            <nav className="space-y-0.5 px-2">{navLinks()}</nav>
-            <div className="mt-auto px-5">
-              <Card className="registration-frame bg-card/70 p-4">
-                <p className="text-sm font-semibold">{userLabel}</p>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  Sua central de comando financeira.
-                </p>
-              </Card>
-            </div>
+            <nav className="space-y-0.5 px-2">
+              {navLinks(undefined, collapsed)}
+            </nav>
+            {!collapsed && (
+              <div className="mt-auto px-5">
+                <Card className="registration-frame bg-card/70 p-4">
+                  <p className="text-sm font-semibold">{userLabel}</p>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    Sua central de comando financeira.
+                  </p>
+                </Card>
+              </div>
+            )}
           </aside>
 
           {mobileOpen && (
@@ -126,9 +162,18 @@ export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
                   variant="outline"
                   size="icon"
                   className="hidden lg:inline-flex"
-                  disabled
+                  onClick={toggleCollapsed}
+                  aria-label={
+                    collapsed
+                      ? 'Expandir menu lateral'
+                      : 'Recolher menu lateral'
+                  }
                 >
-                  <PanelLeftClose className="h-4 w-4" />
+                  {collapsed ? (
+                    <PanelLeftOpen className="h-4 w-4" />
+                  ) : (
+                    <PanelLeftClose className="h-4 w-4" />
+                  )}
                 </Button>
                 <form action={signOutAction}>
                   <Button
@@ -167,18 +212,26 @@ export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
   );
 }
 
-function SidebarBrand({ compact = false }: { compact?: boolean }) {
+function SidebarBrand({
+  compact = false,
+  hideText = false,
+}: {
+  compact?: boolean;
+  hideText?: boolean;
+}) {
   return (
     <div className={cn('flex items-center gap-3', compact ? '' : 'mb-8')}>
-      <div className="bg-primary text-primary-foreground font-display flex h-10 w-10 items-center justify-center rounded-md text-base font-semibold">
+      <div className="bg-primary text-primary-foreground font-display flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-base font-semibold">
         H
       </div>
-      <div>
-        <p className="font-display text-sm font-semibold">{APP_NAME}</p>
-        <p className="text-muted-foreground text-xs">
-          Sua prancheta financeira
-        </p>
-      </div>
+      {!hideText && (
+        <div>
+          <p className="font-display text-sm font-semibold">{APP_NAME}</p>
+          <p className="text-muted-foreground text-xs">
+            Sua prancheta financeira
+          </p>
+        </div>
+      )}
     </div>
   );
 }
