@@ -7,9 +7,9 @@ import { cn } from '@/shared/lib/cn';
 
 const VARIANT_STYLES = {
   default: 'border-border bg-card text-card-foreground',
-  success: 'border-success/30 bg-success/10 text-success-foreground',
-  warning: 'border-warning/30 bg-warning/10 text-warning-foreground',
-  error: 'border-destructive/30 bg-destructive/10 text-destructive-foreground',
+  success: 'border-success/30 bg-success/10 text-success',
+  warning: 'border-warning/30 bg-warning/10 text-warning-strong',
+  error: 'border-destructive/30 bg-destructive/10 text-destructive',
 } as const;
 
 const VARIANT_ICONS = {
