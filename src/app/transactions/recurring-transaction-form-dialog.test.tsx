@@ -70,4 +70,36 @@ describe('RecurringTransactionFormDialog', () => {
     expect(dayRuleKindSelect).toHaveValue('first_business_day');
     expect(startDateInput).toHaveValue('2026-09-01');
   });
+
+  it('mantém o dia do mês quando a regra é "todo dia fixo do mês" e "criar mais" está marcado', async () => {
+    render(
+      <RecurringTransactionFormDialog
+        accounts={ACCOUNTS}
+        categories={CATEGORIES}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nova recorrência' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Criar mais uma recorrência' }),
+    );
+
+    const descriptionInput = screen.getByLabelText('Descrição');
+    const amountInput = screen.getByLabelText('Valor');
+    const dayRuleKindSelect = screen.getByLabelText('Repete');
+    // Já parte do valor default 'fixed_day', mas garante explicitamente que
+    // o campo "Dia do mês" está visível antes de preenchê-lo.
+    expect(dayRuleKindSelect).toHaveValue('fixed_day');
+    const dayRuleDayInput = screen.getByLabelText('Dia do mês');
+
+    fireEvent.change(descriptionInput, { target: { value: 'Aluguel' } });
+    fireEvent.change(amountInput, { target: { value: '1500' } });
+    fireEvent.change(dayRuleDayInput, { target: { value: '15' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Criar recorrência' }));
+
+    await waitFor(() => expect(amountInput).toHaveValue(null));
+    expect(descriptionInput).toHaveValue('');
+    expect(screen.getByLabelText('Dia do mês')).toHaveValue(15);
+  });
 });
