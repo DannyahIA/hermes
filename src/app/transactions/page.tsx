@@ -22,8 +22,6 @@ import {
   type TransactionViewMode,
 } from '@/config/constants';
 import { requireCurrentUserId } from '@/infra/auth/session';
-import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
-import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
 import { DrizzleInstallmentPlanRepository } from '@/infra/repositories/drizzle-installment-plan.repository';
 import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
@@ -33,6 +31,10 @@ import { GetViewPreferenceUseCase } from '@/modules/preferences/application/get-
 import { GetRecurringTransactionsUseCase } from '@/modules/recurring-transactions/application/get-recurring-transactions.use-case';
 import { GetTransactionsUseCase } from '@/modules/transactions/application/get-transactions.use-case';
 import { encodeTransactionCursor } from '@/shared/lib/transaction-cursor';
+import {
+  getAccountOptions,
+  getCategoryOptions,
+} from '@/shared/server/reference-options';
 
 /** Defends against a stored view-preference value written by a future
  * version of the app with a mode this version doesn't know, or genuinely
@@ -65,8 +67,8 @@ export default async function TransactionsPage({
     recurringTransactions,
     rawViewMode,
   ] = await Promise.all([
-    new DrizzleAccountRepository().findByUserId(userId),
-    new DrizzleCategoryRepository().findByUserId(userId),
+    getAccountOptions(userId),
+    getCategoryOptions(userId),
     new GetInstallmentPlansUseCase(
       new DrizzleInstallmentPlanRepository(),
     ).execute(userId),
@@ -132,16 +134,11 @@ export default async function TransactionsPage({
     installmentPlans.map((plan) => [plan.id, plan.installmentCount]),
   );
 
-  // Client Components can only receive plain objects — entity class
-  // instances aren't serializable across the server/client boundary.
-  const accountOptions = accounts.map((account) => ({
-    id: account.id,
-    name: account.name,
-  }));
-  const categoryOptions = categories.map((category) => ({
-    id: category.id,
-    name: category.name,
-  }));
+  // `getAccountOptions`/`getCategoryOptions` already return plain
+  // `{id, name}` objects — safe to pass straight into Client Components
+  // without remapping.
+  const accountOptions = accounts;
+  const categoryOptions = categories;
 
   return (
     <AppShell>
