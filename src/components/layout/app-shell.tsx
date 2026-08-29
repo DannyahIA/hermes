@@ -5,6 +5,10 @@ import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.r
 import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { GenerateDueOccurrencesUseCase } from '@/modules/recurring-transactions/application/generate-due-occurrences.use-case';
+import {
+  getAccountOptions,
+  getCategoryOptions,
+} from '@/shared/server/reference-options';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -40,5 +44,20 @@ export async function AppShell({ children }: AppShellProps) {
     }
   }
 
-  return <AppShellChrome userLabel={userLabel}>{children}</AppShellChrome>;
+  const [accounts, categories] = session?.user.id
+    ? await Promise.all([
+        getAccountOptions(session.user.id),
+        getCategoryOptions(session.user.id),
+      ])
+    : [[], []];
+
+  return (
+    <AppShellChrome
+      userLabel={userLabel}
+      accounts={accounts}
+      categories={categories}
+    >
+      {children}
+    </AppShellChrome>
+  );
 }

@@ -1,13 +1,12 @@
 import Link from 'next/link';
 
+import { CreateTransferDialog } from '@/app/transactions/create-transfer-dialog';
 import { FilterChips } from '@/app/transactions/filter-chips';
 import { ImportDialog } from '@/app/transactions/import-dialog';
 import { RecurringTransactionFormDialog } from '@/app/transactions/recurring-transaction-form-dialog';
 import { RecurringTransactionRow } from '@/app/transactions/recurring-transaction-row';
-import { TransactionForm } from '@/app/transactions/transaction-form';
 import { TransactionList } from '@/app/transactions/transaction-list';
 import { TransactionsFilters } from '@/app/transactions/transactions-filters';
-import { TransferForm } from '@/app/transactions/transfer-form';
 import { ViewModeSelector } from '@/app/transactions/view-mode-selector';
 import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
@@ -158,8 +157,11 @@ export default async function TransactionsPage({
               defaultFrom={filters.from}
               defaultTo={filters.to}
             />
-            <div className="flex shrink-0 gap-2">
+            <div className="flex shrink-0 flex-wrap gap-2">
               <ViewModeSelector value={viewMode} />
+              {accountOptions.length >= 2 ? (
+                <CreateTransferDialog accounts={accountOptions} />
+              ) : null}
               <Button variant="outline" asChild>
                 <Link
                   href={`/api/transactions/export?${filterParams.toString()}`}
@@ -188,7 +190,8 @@ export default async function TransactionsPage({
               <div className="flex flex-col items-center gap-2 p-12 text-center">
                 <CardTitle>Nenhuma transação encontrada.</CardTitle>
                 <CardDescription>
-                  Registre sua primeira transação usando o formulário ao lado.
+                  Registre sua primeira transação pelo botão &quot;Nova
+                  transação&quot; no topo da página.
                 </CardDescription>
               </div>
             ) : (
@@ -230,39 +233,6 @@ export default async function TransactionsPage({
         </div>
 
         <div className="space-y-6">
-          <Card className="p-6">
-            <CardHeader className="p-0">
-              <CardTitle>Nova transação</CardTitle>
-              <CardDescription>
-                Registre uma receita ou despesa.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="mt-4 p-0">
-              {accounts.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  Crie uma conta antes de registrar transações.
-                </p>
-              ) : (
-                <TransactionForm
-                  accounts={accountOptions}
-                  categories={categoryOptions}
-                />
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="p-6">
-            <CardHeader className="p-0">
-              <CardTitle>Transferência</CardTitle>
-              <CardDescription>
-                Mova dinheiro entre suas contas.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="mt-4 p-0">
-              <TransferForm accounts={accountOptions} />
-            </CardContent>
-          </Card>
-
           <Card className="p-6">
             <CardHeader className="p-0">
               <CardTitle>Recorrências</CardTitle>

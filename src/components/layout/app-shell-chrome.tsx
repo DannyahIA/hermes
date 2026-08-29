@@ -1,28 +1,23 @@
 'use client';
 
-import {
-  LogOut,
-  Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Plus,
-  X,
-} from 'lucide-react';
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { signOutAction } from '@/app/(auth)/actions';
+import { CreateTransactionDialog } from '@/app/transactions/create-transaction-dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { APP_NAME } from '@/config/constants';
 import { PRIMARY_NAVIGATION } from '@/config/navigation';
-import { ROUTES } from '@/config/routes';
 import { ThemeToggle } from '@/shared/components/theme-toggle';
 import { cn } from '@/shared/lib/cn';
 
 interface AppShellChromeProps {
   userLabel: string;
+  accounts: Array<{ id: string; name: string }>;
+  categories: Array<{ id: string; name: string }>;
   children: React.ReactNode;
 }
 
@@ -32,7 +27,12 @@ function isActiveRoute(pathname: string, href: string): boolean {
 
 const SIDEBAR_COLLAPSED_KEY = 'hermes-sidebar-collapsed';
 
-export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
+export function AppShellChrome({
+  userLabel,
+  accounts,
+  categories,
+  children,
+}: AppShellChromeProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -187,16 +187,10 @@ export function AppShellChrome({ userLabel, children }: AppShellChromeProps) {
                     <span className="hidden sm:inline">Sair</span>
                   </Button>
                 </form>
-                <Button
-                  asChild
-                  size="icon"
-                  className="h-9 w-9 sm:h-9 sm:w-auto sm:px-3"
-                >
-                  <Link href={ROUTES.transactions} aria-label="Nova transação">
-                    <Plus className="h-4 w-4 sm:hidden" />
-                    <span className="hidden sm:inline">Nova transação</span>
-                  </Link>
-                </Button>
+                <CreateTransactionDialog
+                  accounts={accounts}
+                  categories={categories}
+                />
               </div>
             </header>
 
