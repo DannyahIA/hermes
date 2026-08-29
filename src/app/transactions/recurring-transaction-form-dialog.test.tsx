@@ -64,10 +64,15 @@ describe('RecurringTransactionFormDialog', () => {
 
     await waitFor(() => expect(amountInput).toHaveValue(null));
     expect(descriptionInput).toHaveValue('');
-    expect(typeSelect).toHaveValue('income');
-    expect(accountSelect).toHaveValue('acc-2');
-    expect(categorySelect).toHaveValue('cat-1');
-    expect(dayRuleKindSelect).toHaveValue('first_business_day');
+    // O resync dos selects retidos acontece em um efeito separado, disparado
+    // depois do reset nativo do formulário — esperar a mutação real do DOM
+    // em vez de assumir que ela já aconteceu no mesmo tick do valor.
+    await waitFor(() => expect(typeSelect).toHaveValue('income'));
+    await waitFor(() => expect(accountSelect).toHaveValue('acc-2'));
+    await waitFor(() => expect(categorySelect).toHaveValue('cat-1'));
+    await waitFor(() =>
+      expect(dayRuleKindSelect).toHaveValue('first_business_day'),
+    );
     expect(startDateInput).toHaveValue('2026-09-01');
   });
 

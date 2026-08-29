@@ -47,7 +47,10 @@ describe('CreateLoanDialog', () => {
     expect(principalInput).toHaveValue(null);
     expect(rateInput).toHaveValue(null);
     expect(installmentInput).toHaveValue(null);
-    expect(disbursementSelect).toHaveValue('acc-2');
-    expect(repaymentSelect).toHaveValue('acc-2');
+    // O resync dos selects retidos acontece em um efeito separado, disparado
+    // depois do reset nativo do formulário — esperar a mutação real do DOM
+    // em vez de assumir que ela já aconteceu no mesmo tick da descrição.
+    await waitFor(() => expect(disbursementSelect).toHaveValue('acc-2'));
+    await waitFor(() => expect(repaymentSelect).toHaveValue('acc-2'));
   });
 });

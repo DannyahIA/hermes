@@ -34,7 +34,10 @@ describe('CreateTransferDialog', () => {
 
     await waitFor(() => expect(amountInput).toHaveValue(null));
     expect(descriptionInput).toHaveValue('');
-    expect(fromSelect).toHaveValue('acc-1');
-    expect(toSelect).toHaveValue('acc-2');
+    // O resync dos selects retidos acontece em um efeito separado, disparado
+    // depois do reset nativo do formulário — esperar a mutação real do DOM
+    // em vez de assumir que ela já aconteceu no mesmo tick do valor.
+    await waitFor(() => expect(fromSelect).toHaveValue('acc-1'));
+    await waitFor(() => expect(toSelect).toHaveValue('acc-2'));
   });
 });
