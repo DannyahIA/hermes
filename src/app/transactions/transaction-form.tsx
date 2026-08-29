@@ -52,21 +52,22 @@ export function TransactionForm({
   const typeSelectRef = useRef<HTMLSelectElement>(null);
   const accountSelectRef = useRef<HTMLSelectElement>(null);
   const categorySelectRef = useRef<HTMLSelectElement>(null);
-  const occurredAtRef = useRef<HTMLInputElement>(null);
 
-  // Mantém os últimos valores conhecidos dos campos retidos (tipo, conta,
-  // categoria, data) fora do ciclo de render, sem entrar nas deps do efeito
-  // abaixo — atualizados em todo render (sem array de deps), então já estão
-  // em dia antes do commit que dispara o efeito de sucesso.
+  // Mantém os últimos valores conhecidos dos <select>s retidos (tipo,
+  // conta, categoria) fora do ciclo de render, sem entrar nas deps do
+  // efeito abaixo — atualizados em todo render (sem array de deps), então
+  // já estão em dia antes do commit que dispara o efeito de sucesso. `data`
+  // não precisa disso: é um `<input type="date">` controlado, e React já
+  // resincroniza `defaultValue` em inputs da família texto/data a cada
+  // render — só o reset nativo de um <select> (que volta para o atributo
+  // `selected`) escapa do controle do React e precisa ser restaurado à mão.
   const latestTypeRef = useRef(type);
   const latestAccountIdRef = useRef(accountId);
   const latestCategoryIdRef = useRef(categoryId);
-  const latestOccurredAtRef = useRef(occurredAt);
   useEffect(() => {
     latestTypeRef.current = type;
     latestAccountIdRef.current = accountId;
     latestCategoryIdRef.current = categoryId;
-    latestOccurredAtRef.current = occurredAt;
   });
 
   // Campos controlados que são sempre limpos (descrição fica de fora — é
@@ -94,11 +95,11 @@ export function TransactionForm({
       // tipo/conta/categoria/data são controlados de propósito e devem
       // sobreviver ao "criar mais" (ver tabela de retenção no spec). React
       // reseta os campos nativamente ao concluir uma form action com
-      // sucesso, o que devolveria esses campos controlados ao seu valor
-      // inicial no DOM — por isso os valores são reaplicados a partir do
-      // estado do React (não do DOM, que a essa altura já pode estar
-      // corrompido pelo reset nativo). O resto (descrição, valor,
-      // parcelamento) é sempre limpo.
+      // sucesso, o que devolveria os <select> controlados (tipo/conta/
+      // categoria) ao atributo `selected` no DOM — por isso seus valores
+      // são reaplicados a partir do estado do React logo abaixo. `data`
+      // não precisa da mesma restauração (ver comentário acima, junto aos
+      // refs). O resto (descrição, valor, parcelamento) é sempre limpo.
       formRef.current?.reset();
       if (typeSelectRef.current) {
         typeSelectRef.current.value = latestTypeRef.current;
@@ -108,9 +109,6 @@ export function TransactionForm({
       }
       if (categorySelectRef.current) {
         categorySelectRef.current.value = latestCategoryIdRef.current;
-      }
-      if (occurredAtRef.current) {
-        occurredAtRef.current.value = latestOccurredAtRef.current;
       }
       descriptionRef.current?.focus();
     }
@@ -266,7 +264,6 @@ export function TransactionForm({
         <Input
           id="occurredAt"
           name="occurredAt"
-          ref={occurredAtRef}
           type="date"
           value={occurredAt}
           onChange={(event) => setOccurredAt(event.target.value)}
