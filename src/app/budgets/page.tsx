@@ -41,16 +41,22 @@ export default async function BudgetsPage() {
               progresso ao longo do mês.
             </p>
           </div>
-          <CreateBudgetDialog categories={categoryOptions} />
+          {categoryOptions.length > 0 ? (
+            <CreateBudgetDialog categories={categoryOptions} />
+          ) : null}
         </section>
 
         <section className="grid gap-4">
           {progressList.length === 0 ? (
             <EmptyState
               title="Nenhum orçamento cadastrado."
-              description="Crie seu primeiro orçamento para acompanhar seus limites de gastos."
+              description={
+                categoryOptions.length > 0
+                  ? 'Crie seu primeiro orçamento para acompanhar seus limites de gastos.'
+                  : 'Crie uma categoria antes de criar um orçamento.'
+              }
               action={
-                categories.length > 0 ? (
+                categoryOptions.length > 0 ? (
                   <CreateBudgetDialog categories={categoryOptions} />
                 ) : undefined
               }

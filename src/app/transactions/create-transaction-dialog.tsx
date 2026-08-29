@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+import Link from 'next/link';
 
 import { createTransactionOrInstallmentAction } from '@/app/transactions/actions';
 import { TransactionForm } from '@/app/transactions/transaction-form';
@@ -24,6 +25,28 @@ export function CreateTransactionDialog({
   accounts,
   categories,
 }: CreateTransactionDialogProps) {
+  // Sem contas, o dialog não teria nada além do aviso de guarda para
+  // mostrar — e `Dialog` não tem um "X" de fechar (só Escape/clique fora),
+  // o que deixaria um usuário novo sem affordance visível de saída. Em vez
+  // de abrir um dialog sem saída, o gatilho global já aponta direto para o
+  // passo que falta.
+  if (accounts.length === 0) {
+    return (
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-9 w-9 sm:h-9 sm:w-auto sm:px-3"
+        aria-label="Crie uma conta antes de registrar transações"
+        asChild
+      >
+        <Link href="/accounts">
+          <Plus className="h-4 w-4 sm:hidden" />
+          <span className="hidden sm:inline">Criar conta</span>
+        </Link>
+      </Button>
+    );
+  }
+
   return (
     <CreateDialogForm
       trigger={(open) => (
@@ -42,23 +65,17 @@ export function CreateTransactionDialog({
       action={createTransactionOrInstallmentAction}
       initialState={INITIAL_STATE}
     >
-      {({ state, formAction, repeating, onRepeatingChange, close }) =>
-        accounts.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            Crie uma conta antes de registrar transações.
-          </p>
-        ) : (
-          <TransactionForm
-            accounts={accounts}
-            categories={categories}
-            state={state}
-            formAction={formAction}
-            repeating={repeating}
-            onRepeatingChange={onRepeatingChange}
-            onCancel={close}
-          />
-        )
-      }
+      {({ state, formAction, repeating, onRepeatingChange, close }) => (
+        <TransactionForm
+          accounts={accounts}
+          categories={categories}
+          state={state}
+          formAction={formAction}
+          repeating={repeating}
+          onRepeatingChange={onRepeatingChange}
+          onCancel={close}
+        />
+      )}
     </CreateDialogForm>
   );
 }
