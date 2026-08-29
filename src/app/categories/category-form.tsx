@@ -1,67 +1,54 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import type { ActionResult } from '@/app/categories/actions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { RepeatToggle } from '@/components/ui/create-dialog-form';
+import { DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
-const INITIAL_STATE: ActionResult = { success: false };
-
-export interface CategoryFormValues {
-  id: string;
-  name: string;
-  description?: string;
-  color?: string;
-}
-
 interface CategoryFormProps {
-  action: (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
-  initialValues?: CategoryFormValues;
-  submitLabel: string;
-  onSuccess?: () => void;
+  state: ActionResult;
+  formAction: (formData: FormData) => void;
+  repeating: boolean;
+  onRepeatingChange: (repeating: boolean) => void;
+  onCancel: () => void;
 }
 
-function SubmitButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button type="submit" className="flex-1" disabled={pending}>
-      {pending ? 'Salvando...' : label}
-    </Button>
-  );
-}
-
+/**
+ * Nenhum campo de categoria sobrevive a um "criar mais" — cada categoria é
+ * conceitualmente única (ver a tabela de retenção no spec), então o único
+ * trabalho extra aqui além de renderizar os campos é resetar o formulário e
+ * devolver o foco ao nome, para digitação rápida em sequência. O reset roda
+ * em um `useEffect` (após o commit), não durante o render — mesma convenção
+ * de `DialogForm` (ver seu comentário sobre efeitos pós-sucesso).
+ */
 export function CategoryForm({
-  action,
-  initialValues,
-  submitLabel,
-  onSuccess,
+  state,
+  formAction,
+  repeating,
+  onRepeatingChange,
+  onCancel,
 }: CategoryFormProps) {
-  const [state, formAction] = useActionState(action, INITIAL_STATE);
   const formRef = useRef<HTMLFormElement>(null);
-  const successCountRef = useRef(0);
+  const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (state.success) {
-      successCountRef.current += 1;
       formRef.current?.reset();
-      onSuccess?.();
+      nameRef.current?.focus();
     }
-    // onSuccess is intentionally excluded: it may be a fresh closure each
-    // render and we only want to react to a new successful submission.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Reage a toda mudança genuína de estado (um novo resultado de action é
+    // sempre uma nova referência de objeto), não apenas a uma transição para
+    // sucesso.
   }, [state]);
 
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
-      {initialValues?.id ? (
-        <input type="hidden" name="id" value={initialValues.id} />
-      ) : null}
-
       <div className="space-y-2">
         <label htmlFor="name" className="text-muted-foreground text-sm">
           Nome
@@ -69,8 +56,8 @@ export function CategoryForm({
         <Input
           id="name"
           name="name"
+          ref={nameRef}
           placeholder="Alimentação"
-          defaultValue={initialValues?.name}
           required
         />
       </div>
@@ -79,12 +66,7 @@ export function CategoryForm({
         <label htmlFor="description" className="text-muted-foreground text-sm">
           Descrição
         </label>
-        <Textarea
-          id="description"
-          name="description"
-          placeholder="Opcional"
-          defaultValue={initialValues?.description}
-        />
+        <Textarea id="description" name="description" placeholder="Opcional" />
       </div>
 
       <div className="space-y-2">
@@ -96,7 +78,7 @@ export function CategoryForm({
           name="color"
           type="color"
           className="h-11 w-20 cursor-pointer p-1"
-          defaultValue={initialValues?.color ?? '#64748b'}
+          defaultValue="#64748b"
         />
       </div>
 
@@ -108,7 +90,28 @@ export function CategoryForm({
         </Alert>
       ) : null}
 
-      <SubmitButton label={submitLabel} />
+      <DialogFooter className="items-center justify-between sm:justify-between">
+        <RepeatToggle
+          checked={repeating}
+          onChange={onRepeatingChange}
+          label="Criar mais uma categoria"
+        />
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <SubmitButton />
+        </div>
+      </DialogFooter>
     </form>
+  );
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" className="flex-1" disabled={pending}>
+      {pending ? 'Salvando...' : 'Criar categoria'}
+    </Button>
   );
 }
