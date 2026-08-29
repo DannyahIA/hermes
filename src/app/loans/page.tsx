@@ -1,16 +1,6 @@
-import Link from 'next/link';
-
+import { CreateLoanDialog } from '@/app/loans/create-loan-dialog';
 import { LoanCard } from '@/app/loans/loan-card';
-import { LoanForm } from '@/app/loans/loan-form';
 import { AppShell } from '@/components/layout/app-shell';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
@@ -75,23 +65,9 @@ export default async function LoansPage() {
               pagamento pelo sistema Price.
             </p>
           </div>
-        </section>
-
-        <section id="novo-emprestimo">
-          <Card className="border-border/70 bg-card/80 p-6">
-            <CardHeader className="p-0">
-              <CardTitle>Novo empréstimo</CardTitle>
-              <CardDescription>
-                Escolha as contas de recebimento e pagamento, o valor e a taxa
-                de juros mensal. Um empréstimo é como uma compra parcelada, mas
-                com juros aplicados a cada parcela — use a taxa mensal para
-                calcular automaticamente.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="mt-4 p-0">
-              <LoanForm accounts={accountOptions} />
-            </CardContent>
-          </Card>
+          {accountOptions.length > 0 ? (
+            <CreateLoanDialog accounts={accountOptions} />
+          ) : null}
         </section>
 
         <section className="grid gap-4">
@@ -101,11 +77,7 @@ export default async function LoansPage() {
               description="Crie seu primeiro empréstimo para acompanhar o cronograma de pagamento."
               action={
                 accountOptions.length > 0 ? (
-                  <Button asChild>
-                    <Link href="#novo-emprestimo">
-                      Criar primeiro empréstimo
-                    </Link>
-                  </Button>
+                  <CreateLoanDialog accounts={accountOptions} />
                 ) : undefined
               }
             />
