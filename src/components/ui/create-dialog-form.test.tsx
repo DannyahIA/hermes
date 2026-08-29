@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { CreateDialogForm } from '@/components/ui/create-dialog-form';
@@ -66,6 +72,18 @@ describe('CreateDialogForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Criar' }));
 
     await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+    // `state.success` becoming `true` and the resulting close-on-success
+    // effect both land via microtasks queued off the action's promise.
+    // Waiting only for `action` to have been called (as above) lets this
+    // assertion run *before* those microtasks flush, so it would pass even
+    // if the dialog were about to close — i.e. even with `closeOnSuccess`
+    // hardcoded to `true`, ignoring `repeating` entirely. Flushing a real
+    // macrotask (a `setTimeout`) inside `act` guarantees every microtask
+    // queued so far — including a would-be close — has already run before
+    // we assert the dialog is still open.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     expect(
       screen.getByRole('heading', { name: 'Nova categoria' }),
     ).toBeInTheDocument();
