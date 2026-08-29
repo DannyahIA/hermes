@@ -1,28 +1,73 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
-import {
-  type ActionResult,
-  transferMoneyAction,
-} from '@/app/transactions/actions';
+import { type ActionResult } from '@/app/transactions/actions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { RepeatToggle } from '@/components/ui/create-dialog-form';
+import { DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
 
-const INITIAL_STATE: ActionResult = { success: false };
-
 interface TransferFormProps {
   accounts: Array<{ id: string; name: string }>;
+  state: ActionResult;
+  formAction: (formData: FormData) => void;
+  repeating: boolean;
+  onRepeatingChange: (repeating: boolean) => void;
+  onCancel: () => void;
 }
 
-export function TransferForm({ accounts }: TransferFormProps) {
-  const [state, formAction] = useActionState(
-    transferMoneyAction,
-    INITIAL_STATE,
+export function TransferForm({
+  accounts,
+  state,
+  formAction,
+  repeating,
+  onRepeatingChange,
+  onCancel,
+}: TransferFormProps) {
+  const [fromAccountId, setFromAccountId] = useState(accounts[0]?.id ?? '');
+  const [toAccountId, setToAccountId] = useState(
+    accounts[1]?.id ?? accounts[0]?.id ?? '',
   );
+  const formRef = useRef<HTMLFormElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const fromSelectRef = useRef<HTMLSelectElement>(null);
+  const toSelectRef = useRef<HTMLSelectElement>(null);
+  // Mantém os últimos valores conhecidos dos selects fora do ciclo de
+  // render, sem entrar nas deps do efeito abaixo — atualizados em todo
+  // render (sem array de deps), então já estão em dia antes do commit que
+  // dispara o efeito de sucesso.
+  const latestFromRef = useRef(fromAccountId);
+  const latestToRef = useRef(toAccountId);
+  useEffect(() => {
+    latestFromRef.current = fromAccountId;
+    latestToRef.current = toAccountId;
+  });
+
+  useEffect(() => {
+    if (state.success) {
+      // As contas são controladas de propósito e devem sobreviver ao "criar
+      // mais" (ver tabela de retenção no spec). React reseta os campos
+      // nativamente ao concluir uma form action com sucesso, o que devolveria
+      // os <select> controlados à primeira opção — por isso os valores são
+      // reaplicados a partir do estado do React (não do DOM, que a essa
+      // altura já pode estar corrompido pelo reset nativo).
+      formRef.current?.reset();
+      if (fromSelectRef.current) {
+        fromSelectRef.current.value = latestFromRef.current;
+      }
+      if (toSelectRef.current) {
+        toSelectRef.current.value = latestToRef.current;
+      }
+      amountRef.current?.focus();
+    }
+    // Reage a toda mudança genuína de estado (um novo resultado de action é
+    // sempre uma nova referência de objeto), não apenas a uma transição para
+    // sucesso.
+  }, [state]);
 
   if (accounts.length < 2) {
     return (
@@ -34,7 +79,7 @@ export function TransferForm({ accounts }: TransferFormProps) {
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} className="space-y-4">
       {state.error && (
         <Alert variant="error">
           <AlertDescription>{state.error}</AlertDescription>
@@ -49,8 +94,11 @@ export function TransferForm({ accounts }: TransferFormProps) {
           <select
             id="fromAccountId"
             name="fromAccountId"
+            ref={fromSelectRef}
             required
             className={FIELD_BASE_CLASSES}
+            value={fromAccountId}
+            onChange={(event) => setFromAccountId(event.target.value)}
           >
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
@@ -66,8 +114,11 @@ export function TransferForm({ accounts }: TransferFormProps) {
           <select
             id="toAccountId"
             name="toAccountId"
+            ref={toSelectRef}
             required
             className={FIELD_BASE_CLASSES}
+            value={toAccountId}
+            onChange={(event) => setToAccountId(event.target.value)}
           >
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
@@ -85,6 +136,7 @@ export function TransferForm({ accounts }: TransferFormProps) {
         <Input
           id="transferAmount"
           name="amount"
+          ref={amountRef}
           type="number"
           step="0.01"
           min="0.01"
@@ -104,7 +156,19 @@ export function TransferForm({ accounts }: TransferFormProps) {
         />
       </div>
 
-      <SubmitButton />
+      <DialogFooter className="items-center justify-between sm:justify-between">
+        <RepeatToggle
+          checked={repeating}
+          onChange={onRepeatingChange}
+          label="Criar mais uma transferência"
+        />
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <SubmitButton />
+        </div>
+      </DialogFooter>
     </form>
   );
 }
@@ -112,7 +176,7 @@ export function TransferForm({ accounts }: TransferFormProps) {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button className="w-full" type="submit" disabled={pending}>
+    <Button type="submit" disabled={pending}>
       {pending ? 'Transferindo…' : 'Transferir'}
     </Button>
   );
