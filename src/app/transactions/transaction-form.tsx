@@ -1,25 +1,26 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
-import {
-  type ActionResult,
-  createInstallmentAction,
-  createTransactionAction,
-} from '@/app/transactions/actions';
+import { type ActionResult } from '@/app/transactions/actions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { RepeatToggle } from '@/components/ui/create-dialog-form';
+import { DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { TRANSACTION_TYPE_LABELS } from '@/config/constants';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
 import { formatCurrency } from '@/shared/lib/format-currency';
 
-const INITIAL_STATE: ActionResult = { success: false };
-
 interface TransactionFormProps {
   accounts: Array<{ id: string; name: string }>;
   categories: Array<{ id: string; name: string }>;
+  state: ActionResult;
+  formAction: (formData: FormData) => void;
+  repeating: boolean;
+  onRepeatingChange: (repeating: boolean) => void;
+  onCancel: () => void;
 }
 
 function today(): string {
@@ -29,8 +30,16 @@ function today(): string {
 export function TransactionForm({
   accounts,
   categories,
+  state,
+  formAction,
+  repeating,
+  onRepeatingChange,
+  onCancel,
 }: TransactionFormProps) {
   const [type, setType] = useState<'expense' | 'income'>('expense');
+  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
+  const [categoryId, setCategoryId] = useState('');
+  const [occurredAt, setOccurredAt] = useState(today());
   const [installments, setInstallments] = useState(false);
   const [amountMode, setAmountMode] = useState<'total' | 'installment'>(
     'total',
@@ -38,34 +47,80 @@ export function TransactionForm({
   const [amountValue, setAmountValue] = useState('');
   const [installmentCountValue, setInstallmentCountValue] = useState(2);
 
-  // Parceling only makes sense for an expense — switch the form's action
-  // (and therefore which use-case runs) instead of branching inside one
-  // action, keeping each server action's job single-purpose.
-  const action =
-    installments && type === 'expense'
-      ? createInstallmentAction
-      : createTransactionAction;
-  const [state, formAction] = useActionState(action, INITIAL_STATE);
+  const formRef = useRef<HTMLFormElement>(null);
+  const descriptionRef = useRef<HTMLInputElement>(null);
+  const typeSelectRef = useRef<HTMLSelectElement>(null);
+  const accountSelectRef = useRef<HTMLSelectElement>(null);
+  const categorySelectRef = useRef<HTMLSelectElement>(null);
+  const occurredAtRef = useRef<HTMLInputElement>(null);
 
-  // Making `amount`/`installmentCount` controlled inputs defeats React 19's
-  // automatic reset of *uncontrolled* fields after a successful submit —
-  // reset them manually. This is React's "adjusting state during render"
-  // pattern (setState during render, guarded by a ref-of-previous-state
-  // comparison) rather than an effect, so it happens before paint and
-  // reacts to every genuine state change (a fresh action result is always a
-  // new object reference) — not just a transition into `success`, so a
-  // second successful submit in a row still resets.
-  const [handledState, setHandledState] = useState(state);
-  if (state !== handledState) {
-    setHandledState(state);
+  // Mantém os últimos valores conhecidos dos campos retidos (tipo, conta,
+  // categoria, data) fora do ciclo de render, sem entrar nas deps do efeito
+  // abaixo — atualizados em todo render (sem array de deps), então já estão
+  // em dia antes do commit que dispara o efeito de sucesso.
+  const latestTypeRef = useRef(type);
+  const latestAccountIdRef = useRef(accountId);
+  const latestCategoryIdRef = useRef(categoryId);
+  const latestOccurredAtRef = useRef(occurredAt);
+  useEffect(() => {
+    latestTypeRef.current = type;
+    latestAccountIdRef.current = accountId;
+    latestCategoryIdRef.current = categoryId;
+    latestOccurredAtRef.current = occurredAt;
+  });
+
+  // Campos controlados que são sempre limpos (descrição fica de fora — é
+  // uncontrolled, o reset nativo do form já cuida dela) são resetados
+  // ajustando o state durante a renderização (padrão oficialmente suportado
+  // pelo React para reagir a uma prop que mudou sem um efeito extra),
+  // comparando com o `state` do render anterior. As mutações de DOM (reset
+  // do form, restaurar os selects controlados, focar a descrição) não podem
+  // entrar neste mesmo bloco — a lint deste repo proíbe escrever em `.current`
+  // de um ref durante a renderização — por isso ficam num `useEffect`
+  // separado, logo abaixo.
+  const [lastHandledState, setLastHandledState] = useState(state);
+  if (state !== lastHandledState) {
+    setLastHandledState(state);
     if (state.success) {
       setAmountValue('');
+      setInstallments(false);
+      setAmountMode('total');
       setInstallmentCountValue(2);
     }
   }
 
+  useEffect(() => {
+    if (state.success) {
+      // tipo/conta/categoria/data são controlados de propósito e devem
+      // sobreviver ao "criar mais" (ver tabela de retenção no spec). React
+      // reseta os campos nativamente ao concluir uma form action com
+      // sucesso, o que devolveria esses campos controlados ao seu valor
+      // inicial no DOM — por isso os valores são reaplicados a partir do
+      // estado do React (não do DOM, que a essa altura já pode estar
+      // corrompido pelo reset nativo). O resto (descrição, valor,
+      // parcelamento) é sempre limpo.
+      formRef.current?.reset();
+      if (typeSelectRef.current) {
+        typeSelectRef.current.value = latestTypeRef.current;
+      }
+      if (accountSelectRef.current) {
+        accountSelectRef.current.value = latestAccountIdRef.current;
+      }
+      if (categorySelectRef.current) {
+        categorySelectRef.current.value = latestCategoryIdRef.current;
+      }
+      if (occurredAtRef.current) {
+        occurredAtRef.current.value = latestOccurredAtRef.current;
+      }
+      descriptionRef.current?.focus();
+    }
+    // Reage a toda mudança genuína de estado (um novo resultado de action é
+    // sempre uma nova referência de objeto), não apenas a uma transição para
+    // sucesso.
+  }, [state]);
+
   return (
-    <form action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} className="space-y-4">
       {state.error && (
         <Alert variant="error">
           <AlertDescription>{state.error}</AlertDescription>
@@ -80,6 +135,7 @@ export function TransactionForm({
           <select
             id="type"
             name="type"
+            ref={typeSelectRef}
             required
             className={FIELD_BASE_CLASSES}
             value={type}
@@ -139,6 +195,11 @@ export function TransactionForm({
           {installments && type === 'expense' && (
             <input type="hidden" name="amountMode" value={amountMode} />
           )}
+          <input
+            type="hidden"
+            name="installments"
+            value={String(installments && type === 'expense')}
+          />
         </div>
       </div>
 
@@ -149,6 +210,7 @@ export function TransactionForm({
         <Input
           id="description"
           name="description"
+          ref={descriptionRef}
           required
           placeholder="Supermercado"
         />
@@ -162,8 +224,11 @@ export function TransactionForm({
           <select
             id="accountId"
             name="accountId"
+            ref={accountSelectRef}
             required
             className={FIELD_BASE_CLASSES}
+            value={accountId}
+            onChange={(event) => setAccountId(event.target.value)}
           >
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
@@ -179,7 +244,10 @@ export function TransactionForm({
           <select
             id="categoryId"
             name="categoryId"
+            ref={categorySelectRef}
             className={FIELD_BASE_CLASSES}
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
           >
             <option value="">Sem categoria</option>
             {categories.map((category) => (
@@ -198,8 +266,10 @@ export function TransactionForm({
         <Input
           id="occurredAt"
           name="occurredAt"
+          ref={occurredAtRef}
           type="date"
-          defaultValue={today()}
+          value={occurredAt}
+          onChange={(event) => setOccurredAt(event.target.value)}
           required
         />
       </div>
@@ -238,7 +308,19 @@ export function TransactionForm({
         </div>
       )}
 
-      <SubmitButton installments={installments && type === 'expense'} />
+      <DialogFooter className="items-center justify-between sm:justify-between">
+        <RepeatToggle
+          checked={repeating}
+          onChange={onRepeatingChange}
+          label="Criar mais uma transação"
+        />
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <SubmitButton installments={installments && type === 'expense'} />
+        </div>
+      </DialogFooter>
     </form>
   );
 }
@@ -246,7 +328,7 @@ export function TransactionForm({
 function SubmitButton({ installments }: { installments: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button className="w-full" type="submit" disabled={pending}>
+    <Button type="submit" disabled={pending}>
       {pending
         ? 'Salvando…'
         : installments

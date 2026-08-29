@@ -581,6 +581,22 @@ export async function confirmImportAction(
   }
 }
 
+/**
+ * `TransactionForm` decide, client-side, entre um lançamento simples e um
+ * parcelado — mas agora só existe um `action` fixo por dialog (ver
+ * `CreateDialogForm`), então essa escolha vira um campo oculto no próprio
+ * FormData em vez de uma troca de função no cliente.
+ */
+export async function createTransactionOrInstallmentAction(
+  prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  if (formData.get('installments') === 'true') {
+    return createInstallmentAction(prev, formData);
+  }
+  return createTransactionAction(prev, formData);
+}
+
 export async function transferMoneyAction(
   _prev: ActionResult,
   formData: FormData,
