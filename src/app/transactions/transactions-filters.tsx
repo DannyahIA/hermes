@@ -91,7 +91,15 @@ export function TransactionsFilters({
 
       <form
         ref={formRef}
-        className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6"
+        // `auto-fit`/`minmax` instead of viewport-breakpoint column counts
+        // (e.g. `lg:grid-cols-6`): this form shares its row with a fixed
+        // 360px sidebar (transactions/page.tsx's `lg:grid-cols-[1fr_360px]`),
+        // so its *available* width is much narrower than the viewport would
+        // suggest — a breakpoint tied to viewport width forced 6 columns
+        // into that narrow space regardless, squeezing every field down to
+        // an unreadable sliver. Sizing off the real container width instead
+        // wraps fields onto as many rows as they actually need.
+        className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3"
         method="get"
       >
         <select
