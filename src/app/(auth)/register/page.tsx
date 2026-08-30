@@ -10,6 +10,8 @@ import { RegisterForm } from './register-form';
 export default function RegisterPage() {
   return (
     <AuthCard
+      code="F.02"
+      eyebrow="Hermes · Cadastro"
       title="Crie sua conta"
       description="Comece a organizar suas finanças com o Hermes."
     >

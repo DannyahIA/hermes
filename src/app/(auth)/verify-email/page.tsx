@@ -25,6 +25,8 @@ export default async function VerifyEmailPage({
 
   return (
     <AuthCard
+      code="F.04"
+      eyebrow="Hermes · Verificação"
       title="Confirme seu e-mail"
       description="Enviamos um link de verificação para o seu e-mail."
     >

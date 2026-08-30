@@ -16,6 +16,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <AuthCard
+      code="F.01"
+      eyebrow="Hermes · Acesso"
       title="Bem-vindo(a) de volta"
       description="Entre para acessar sua central financeira."
     >

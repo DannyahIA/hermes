@@ -13,21 +13,23 @@ export default async function AuthLayout({
 
   return (
     <div className="bg-background min-h-screen">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <Link
-          href={ROUTES.home}
-          className="text-lg font-semibold tracking-tight"
-        >
-          {APP_NAME}
-        </Link>
-        {session && (
+      <header className="border-border border-b">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
           <Link
-            href={ROUTES.dashboard}
-            className="text-muted-foreground hover:text-foreground text-sm"
+            href={ROUTES.home}
+            className="font-display text-lg font-semibold tracking-tight"
           >
-            Continuar para o dashboard
+            {APP_NAME}
           </Link>
-        )}
+          {session && (
+            <Link
+              href={ROUTES.dashboard}
+              className="text-muted-foreground hover:text-foreground text-sm"
+            >
+              Continuar para o dashboard
+            </Link>
+          )}
+        </div>
       </header>
       <main>{children}</main>
     </div>
