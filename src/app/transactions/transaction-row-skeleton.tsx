@@ -1,4 +1,7 @@
-import { TRANSACTION_ROW_GRID_TEMPLATE } from '@/app/transactions/transaction-row';
+import {
+  TRANSACTION_ROW_GRID_TEMPLATE,
+  TRANSACTION_ROW_MIN_WIDTH,
+} from '@/app/transactions/transaction-row';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /** Desktop grid row shape — same columns (and shared grid template) as
@@ -8,7 +11,10 @@ export function TransactionRowSkeleton() {
     <div
       role="row"
       className="border-border/70 grid items-center border-b last:border-0"
-      style={{ gridTemplateColumns: TRANSACTION_ROW_GRID_TEMPLATE }}
+      style={{
+        gridTemplateColumns: TRANSACTION_ROW_GRID_TEMPLATE,
+        minWidth: TRANSACTION_ROW_MIN_WIDTH,
+      }}
     >
       <div role="cell" className="px-4 py-3">
         <Skeleton className="h-4 w-20" />

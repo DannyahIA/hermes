@@ -5,6 +5,7 @@ import { useMemo, useRef } from 'react';
 
 import {
   TRANSACTION_ROW_GRID_TEMPLATE,
+  TRANSACTION_ROW_MIN_WIDTH,
   TransactionRow,
 } from '@/app/transactions/transaction-row';
 import { TransactionRowMobile } from '@/app/transactions/transaction-row-mobile';
@@ -107,43 +108,48 @@ export function TransactionList({
 
   return (
     <div role="table" aria-label="Transações">
-      {/* Desktop column header — rendered once, outside the virtualized
-          scroll area, so it's always visible and shares the exact same
-          column widths (TRANSACTION_ROW_GRID_TEMPLATE) as every row below
-          it. Not a virtualized item: a real header. */}
-      <div
-        role="row"
-        className="text-muted-foreground border-border/70 hidden border-b text-xs font-semibold tracking-wide uppercase sm:grid"
-        style={{ gridTemplateColumns: TRANSACTION_ROW_GRID_TEMPLATE }}
-      >
-        <div role="columnheader" className="px-4 py-2">
-          Data
-        </div>
-        <div role="columnheader" className="px-4 py-2">
-          Descrição
-        </div>
-        <div role="columnheader" className="px-4 py-2">
-          Conta
-        </div>
-        <div role="columnheader" className="px-4 py-2">
-          Categoria
-        </div>
-        <div role="columnheader" className="px-4 py-2">
-          Tipo
-        </div>
-        <div role="columnheader" className="px-4 py-2 text-right">
-          Valor
-        </div>
-        <div role="columnheader" className="px-4 py-2">
-          <span className="sr-only">Ações</span>
-        </div>
-      </div>
-
       <div
         ref={parentRef}
         className="max-h-[75vh] overflow-x-auto overflow-y-auto"
         role="rowgroup"
       >
+        {/* Desktop column header — lives inside the same horizontally
+            scrolling container as the rows (not outside it) so it tracks
+            their columns when TRANSACTION_ROW_MIN_WIDTH forces a
+            horizontal scroll; `sticky top-0` (the same device the group
+            headers below use) is what keeps it pinned through *vertical*
+            scrolling instead. */}
+        <div
+          role="row"
+          className="bg-background/95 text-muted-foreground border-border/70 sticky top-0 z-20 hidden border-b text-xs font-semibold tracking-wide uppercase backdrop-blur sm:grid"
+          style={{
+            gridTemplateColumns: TRANSACTION_ROW_GRID_TEMPLATE,
+            minWidth: TRANSACTION_ROW_MIN_WIDTH,
+          }}
+        >
+          <div role="columnheader" className="px-4 py-2">
+            Data
+          </div>
+          <div role="columnheader" className="px-4 py-2">
+            Descrição
+          </div>
+          <div role="columnheader" className="px-4 py-2">
+            Conta
+          </div>
+          <div role="columnheader" className="px-4 py-2">
+            Categoria
+          </div>
+          <div role="columnheader" className="px-4 py-2">
+            Tipo
+          </div>
+          <div role="columnheader" className="px-4 py-2 text-right">
+            Valor
+          </div>
+          <div role="columnheader" className="px-4 py-2">
+            <span className="sr-only">Ações</span>
+          </div>
+        </div>
+
         <div
           style={{
             height: virtualizer.getTotalSize(),
