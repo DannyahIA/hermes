@@ -15,6 +15,10 @@ import {
 import { sumByType } from '@/shared/lib/sum-by-type';
 
 import {
+  type AccountSeries,
+  calculateAccountSeries,
+} from './metrics/calculate-account-series';
+import {
   calculateCategoryComparison,
   type CategoryComparison,
 } from './metrics/calculate-category-comparison';
@@ -27,10 +31,17 @@ import {
   netWorthFetchRange,
   type NetWorthPoint,
 } from './metrics/calculate-net-worth-by-month';
+import type { PeriodComparison } from './metrics/calculate-period-comparison';
 import {
   calculateRecurringExpenseShare,
   type RecurringExpenseShare,
 } from './metrics/calculate-recurring-expense-share';
+import { calculateSameMonthLastYear } from './metrics/calculate-same-month-last-year';
+import {
+  calculateTrendStats,
+  type CategoryTrendStats,
+} from './metrics/calculate-trend-stats';
+import { calculateYearOverYear } from './metrics/calculate-year-over-year';
 
 export interface ReportPeriod {
   from: Date;
@@ -46,6 +57,12 @@ export interface FinancialReport {
   budgetsOverview: BudgetProgress[];
   categoryComparison: CategoryComparison[];
   recurringExpenseShare: RecurringExpenseShare;
+  accountSeries: AccountSeries[];
+  /** Anchored to "now", not the selected period — see spec §3.5. */
+  yearOverYear: PeriodComparison;
+  /** Anchored to "now", not the selected period — see spec §3.5. */
+  sameMonthLastYear: PeriodComparison;
+  trendStats: CategoryTrendStats[];
 }
 
 /**
@@ -68,16 +85,24 @@ export class GetFinancialReportUseCase {
     private readonly recurringTransactionRepository: RecurringTransactionRepository,
   ) {}
 
+  /**
+   * `now` is injectable so the "anchored to today" metrics (year-over-year,
+   * same-month-last-year, and the net-worth/account walk-backs) all share one
+   * instant instead of each calling `new Date()` microseconds apart — and so
+   * tests can pin it rather than depending on the wall clock.
+   */
   async execute(
     userId: string,
     period: ReportPeriod,
+    now: Date = new Date(),
   ): Promise<FinancialReport> {
     const periodDurationMs = period.to.getTime() - period.from.getTime();
     const previousPeriod: ReportPeriod = {
       from: new Date(period.from.getTime() - periodDurationMs - 1),
       to: new Date(period.from.getTime() - 1),
     };
-    const netWorthRange = netWorthFetchRange(period);
+    const netWorthRange = netWorthFetchRange(period, now);
+    const yoyWindowStart = new Date(now.getFullYear() - 1, 0, 1);
 
     const [
       accounts,
@@ -87,6 +112,7 @@ export class GetFinancialReportUseCase {
       budgetsOverview,
       recurringRules,
       netWorthTransactions,
+      yoyTransactions,
     ] = await Promise.all([
       this.accountRepository.findByUserId(userId),
       this.transactionRepository.findByUserId(userId, {
@@ -110,6 +136,14 @@ export class GetFinancialReportUseCase {
         to: netWorthRange.to,
         pageSize: 10000,
       }),
+      // Anchored to "now", independent of the selected period: covers both
+      // this year-to-date and the equivalent window a year back, which is
+      // what yearOverYear and sameMonthLastYear each slice up themselves.
+      this.transactionRepository.findByUserId(userId, {
+        from: yoyWindowStart,
+        to: now,
+        pageSize: 10000,
+      }),
     ]);
 
     const totalIncome = sumByType(transactionsInPeriod, 'income');
@@ -130,6 +164,7 @@ export class GetFinancialReportUseCase {
       accounts,
       netWorthTransactions,
       period,
+      now,
     );
 
     const categoryComparison = calculateCategoryComparison(
@@ -144,6 +179,28 @@ export class GetFinancialReportUseCase {
       period,
     );
 
+    const accountSeries = calculateAccountSeries(
+      accounts,
+      netWorthTransactions,
+      period,
+      now,
+    );
+    const yearOverYear = calculateYearOverYear(
+      yoyTransactions,
+      categories,
+      now,
+    );
+    const sameMonthLastYear = calculateSameMonthLastYear(
+      yoyTransactions,
+      categories,
+      now,
+    );
+    const trendStats = calculateTrendStats(
+      transactionsInPeriod,
+      categories,
+      period,
+    );
+
     return {
       totalIncome,
       totalExpense,
@@ -153,6 +210,10 @@ export class GetFinancialReportUseCase {
       budgetsOverview,
       categoryComparison,
       recurringExpenseShare,
+      accountSeries,
+      yearOverYear,
+      sameMonthLastYear,
+      trendStats,
     };
   }
 }

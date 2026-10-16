@@ -604,3 +604,69 @@ describe('GetFinancialReportUseCase — recurring expense share', () => {
     expect(report.recurringExpenseShare.percentage).toBeNull();
   });
 });
+
+describe('GetFinancialReportUseCase — new metrics', () => {
+  it('includes accountSeries, yearOverYear, sameMonthLastYear and trendStats in the report', async () => {
+    const { useCase, accountRepository, transactionRepository } =
+      await buildUseCase();
+    const now = new Date('2026-08-20T00:00:00');
+    await accountRepository.save(makeAccount({ balance: 1000 }));
+    await transactionRepository.save(
+      makeTransaction({
+        id: 'tx-1',
+        type: 'expense',
+        amount: 50,
+        occurredAt: new Date('2026-08-05T00:00:00'),
+      }),
+    );
+
+    const report = await useCase.execute(
+      USER_ID,
+      {
+        from: new Date('2026-08-01T00:00:00'),
+        to: new Date('2026-08-31T23:59:59'),
+      },
+      now,
+    );
+
+    expect(report.accountSeries).toHaveLength(1);
+    expect(report.accountSeries[0].accountId).toBe('acc-1');
+
+    // yearOverYear/sameMonthLastYear both cover Jan 1(or Aug 1) 2026 through `now` for
+    // "current" and the equivalent 2025 window for "previous" — the one expense (no
+    // category -> 'uncategorized') falls inside "current" and has no 2025 counterpart,
+    // so previousTotal is 0 and deltaPercent is null, not NaN:
+    expect(report.yearOverYear.expense).toMatchObject({
+      currentTotal: 50,
+      previousTotal: 0,
+      deltaPercent: null,
+    });
+    expect(report.yearOverYear.byCategory).toEqual([
+      {
+        categoryId: 'uncategorized',
+        categoryName: 'Sem categoria',
+        currentTotal: 50,
+        previousTotal: 0,
+        deltaPercent: null,
+      },
+    ]);
+    expect(report.sameMonthLastYear.expense).toMatchObject({
+      currentTotal: 50,
+      previousTotal: 0,
+      deltaPercent: null,
+    });
+
+    // calculateTrendStats always returns one entry per category it saw spending for,
+    // even with too little data to classify a trend — it marks that case 'insuficiente'
+    // rather than omitting the category, so this 1-month-only category still shows up:
+    expect(report.trendStats).toEqual([
+      {
+        categoryId: 'uncategorized',
+        categoryName: 'Sem categoria',
+        average: 50,
+        median: 50,
+        trend: 'insuficiente',
+      },
+    ]);
+  });
+});
