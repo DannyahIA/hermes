@@ -132,7 +132,7 @@ function tx(type: Transaction['type'], amount: number) {
     description: 'x',
     amount,
     type,
-    occurredAt: new Date('2026-01-01'),
+    occurredAt: new Date('2026-01-01T00:00:00'),
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -315,7 +315,7 @@ function tx(overrides: Partial<Parameters<typeof Transaction>[0]> = {}) {
     description: 'x',
     amount: 100,
     type: 'expense',
-    occurredAt: new Date('2026-08-01'),
+    occurredAt: new Date('2026-08-01T00:00:00'),
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -468,7 +468,7 @@ function tx(id: string, categoryId: string, amount: number) {
     categoryId,
     amount,
     type: 'expense',
-    occurredAt: new Date('2026-07-01'),
+    occurredAt: new Date('2026-07-01T00:00:00'),
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -653,7 +653,7 @@ function rule(
     type: overrides.type ?? 'expense',
     dayRuleKind: 'fixed_day',
     dayRuleDay: 5,
-    startDate: new Date('2026-01-01'),
+    startDate: new Date('2026-01-01T00:00:00'),
     active: overrides.active ?? true,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -804,8 +804,8 @@ function account(
     currency: 'BRL',
     archived: false,
     hidden: overrides.hidden ?? false,
-    createdAt: new Date('2026-01-01'),
-    updatedAt: new Date('2026-01-01'),
+    createdAt: new Date('2026-01-01T00:00:00'),
+    updatedAt: new Date('2026-01-01T00:00:00'),
   });
 }
 
@@ -824,7 +824,7 @@ function tx(
     description: 'x',
     amount: overrides.amount ?? 100,
     type: overrides.type ?? 'expense',
-    occurredAt: overrides.occurredAt ?? new Date('2026-08-10'),
+    occurredAt: overrides.occurredAt ?? new Date('2026-08-10T00:00:00'),
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -838,25 +838,28 @@ describe('calculateNetWorthByMonth', () => {
         id: 't1',
         type: 'income',
         amount: 300,
-        occurredAt: new Date('2026-08-10'),
+        occurredAt: new Date('2026-08-10T00:00:00'),
       }),
       tx({
         id: 't2',
         type: 'expense',
         amount: 100,
-        occurredAt: new Date('2026-08-15'),
+        occurredAt: new Date('2026-08-15T00:00:00'),
       }),
       tx({
         id: 't3',
         type: 'transfer',
         amount: 500,
-        occurredAt: new Date('2026-08-20'),
+        occurredAt: new Date('2026-08-20T00:00:00'),
       }),
     ];
     const points = calculateNetWorthByMonth(
       [account({ balance: 1000 })],
       transactions,
-      { from: new Date('2026-07-01'), to: new Date('2026-08-20') },
+      {
+        from: new Date('2026-07-01T00:00:00'),
+        to: new Date('2026-08-20T00:00:00'),
+      },
       now,
     );
     expect(points).toHaveLength(2);
@@ -873,10 +876,13 @@ describe('calculateNetWorthByMonth', () => {
           accountId: 'card-1',
           type: 'expense',
           amount: 300,
-          occurredAt: new Date('2026-08-05'),
+          occurredAt: new Date('2026-08-05T00:00:00'),
         }),
       ],
-      { from: new Date('2026-07-01'), to: new Date('2026-08-31') },
+      {
+        from: new Date('2026-07-01T00:00:00'),
+        to: new Date('2026-08-31T00:00:00'),
+      },
       now,
     );
     expect(points[0]).toMatchObject({ netWorth: 0 });
@@ -891,7 +897,10 @@ describe('calculateNetWorthByMonth', () => {
         account({ id: 'hidden', balance: 5000, hidden: true }),
       ],
       [],
-      { from: new Date('2026-08-01'), to: new Date('2026-08-31') },
+      {
+        from: new Date('2026-08-01T00:00:00'),
+        to: new Date('2026-08-31T00:00:00'),
+      },
       now,
     );
     expect(points[0]?.netWorth).toBe(100);
@@ -902,7 +911,10 @@ describe('netWorthFetchRange', () => {
   it('starts at the first day of the period.from month and ends at min(period.to, now)', () => {
     const now = new Date('2026-08-20T00:00:00');
     const range = netWorthFetchRange(
-      { from: new Date('2026-07-15'), to: new Date('2026-09-01') },
+      {
+        from: new Date('2026-07-15T00:00:00'),
+        to: new Date('2026-09-01T00:00:00'),
+      },
       now,
     );
     expect(range.from).toEqual(new Date(2026, 6, 1));
@@ -1289,7 +1301,7 @@ function tx(type: Transaction['type'], amount: number, categoryId?: string) {
     categoryId,
     amount,
     type,
-    occurredAt: new Date('2026-01-01'),
+    occurredAt: new Date('2026-01-01T00:00:00'),
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -1361,10 +1373,10 @@ describe('calculateYearOverYear', () => {
   it('compares Jan 1-to-now of this year against the same Jan 1-to-same-day window last year', () => {
     const now = new Date('2026-10-16T12:00:00');
     const transactions = [
-      tx('t1', 'income', 1000, new Date('2026-05-01')), // inside this year's window
-      tx('t2', 'income', 100, new Date('2026-11-01')), // after "now" -> excluded
-      tx('t3', 'income', 700, new Date('2025-05-01')), // inside last year's window
-      tx('t4', 'income', 50, new Date('2025-11-01')), // after last-year's cutoff day -> excluded
+      tx('t1', 'income', 1000, new Date('2026-05-01T00:00:00')), // inside this year's window
+      tx('t2', 'income', 100, new Date('2026-11-01T00:00:00')), // after "now" -> excluded
+      tx('t3', 'income', 700, new Date('2025-05-01T00:00:00')), // inside last year's window
+      tx('t4', 'income', 50, new Date('2025-11-01T00:00:00')), // after last-year's cutoff day -> excluded
     ];
     const result = calculateYearOverYear(transactions, [], now);
     expect(result.income.currentTotal).toBe(1000);
@@ -1374,7 +1386,7 @@ describe('calculateYearOverYear', () => {
   it('returns deltaPercent: null when there was no income last year', () => {
     const now = new Date('2026-10-16T12:00:00');
     const result = calculateYearOverYear(
-      [tx('t1', 'income', 500, new Date('2026-05-01'))],
+      [tx('t1', 'income', 500, new Date('2026-05-01T00:00:00'))],
       [],
       now,
     );
@@ -1413,10 +1425,10 @@ describe('calculateSameMonthLastYear', () => {
   it('compares the reference month against the same month number last year', () => {
     const reference = new Date('2026-10-16T12:00:00');
     const transactions = [
-      tx('t1', 'expense', 400, new Date('2026-10-05')), // October 2026
-      tx('t2', 'expense', 999, new Date('2026-09-05')), // different month -> excluded
-      tx('t3', 'expense', 250, new Date('2025-10-20')), // October 2025
-      tx('t4', 'expense', 10, new Date('2025-11-01')), // different month -> excluded
+      tx('t1', 'expense', 400, new Date('2026-10-05T00:00:00')), // October 2026
+      tx('t2', 'expense', 999, new Date('2026-09-05T00:00:00')), // different month -> excluded
+      tx('t3', 'expense', 250, new Date('2025-10-20T00:00:00')), // October 2025
+      tx('t4', 'expense', 10, new Date('2025-11-01T00:00:00')), // different month -> excluded
     ];
     const result = calculateSameMonthLastYear(transactions, [], reference);
     expect(result.expense.currentTotal).toBe(400);
@@ -1611,8 +1623,8 @@ function account(id: string, balance: number, hidden = false) {
     currency: 'BRL',
     archived: false,
     hidden,
-    createdAt: new Date('2026-01-01'),
-    updatedAt: new Date('2026-01-01'),
+    createdAt: new Date('2026-01-01T00:00:00'),
+    updatedAt: new Date('2026-01-01T00:00:00'),
   });
 }
 
@@ -1639,10 +1651,13 @@ describe('calculateAccountSeries', () => {
     const now = new Date('2026-08-20T00:00:00');
     const accounts = [account('acc-1', 1000), account('acc-2', 500)];
     const transactions = [
-      tx('acc-1', 'expense', 100, new Date('2026-08-10')),
-      tx('acc-2', 'income', 50, new Date('2026-08-10')),
+      tx('acc-1', 'expense', 100, new Date('2026-08-10T00:00:00')),
+      tx('acc-2', 'income', 50, new Date('2026-08-10T00:00:00')),
     ];
-    const period = { from: new Date('2026-07-01'), to: new Date('2026-08-20') };
+    const period = {
+      from: new Date('2026-07-01T00:00:00'),
+      to: new Date('2026-08-20T00:00:00'),
+    };
 
     const series = calculateAccountSeries(accounts, transactions, period, now);
 
@@ -1659,7 +1674,10 @@ describe('calculateAccountSeries', () => {
   it('excludes hidden accounts entirely, not just zeroing them', () => {
     const now = new Date('2026-08-20T00:00:00');
     const accounts = [account('visible', 100), account('hidden', 5000, true)];
-    const period = { from: new Date('2026-08-01'), to: new Date('2026-08-20') };
+    const period = {
+      from: new Date('2026-08-01T00:00:00'),
+      to: new Date('2026-08-20T00:00:00'),
+    };
 
     const series = calculateAccountSeries(accounts, [], period, now);
 
@@ -1779,11 +1797,14 @@ function tx(categoryId: string, amount: number, occurredAt: Date) {
 describe('calculateTrendStats', () => {
   it('computes average/median and a rising trend over a clearly increasing series', () => {
     const transactions = [
-      tx('cat-1', 100, new Date('2026-06-05')),
-      tx('cat-1', 200, new Date('2026-07-05')),
-      tx('cat-1', 300, new Date('2026-08-05')),
+      tx('cat-1', 100, new Date('2026-06-05T00:00:00')),
+      tx('cat-1', 200, new Date('2026-07-05T00:00:00')),
+      tx('cat-1', 300, new Date('2026-08-05T00:00:00')),
     ];
-    const period = { from: new Date('2026-06-01'), to: new Date('2026-08-31') };
+    const period = {
+      from: new Date('2026-06-01T00:00:00'),
+      to: new Date('2026-08-31T00:00:00'),
+    };
 
     const [stats] = calculateTrendStats(
       transactions,
@@ -1797,8 +1818,11 @@ describe('calculateTrendStats', () => {
   });
 
   it('returns "insuficiente" when fewer than 2 months have data', () => {
-    const transactions = [tx('cat-1', 100, new Date('2026-08-05'))];
-    const period = { from: new Date('2026-08-01'), to: new Date('2026-08-31') };
+    const transactions = [tx('cat-1', 100, new Date('2026-08-05T00:00:00'))];
+    const period = {
+      from: new Date('2026-08-01T00:00:00'),
+      to: new Date('2026-08-31T00:00:00'),
+    };
 
     const [stats] = calculateTrendStats(
       transactions,
@@ -1811,11 +1835,14 @@ describe('calculateTrendStats', () => {
 
   it('returns "estável" when spending barely changes month to month', () => {
     const transactions = [
-      tx('cat-1', 100, new Date('2026-06-05')),
-      tx('cat-1', 101, new Date('2026-07-05')),
-      tx('cat-1', 99, new Date('2026-08-05')),
+      tx('cat-1', 100, new Date('2026-06-05T00:00:00')),
+      tx('cat-1', 101, new Date('2026-07-05T00:00:00')),
+      tx('cat-1', 99, new Date('2026-08-05T00:00:00')),
     ];
-    const period = { from: new Date('2026-06-01'), to: new Date('2026-08-31') };
+    const period = {
+      from: new Date('2026-06-01T00:00:00'),
+      to: new Date('2026-08-31T00:00:00'),
+    };
 
     const [stats] = calculateTrendStats(
       transactions,
