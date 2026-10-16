@@ -16,15 +16,14 @@ import {
 } from '@/shared/lib/build-monthly-cash-flow';
 import { sumByType } from '@/shared/lib/sum-by-type';
 
+import {
+  calculateCategorySpending,
+  type CategorySpending,
+} from './metrics/calculate-category-spending';
+
 export interface SpendingReportPeriod {
   from: Date;
   to: Date;
-}
-
-export interface CategorySpending {
-  categoryId: string;
-  categoryName: string;
-  total: number;
 }
 
 export interface NetWorthPoint {
@@ -120,7 +119,7 @@ export class GetSpendingReportUseCase {
       transactionsInPeriod,
     );
 
-    const spendingByCategory = this.buildSpendingByCategory(
+    const spendingByCategory = calculateCategorySpending(
       transactionsInPeriod,
       categories,
     );
@@ -153,37 +152,6 @@ export class GetSpendingReportUseCase {
       categoryComparison,
       recurringExpenseShare,
     };
-  }
-
-  private buildSpendingByCategory(
-    transactions: Transaction[],
-    categories: Array<{ id: string; name: string }>,
-  ): CategorySpending[] {
-    const categoriesById = new Map(
-      categories.map((category) => [category.id, category]),
-    );
-    const totalsByCategory = new Map<string, number>();
-
-    for (const transaction of transactions) {
-      if (transaction.type !== 'expense') continue;
-
-      const key = transaction.categoryId ?? UNCATEGORIZED_KEY;
-      totalsByCategory.set(
-        key,
-        (totalsByCategory.get(key) ?? 0) + transaction.amount,
-      );
-    }
-
-    return [...totalsByCategory.entries()]
-      .map(([categoryId, total]) => ({
-        categoryId,
-        categoryName:
-          categoryId === UNCATEGORIZED_KEY
-            ? 'Sem categoria'
-            : (categoriesById.get(categoryId)?.name ?? 'Categoria removida'),
-        total,
-      }))
-      .sort((a, b) => b.total - a.total);
   }
 
   private buildCategoryComparison(
