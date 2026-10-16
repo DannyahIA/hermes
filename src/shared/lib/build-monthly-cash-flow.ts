@@ -1,4 +1,5 @@
 import type { Transaction } from '@/core/entities/transaction';
+import { sumByType } from '@/shared/lib/sum-by-type';
 
 export interface MonthlyCashFlow {
   month: Date;
@@ -37,13 +38,4 @@ export function buildMonthlyCashFlow(
   }
 
   return months;
-}
-
-function sumByType(
-  transactions: Transaction[],
-  type: Transaction['type'],
-): number {
-  return transactions
-    .filter((t) => t.type === type)
-    .reduce((sum, t) => sum + t.amount, 0);
 }

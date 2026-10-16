@@ -14,6 +14,7 @@ import {
   buildMonthlyCashFlow,
   type MonthlyCashFlow,
 } from '@/shared/lib/build-monthly-cash-flow';
+import { sumByType } from '@/shared/lib/sum-by-type';
 
 export interface SpendingReportPeriod {
   from: Date;
@@ -335,13 +336,4 @@ function isIncomeOrExpense(
   transaction: Transaction,
 ): transaction is Transaction & { type: 'income' | 'expense' } {
   return transaction.type === 'income' || transaction.type === 'expense';
-}
-
-function sumByType(
-  transactions: Transaction[],
-  type: Transaction['type'],
-): number {
-  return transactions
-    .filter((t) => t.type === type)
-    .reduce((sum, t) => sum + t.amount, 0);
 }
