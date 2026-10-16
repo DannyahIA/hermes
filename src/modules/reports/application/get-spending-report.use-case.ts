@@ -17,6 +17,10 @@ import {
 import { sumByType } from '@/shared/lib/sum-by-type';
 
 import {
+  calculateCategoryComparison,
+  type CategoryComparison,
+} from './metrics/calculate-category-comparison';
+import {
   calculateCategorySpending,
   type CategorySpending,
 } from './metrics/calculate-category-spending';
@@ -29,14 +33,6 @@ export interface SpendingReportPeriod {
 export interface NetWorthPoint {
   month: Date;
   netWorth: number;
-}
-
-export interface CategoryComparison {
-  categoryId: string;
-  categoryName: string;
-  currentTotal: number;
-  previousTotal: number;
-  deltaPercent: number | null;
 }
 
 export interface RecurringExpenseShare {
@@ -55,8 +51,6 @@ export interface SpendingReport {
   categoryComparison: CategoryComparison[];
   recurringExpenseShare: RecurringExpenseShare;
 }
-
-const UNCATEGORIZED_KEY = 'uncategorized';
 
 /**
  * A read-only aggregation over existing tables — answers "para onde foi meu
@@ -130,7 +124,7 @@ export class GetSpendingReportUseCase {
       period,
     );
 
-    const categoryComparison = this.buildCategoryComparison(
+    const categoryComparison = calculateCategoryComparison(
       transactionsInPeriod,
       previousPeriodTransactions,
       categories,
@@ -152,58 +146,6 @@ export class GetSpendingReportUseCase {
       categoryComparison,
       recurringExpenseShare,
     };
-  }
-
-  private buildCategoryComparison(
-    currentTransactions: Transaction[],
-    previousTransactions: Transaction[],
-    categories: Array<{ id: string; name: string }>,
-  ): CategoryComparison[] {
-    const currentByCategory = this.sumExpenseByCategory(currentTransactions);
-    const previousByCategory = this.sumExpenseByCategory(previousTransactions);
-    const categoriesById = new Map(
-      categories.map((category) => [category.id, category]),
-    );
-
-    const allCategoryIds = new Set([
-      ...currentByCategory.keys(),
-      ...previousByCategory.keys(),
-    ]);
-
-    return [...allCategoryIds]
-      .map((categoryId) => {
-        const currentTotal = currentByCategory.get(categoryId) ?? 0;
-        const previousTotal = previousByCategory.get(categoryId) ?? 0;
-        return {
-          categoryId,
-          categoryName:
-            categoryId === UNCATEGORIZED_KEY
-              ? 'Sem categoria'
-              : (categoriesById.get(categoryId)?.name ?? 'Categoria removida'),
-          currentTotal,
-          previousTotal,
-          deltaPercent:
-            previousTotal === 0
-              ? null
-              : ((currentTotal - previousTotal) / previousTotal) * 100,
-        };
-      })
-      .sort(
-        (a, b) =>
-          b.currentTotal - b.previousTotal - (a.currentTotal - a.previousTotal),
-      );
-  }
-
-  private sumExpenseByCategory(
-    transactions: Transaction[],
-  ): Map<string, number> {
-    const totals = new Map<string, number>();
-    for (const transaction of transactions) {
-      if (transaction.type !== 'expense') continue;
-      const key = transaction.categoryId ?? UNCATEGORIZED_KEY;
-      totals.set(key, (totals.get(key) ?? 0) + transaction.amount);
-    }
-    return totals;
   }
 
   private buildRecurringExpenseShare(
