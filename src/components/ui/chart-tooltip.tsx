@@ -10,12 +10,17 @@ import { formatCurrency } from '@/shared/lib/format-currency';
  * of Recharts' default white box. Values lead (semibold, high contrast) and
  * series names follow in muted ink — in a tooltip the reader already knows
  * which series they're pointing at and wants the number.
+ *
+ * Props are `Partial` because charts pass this as `content={<ChartTooltipContent />}`:
+ * Recharts injects `active`/`payload`/`label` by cloning the element at render
+ * time, so they are never supplied at the call site even though they always
+ * arrive before the body runs.
  */
 export function ChartTooltipContent({
   active,
   payload,
   label,
-}: TooltipContentProps<number, string>) {
+}: Partial<TooltipContentProps<number, string>>) {
   if (!active || !payload || payload.length === 0) return null;
 
   return (
