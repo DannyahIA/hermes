@@ -44,6 +44,22 @@
   --info: #3e7cb1;
   --info-foreground: #f4f7fa;
 
+  /*
+   * Categorical chart palette — identity only (which category/account is
+   * this?), never status. Validated against this project's own card surfaces
+   * with the dataviz validator: worst adjacent CVD ΔE 9.1 light / 8.4 dark,
+   * worst adjacent normal-vision ΔE 19.6 light / 19.3 dark. The slot ORDER is
+   * the colorblind-safety mechanism, not decoration — don't reorder, and
+   * never add a 7th: anything past slot 6 folds into "Outros" (see
+   * shared/constants/chart-colors.ts).
+   */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #4a3aa7;
+
   --border: #b8cedd;
   --input: #b8cedd;
   --ring: #e8a23d;
@@ -86,6 +102,15 @@
   --info: #6fb3d8;
   --info-foreground: #0b2038;
 
+  /* Same six hues, re-stepped for the dark surface — a selected dark
+     palette, not an automatic flip of the light one. */
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #9085e9;
+
   --border: #244567;
   --input: #244567;
   --ring: #e8a23d;
@@ -124,6 +149,13 @@
   --color-warning-strong: var(--warning-strong-text);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
 
   --color-border: var(--border);
   --color-input: var(--input);
