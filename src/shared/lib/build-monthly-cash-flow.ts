@@ -10,7 +10,7 @@ export interface MonthlyCashFlow {
 /**
  * Buckets transactions into calendar months from `start` through `end`
  * (inclusive), summing income and expense separately. Shared by
- * `GetDashboardSummaryUseCase` and `GetSpendingReportUseCase` so the two
+ * `GetDashboardSummaryUseCase` and `GetFinancialReportUseCase` so the two
  * never drift apart on what "cash flow by month" means.
  */
 export function buildMonthlyCashFlow(

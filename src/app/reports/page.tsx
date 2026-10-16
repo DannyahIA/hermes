@@ -16,7 +16,7 @@ import { DrizzleBudgetRepository } from '@/infra/repositories/drizzle-budget.rep
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
 import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
-import { GetSpendingReportUseCase } from '@/modules/reports/application/get-spending-report.use-case';
+import { GetFinancialReportUseCase } from '@/modules/reports/application/get-financial-report.use-case';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
 import { formatCurrency } from '@/shared/lib/format-currency';
 import { formatDate, formatMonthLabel } from '@/shared/lib/format-date';
@@ -53,7 +53,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     : defaults.from;
   const to = params.to ? new Date(`${params.to}T23:59:59.999`) : defaults.to;
 
-  const report = await new GetSpendingReportUseCase(
+  const report = await new GetFinancialReportUseCase(
     new DrizzleAccountRepository(),
     new DrizzleTransactionRepository(),
     new DrizzleBudgetRepository(),

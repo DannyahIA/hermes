@@ -32,12 +32,12 @@ import {
   type RecurringExpenseShare,
 } from './metrics/calculate-recurring-expense-share';
 
-export interface SpendingReportPeriod {
+export interface ReportPeriod {
   from: Date;
   to: Date;
 }
 
-export interface SpendingReport {
+export interface FinancialReport {
   totalIncome: number;
   totalExpense: number;
   cashFlowByMonth: MonthlyCashFlow[];
@@ -53,8 +53,13 @@ export interface SpendingReport {
  * dinheiro?" and "como minhas finanças evoluíram nesse período?" for an
  * arbitrary date range. Nothing here is stored; everything is derived at
  * read time from transactions/accounts/budgets, per domain.md.
+ *
+ * This class only orchestrates: it fetches each dataset once, then delegates
+ * every computation to a pure function in `./metrics/`, so each metric stays
+ * independently testable and reusable (see
+ * docs/superpowers/specs/2026-10-16-financial-reports-center-design.md).
  */
-export class GetSpendingReportUseCase {
+export class GetFinancialReportUseCase {
   constructor(
     private readonly accountRepository: AccountRepository,
     private readonly transactionRepository: TransactionRepository,
@@ -65,10 +70,10 @@ export class GetSpendingReportUseCase {
 
   async execute(
     userId: string,
-    period: SpendingReportPeriod,
-  ): Promise<SpendingReport> {
+    period: ReportPeriod,
+  ): Promise<FinancialReport> {
     const periodDurationMs = period.to.getTime() - period.from.getTime();
-    const previousPeriod: SpendingReportPeriod = {
+    const previousPeriod: ReportPeriod = {
       from: new Date(period.from.getTime() - periodDurationMs - 1),
       to: new Date(period.from.getTime() - 1),
     };

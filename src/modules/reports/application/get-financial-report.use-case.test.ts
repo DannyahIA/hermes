@@ -13,7 +13,7 @@ import { FakeCategoryRepository } from '@/tests/fakes/fake-category.repository';
 import { FakeRecurringTransactionRepository } from '@/tests/fakes/fake-recurring-transaction.repository';
 import { FakeTransactionRepository } from '@/tests/fakes/fake-transaction.repository';
 
-import { GetSpendingReportUseCase } from './get-spending-report.use-case';
+import { GetFinancialReportUseCase } from './get-financial-report.use-case';
 
 const USER_ID = 'user-1';
 
@@ -79,7 +79,7 @@ async function buildUseCase() {
   const recurringTransactionRepository =
     new FakeRecurringTransactionRepository();
 
-  const useCase = new GetSpendingReportUseCase(
+  const useCase = new GetFinancialReportUseCase(
     accountRepository,
     transactionRepository,
     budgetRepository,
@@ -97,7 +97,7 @@ async function buildUseCase() {
   };
 }
 
-describe('GetSpendingReportUseCase', () => {
+describe('GetFinancialReportUseCase', () => {
   it('sums income/expense and buckets cash flow by month', async () => {
     const { useCase, accountRepository, transactionRepository } =
       await buildUseCase();
@@ -320,7 +320,7 @@ describe('GetSpendingReportUseCase', () => {
   });
 });
 
-describe('GetSpendingReportUseCase — category comparison', () => {
+describe('GetFinancialReportUseCase — category comparison', () => {
   it('computes currentTotal/previousTotal/deltaPercent per category across two equal-length periods', async () => {
     const {
       useCase,
@@ -480,7 +480,7 @@ describe('GetSpendingReportUseCase — category comparison', () => {
   });
 });
 
-describe('GetSpendingReportUseCase — recurring expense share', () => {
+describe('GetFinancialReportUseCase — recurring expense share', () => {
   it('sums active recurring expense rules and divides by average monthly income', async () => {
     const {
       useCase,
