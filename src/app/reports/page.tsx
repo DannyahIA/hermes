@@ -17,24 +17,13 @@ import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category
 import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { GetFinancialReportUseCase } from '@/modules/reports/application/get-financial-report.use-case';
+import { defaultPeriod } from '@/modules/reports/default-period';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
 import { formatCurrency } from '@/shared/lib/format-currency';
 import { formatDate, formatMonthLabel } from '@/shared/lib/format-date';
 
-const DEFAULT_PERIOD_MONTHS = 6;
-
 interface ReportsPageProps {
   searchParams: Promise<{ from?: string; to?: string }>;
-}
-
-function defaultPeriod(): { from: Date; to: Date } {
-  const now = new Date();
-  const from = new Date(
-    now.getFullYear(),
-    now.getMonth() - (DEFAULT_PERIOD_MONTHS - 1),
-    1,
-  );
-  return { from, to: now };
 }
 
 /** Matches the `toISOString().slice(0, 10)` convention already used by the
