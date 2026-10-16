@@ -3,7 +3,6 @@ import type { BudgetRepository } from '@/core/contracts/budget-repository';
 import type { CategoryRepository } from '@/core/contracts/category-repository';
 import type { RecurringTransactionRepository } from '@/core/contracts/recurring-transaction-repository';
 import type { TransactionRepository } from '@/core/contracts/transaction-repository';
-import type { RecurringTransaction } from '@/core/entities/recurring-transaction';
 import {
   type BudgetProgress,
   GetBudgetProgressUseCase,
