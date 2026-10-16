@@ -24,6 +24,10 @@ import {
   calculateCategorySpending,
   type CategorySpending,
 } from './metrics/calculate-category-spending';
+import {
+  calculateRecurringExpenseShare,
+  type RecurringExpenseShare,
+} from './metrics/calculate-recurring-expense-share';
 
 export interface SpendingReportPeriod {
   from: Date;
@@ -33,12 +37,6 @@ export interface SpendingReportPeriod {
 export interface NetWorthPoint {
   month: Date;
   netWorth: number;
-}
-
-export interface RecurringExpenseShare {
-  monthlyRecurringExpense: number;
-  averageMonthlyIncome: number;
-  percentage: number | null;
 }
 
 export interface SpendingReport {
@@ -130,7 +128,7 @@ export class GetSpendingReportUseCase {
       categories,
     );
 
-    const recurringExpenseShare = this.buildRecurringExpenseShare(
+    const recurringExpenseShare = calculateRecurringExpenseShare(
       recurringRules,
       totalIncome,
       period,
@@ -145,32 +143,6 @@ export class GetSpendingReportUseCase {
       budgetsOverview,
       categoryComparison,
       recurringExpenseShare,
-    };
-  }
-
-  private buildRecurringExpenseShare(
-    recurringRules: RecurringTransaction[],
-    totalIncome: number,
-    period: SpendingReportPeriod,
-  ): RecurringExpenseShare {
-    const monthlyRecurringExpense = recurringRules
-      .filter((rule) => rule.active && rule.type === 'expense')
-      .reduce((sum, rule) => sum + rule.amount, 0);
-
-    const monthsInPeriod = Math.max(
-      0.25,
-      (period.to.getTime() - period.from.getTime()) /
-        (30 * 24 * 60 * 60 * 1000),
-    );
-    const averageMonthlyIncome = totalIncome / monthsInPeriod;
-
-    return {
-      monthlyRecurringExpense,
-      averageMonthlyIncome,
-      percentage:
-        averageMonthlyIncome === 0
-          ? null
-          : (monthlyRecurringExpense / averageMonthlyIncome) * 100,
     };
   }
 
