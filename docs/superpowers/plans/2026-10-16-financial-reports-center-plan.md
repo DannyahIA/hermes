@@ -72,7 +72,7 @@ describe('resolveCategoryName', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/modules/reports/application/metrics/category-key.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/category-key.test.ts`
 Expected: FAIL — `category-key.ts` does not exist yet.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -91,7 +91,7 @@ export function resolveCategoryName(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/modules/reports/application/metrics/category-key.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/category-key.test.ts`
 Expected: PASS (3 tests)
 
 - [ ] **Step 5: Commit**
@@ -157,7 +157,7 @@ describe('sumByType', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/shared/lib/sum-by-type.test.ts`
+Run: `pnpm vitest run src/shared/lib/sum-by-type.test.ts`
 Expected: FAIL — module does not exist.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -177,7 +177,7 @@ export function sumByType(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/shared/lib/sum-by-type.test.ts`
+Run: `pnpm vitest run src/shared/lib/sum-by-type.test.ts`
 Expected: PASS (2 tests)
 
 - [ ] **Step 5: Replace the two duplicated copies**
@@ -188,7 +188,7 @@ In `src/modules/reports/application/get-spending-report.use-case.ts`: delete the
 
 - [ ] **Step 6: Run the full existing report/cash-flow test suites to confirm no behavior changed**
 
-Run: `npx vitest run src/shared/lib src/modules/reports`
+Run: `pnpm vitest run src/shared/lib src/modules/reports`
 Expected: PASS — every pre-existing test still passes unchanged.
 
 - [ ] **Step 7: Commit**
@@ -244,7 +244,7 @@ describe('calculatePeriodDelta', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-period-delta.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-period-delta.test.ts`
 Expected: FAIL — module does not exist.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -273,7 +273,7 @@ export function calculatePeriodDelta(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-period-delta.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-period-delta.test.ts`
 Expected: PASS (3 tests)
 
 - [ ] **Step 5: Commit**
@@ -365,7 +365,7 @@ describe('calculateCategorySpending', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-category-spending.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-category-spending.test.ts`
 Expected: FAIL — module does not exist.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -409,7 +409,7 @@ export function calculateCategorySpending(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-category-spending.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-category-spending.test.ts`
 Expected: PASS (2 tests)
 
 - [ ] **Step 5: Wire into `GetSpendingReportUseCase`**
@@ -425,7 +425,7 @@ const spendingByCategory = calculateCategorySpending(
 
 - [ ] **Step 6: Run the existing report test suite to confirm no behavior changed**
 
-Run: `npx vitest run src/modules/reports/application/get-spending-report.use-case.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/get-spending-report.use-case.test.ts`
 Expected: PASS — all pre-existing tests, including "ranks spending by category...", unchanged.
 
 - [ ] **Step 7: Commit**
@@ -522,7 +522,7 @@ describe('calculateCategoryComparison', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-category-comparison.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-category-comparison.test.ts`
 Expected: FAIL — module does not exist.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -586,7 +586,7 @@ export function calculateCategoryComparison(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-category-comparison.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-category-comparison.test.ts`
 Expected: PASS (3 tests)
 
 - [ ] **Step 5: Wire into `GetSpendingReportUseCase`**
@@ -603,7 +603,7 @@ const categoryComparison = calculateCategoryComparison(
 
 - [ ] **Step 6: Run the existing report test suite to confirm no behavior changed**
 
-Run: `npx vitest run src/modules/reports/application/get-spending-report.use-case.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/get-spending-report.use-case.test.ts`
 Expected: PASS — the "category comparison" describe block passes unchanged.
 
 - [ ] **Step 7: Commit**
@@ -689,7 +689,7 @@ describe('calculateRecurringExpenseShare', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-recurring-expense-share.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-recurring-expense-share.test.ts`
 Expected: FAIL — module does not exist.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -731,7 +731,7 @@ export function calculateRecurringExpenseShare(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-recurring-expense-share.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-recurring-expense-share.test.ts`
 Expected: PASS (2 tests)
 
 - [ ] **Step 5: Wire into `GetSpendingReportUseCase`**
@@ -748,7 +748,7 @@ const recurringExpenseShare = calculateRecurringExpenseShare(
 
 - [ ] **Step 6: Run the existing report test suite to confirm no behavior changed**
 
-Run: `npx vitest run src/modules/reports/application/get-spending-report.use-case.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/get-spending-report.use-case.test.ts`
 Expected: PASS — the "recurring expense share" describe block passes unchanged.
 
 - [ ] **Step 7: Commit**
@@ -913,7 +913,7 @@ describe('netWorthFetchRange', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-net-worth-by-month.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-net-worth-by-month.test.ts`
 Expected: FAIL — module does not exist.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -995,7 +995,7 @@ export function calculateNetWorthByMonth(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-net-worth-by-month.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-net-worth-by-month.test.ts`
 Expected: PASS (4 tests)
 
 - [ ] **Step 5: Wire into `GetSpendingReportUseCase`**
@@ -1023,7 +1023,7 @@ const netWorthByMonth = calculateNetWorthByMonth(
 
 - [ ] **Step 6: Run the existing report test suite to confirm no behavior changed**
 
-Run: `npx vitest run src/modules/reports/application/get-spending-report.use-case.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/get-spending-report.use-case.test.ts`
 Expected: PASS — every net-worth test (backward walk, credit card inversion, hidden accounts) unchanged.
 
 - [ ] **Step 7: Commit**
@@ -1239,7 +1239,7 @@ Line 12: `GetDashboardSummaryUseCase` and `GetSpendingReportUseCase` → `GetDas
 
 - [ ] **Step 6: Run the full test suite and typecheck**
 
-Run: `npx vitest run && npm run typecheck`
+Run: `pnpm vitest run && pnpm typecheck`
 Expected: PASS — no reference to the old names remains anywhere (`grep -rn "GetSpendingReportUseCase\|SpendingReport\b" src` returns nothing).
 
 - [ ] **Step 7: Commit**
@@ -1427,7 +1427,7 @@ describe('calculateSameMonthLastYear', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-period-comparison.test.ts src/modules/reports/application/metrics/calculate-year-over-year.test.ts src/modules/reports/application/metrics/calculate-same-month-last-year.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-period-comparison.test.ts src/modules/reports/application/metrics/calculate-year-over-year.test.ts src/modules/reports/application/metrics/calculate-same-month-last-year.test.ts`
 Expected: FAIL — none of the three modules exist yet.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1567,7 +1567,7 @@ export function calculateSameMonthLastYear(
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-period-comparison.test.ts src/modules/reports/application/metrics/calculate-year-over-year.test.ts src/modules/reports/application/metrics/calculate-same-month-last-year.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-period-comparison.test.ts src/modules/reports/application/metrics/calculate-year-over-year.test.ts src/modules/reports/application/metrics/calculate-same-month-last-year.test.ts`
 Expected: PASS (6 tests total)
 
 - [ ] **Step 5: Commit**
@@ -1671,7 +1671,7 @@ describe('calculateAccountSeries', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-account-series.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-account-series.test.ts`
 Expected: FAIL — module does not exist.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1729,7 +1729,7 @@ export function calculateAccountSeries(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-account-series.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-account-series.test.ts`
 Expected: PASS (2 tests)
 
 - [ ] **Step 5: Commit**
@@ -1830,7 +1830,7 @@ describe('calculateTrendStats', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-trend-stats.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-trend-stats.test.ts`
 Expected: FAIL — module does not exist.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1923,7 +1923,7 @@ export function calculateTrendStats(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/modules/reports/application/metrics/calculate-trend-stats.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/metrics/calculate-trend-stats.test.ts`
 Expected: PASS (3 tests)
 
 - [ ] **Step 5: Commit**
@@ -2023,7 +2023,7 @@ describe('GetFinancialReportUseCase — new metrics', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/modules/reports/application/get-financial-report.use-case.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/get-financial-report.use-case.test.ts`
 Expected: FAIL — `execute` doesn't accept a third argument yet, and `report.accountSeries` is `undefined`.
 
 - [ ] **Step 3: Wire the four calculators into `execute()`**
@@ -2131,12 +2131,12 @@ And add all four to the returned object.
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/modules/reports/application/get-financial-report.use-case.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/get-financial-report.use-case.test.ts`
 Expected: PASS — including the new describe block.
 
 - [ ] **Step 5: Run the full test suite and typecheck**
 
-Run: `npx vitest run && npm run typecheck`
+Run: `pnpm vitest run && pnpm typecheck`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -2278,13 +2278,13 @@ export function splitPastLimit<T>(
 }
 ```
 
-Run: `npx vitest run src/shared/lib/split-past-limit.test.ts`
+Run: `pnpm vitest run src/shared/lib/split-past-limit.test.ts`
 Expected: PASS (3 tests)
 
 - [ ] **Step 3: Add the `recharts` dependency**
 
 ```bash
-npm install recharts@^3.10.1
+pnpm add recharts@^3.10.1
 ```
 
 (Confirm `package.json`'s `dependencies` now lists `"recharts": "^3.10.1"`.)
@@ -2335,13 +2335,13 @@ export function ChartTooltipContent({
 
 - [ ] **Step 5: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm typecheck`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/app/globals.css src/shared/constants/chart-colors.ts src/shared/lib/split-past-limit.ts src/shared/lib/split-past-limit.test.ts src/components/ui/chart-tooltip.tsx package.json package-lock.json pnpm-lock.yaml
+git add src/app/globals.css src/shared/constants/chart-colors.ts src/shared/lib/split-past-limit.ts src/shared/lib/split-past-limit.test.ts src/components/ui/chart-tooltip.tsx package.json pnpm-lock.yaml
 git commit -m "feat(reports): add recharts, categorical chart palette, and themed tooltip"
 ```
 
@@ -2493,7 +2493,7 @@ Add `ResponsiveContainer` to the import line: `import { Bar, BarChart, Cartesian
 
 - [ ] **Step 3: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm typecheck`
 Expected: PASS.
 
 - [ ] **Step 4: Commit**
@@ -2596,7 +2596,7 @@ export function CashFlowChart({ months }: CashFlowChartProps) {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm typecheck`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -2726,7 +2726,7 @@ export function CategorySpendingChart({
 
 - [ ] **Step 2: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm typecheck`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -2821,7 +2821,7 @@ export function ReportTabsNav({
 
 - [ ] **Step 3: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm typecheck`
 Expected: PASS — `page.tsx` still compiles (the nav isn't rendered yet; that's Task 19).
 
 - [ ] **Step 4: Commit**
@@ -3211,8 +3211,8 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
 - [ ] **Step 3: Typecheck `overview-section.tsx` in isolation**
 
-Run: `npx tsc --noEmit -p tsconfig.json 2>&1 | grep overview-section`
-Expected: no output (no errors in the new file) — the broader `page.tsx` typecheck is expected to still fail at this point on the not-yet-created imports; that resolves by the end of Task 21.
+Run: `pnpm exec tsc --noEmit -p tsconfig.json 2>&1 | grep overview-section`
+Expected: no output (no errors in the new file) — the broader `page.tsx` typecheck is expected to still fail at this point on the not-yet-created imports (`AccountsSection` from Task 19, `ComparisonsSection` from Task 20, `ExportButtons` from Task 23); that resolves once Task 23 lands.
 
 - [ ] **Step 4: Commit**
 
@@ -3440,7 +3440,7 @@ export function AccountsSection({ accountSeries }: AccountsSectionProps) {
 
 - [ ] **Step 3: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm typecheck`
 Expected: PASS (now that `AccountsSection` exists, `page.tsx`'s import of it resolves — `ComparisonsSection`/`ExportButtons` are still pending, from Tasks 20/23).
 
 - [ ] **Step 4: Commit**
@@ -3643,7 +3643,7 @@ export function ComparisonsSection({
 
 - [ ] **Step 3: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm typecheck`
 Expected: PASS (now only `ExportButtons`, Task 23, remains before `page.tsx` fully compiles).
 
 - [ ] **Step 4: Commit**
@@ -3732,7 +3732,7 @@ describe('buildReportCsvRows', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/modules/reports/application/build-report-csv-rows.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/build-report-csv-rows.test.ts`
 Expected: FAIL — module does not exist.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -3753,7 +3753,7 @@ export function buildReportCsvRows(report: FinancialReport): string[][] {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/modules/reports/application/build-report-csv-rows.test.ts`
+Run: `pnpm vitest run src/modules/reports/application/build-report-csv-rows.test.ts`
 Expected: PASS (2 tests)
 
 - [ ] **Step 5: Commit**
@@ -3777,7 +3777,7 @@ Visual, not unit tested — same convention as the chart components (Group C). K
 - [ ] **Step 1: Add the dependency**
 
 ```bash
-npm install @react-pdf/renderer@^4.9.0
+pnpm add @react-pdf/renderer@^4.9.0
 ```
 
 - [ ] **Step 2: Write the PDF document component**
@@ -3855,13 +3855,13 @@ export function ReportPdfDocument({ report, period }: ReportPdfDocumentProps) {
 
 - [ ] **Step 3: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm typecheck`
 Expected: PASS.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/modules/reports/infra/report-pdf-document.tsx package.json package-lock.json pnpm-lock.yaml
+git add src/modules/reports/infra/report-pdf-document.tsx package.json pnpm-lock.yaml
 git commit -m "feat(reports): add @react-pdf/renderer and ReportPdfDocument"
 ```
 
@@ -3905,7 +3905,7 @@ describe('GET /api/reports/export', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/app/api/reports/export/route.test.ts`
+Run: `pnpm vitest run src/app/api/reports/export/route.test.ts`
 Expected: FAIL — `./route` does not exist yet.
 
 - [ ] **Step 3: Write the route handler**
@@ -3981,7 +3981,7 @@ export async function GET(request: NextRequest) {
 
 - [ ] **Step 4: Run the 401-guard test to verify it passes**
 
-Run: `npx vitest run src/app/api/reports/export/route.test.ts`
+Run: `pnpm vitest run src/app/api/reports/export/route.test.ts`
 Expected: PASS (1 test)
 
 - [ ] **Step 5: Write the export buttons**
@@ -4013,12 +4013,12 @@ export function ExportButtons({ periodQueryString }: ExportButtonsProps) {
 
 - [ ] **Step 6: Typecheck the whole project**
 
-Run: `npm run typecheck`
+Run: `pnpm typecheck`
 Expected: PASS — `page.tsx`'s imports of `AccountsSection`, `ComparisonsSection`, and `ExportButtons` all resolve now.
 
 - [ ] **Step 7: Run the full test suite**
 
-Run: `npx vitest run`
+Run: `pnpm vitest run`
 Expected: PASS — every test from every prior task, plus the pre-existing suite, green.
 
 - [ ] **Step 8: Commit**
@@ -4036,7 +4036,7 @@ No automated test covers the page itself (Global Constraints) — this task is a
 
 - [ ] **Step 1: Start the dev server**
 
-Run: `npm run dev`
+Run: `pnpm dev`
 
 - [ ] **Step 2: Walk through `/reports`**
 
