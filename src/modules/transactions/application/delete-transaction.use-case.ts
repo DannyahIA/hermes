@@ -40,7 +40,18 @@ export class DeleteTransactionUseCase {
         : -account.deltaFor(transaction.type, transaction.amount);
     const updatedAccount = account.withBalanceDelta(reversal);
 
+    // A bill payment also paid down a card's debt, with no row of its own
+    // on the card (see PayCreditCardBillUseCase) — undo that here too.
+    const settledCard = transaction.settlesAccountId
+      ? await this.accountRepository.findById(transaction.settlesAccountId)
+      : null;
+
     await this.accountRepository.save(updatedAccount);
+    if (settledCard && settledCard.userId === input.userId) {
+      await this.accountRepository.save(
+        settledCard.withBalanceDelta(transaction.amount),
+      );
+    }
     await this.transactionRepository.delete(input.id);
   }
 }

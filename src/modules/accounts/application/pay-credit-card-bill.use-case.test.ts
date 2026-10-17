@@ -70,6 +70,8 @@ describe('PayCreditCardBillUseCase', () => {
     expect(transaction.amount).toBe(300);
     expect(transaction.accountId).toBe('checking-1');
     expect(transaction.description).toBe('Pagamento de fatura');
+    expect(transaction.settlesAccountId).toBe('credit-1');
+    expect(transaction.isCardBillPayment).toBe(true);
 
     const transactions =
       await transactionRepository.findByAccountId('checking-1');

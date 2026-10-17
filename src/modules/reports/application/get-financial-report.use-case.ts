@@ -100,7 +100,7 @@ export class GetFinancialReportUseCase {
       from: new Date(period.from.getTime() - periodDurationMs - 1),
       to: new Date(period.from.getTime() - 1),
     };
-    const netWorthRange = netWorthFetchRange(period, now);
+    const netWorthRange = netWorthFetchRange(period);
     const yoyWindowStart = new Date(now.getFullYear() - 1, 0, 1);
 
     const [
@@ -130,9 +130,10 @@ export class GetFinancialReportUseCase {
         this.transactionRepository,
       ).execute(userId),
       this.recurringTransactionRepository.findByUserId(userId),
+      // No upper bound: net worth is walked back from today's balance (see
+      // netWorthFetchRange).
       this.transactionRepository.findByUserId(userId, {
         from: netWorthRange.from,
-        to: netWorthRange.to,
         pageSize: 10000,
       }),
       // Anchored to "now", independent of the selected period: covers both

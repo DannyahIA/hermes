@@ -16,7 +16,7 @@ function sumExpenseByCategory(
 ): Map<string, number> {
   const totals = new Map<string, number>();
   for (const transaction of transactions) {
-    if (transaction.type !== 'expense') continue;
+    if (!transaction.countsAs('expense')) continue;
     const key = transaction.categoryId ?? UNCATEGORIZED_KEY;
     totals.set(key, (totals.get(key) ?? 0) + transaction.amount);
   }

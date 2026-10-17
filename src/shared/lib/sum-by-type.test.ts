@@ -28,6 +28,22 @@ describe('sumByType', () => {
     expect(sumByType(transactions, 'expense')).toBe(40);
   });
 
+  it('skips a card bill payment, whose purchases were already counted on the card', () => {
+    const payment = new Transaction({
+      id: 'payment',
+      accountId: 'acc-1',
+      description: 'Pagamento de fatura',
+      amount: 300,
+      type: 'expense',
+      settlesAccountId: 'card-1',
+      occurredAt: new Date('2026-01-10'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    expect(sumByType([tx('expense', 40), payment], 'expense')).toBe(40);
+  });
+
   it('returns 0 for an empty list', () => {
     expect(sumByType([], 'income')).toBe(0);
   });

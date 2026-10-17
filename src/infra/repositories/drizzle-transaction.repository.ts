@@ -23,6 +23,7 @@ function toDomain(row: TransactionRow): Transaction {
     installmentPlanId: row.installmentPlanId ?? undefined,
     installmentNumber: row.installmentNumber ?? undefined,
     recurringRuleId: row.recurringRuleId ?? undefined,
+    settlesAccountId: row.settlesAccountId ?? undefined,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -124,6 +125,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       installmentPlanId: transaction.installmentPlanId ?? null,
       installmentNumber: transaction.installmentNumber ?? null,
       recurringRuleId: transaction.recurringRuleId ?? null,
+      settlesAccountId: transaction.settlesAccountId ?? null,
       updatedAt: transaction.props.updatedAt,
     };
 

@@ -75,7 +75,7 @@ export function calculateTrendStats(
   const totalsByCategory = new Map<string, Map<string, number>>();
 
   for (const transaction of transactions) {
-    if (transaction.type !== 'expense') continue;
+    if (!transaction.countsAs('expense')) continue;
     if (transaction.occurredAt < period.from) continue;
     if (transaction.occurredAt > period.to) continue;
 

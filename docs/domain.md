@@ -173,6 +173,16 @@ Não é persistido.
 
 ---
 
+## Cartão de crédito
+
+- O saldo de um cartão é o que se deve: uma despesa no cartão aumenta a dívida.
+- Uma compra no cartão é despesa no momento da compra.
+- Pagar a fatura não é despesa nem receita: move dinheiro da conta de pagamento e reduz a dívida
+  do cartão na mesma medida. Nunca altera o patrimônio e nunca entra nos totais de gastos, que já
+  contaram as compras.
+
+---
+
 ## Categoria
 
 - Uma categoria pode ser arquivada.
@@ -183,7 +193,8 @@ Não é persistido.
 
 # Patrimônio
 
-O patrimônio é calculado pela soma dos saldos das contas.
+O patrimônio é calculado pela soma dos saldos das contas, com o saldo dos cartões de crédito
+(dívida) entrando subtraindo.
 
 Não deve ser armazenado no banco.
 

@@ -272,12 +272,12 @@ describe('GetFinancialReportUseCase', () => {
     expect(report.netWorthByMonth[1]).toMatchObject({ netWorth: 1000 });
   });
 
-  it('accounts for a credit card by inverting the income/expense delta', async () => {
+  it('counts a credit card balance, which is debt, against net worth', async () => {
     const { useCase, accountRepository, transactionRepository } =
       await buildUseCase();
 
-    // A credit card's balance represents debt: an expense increases it, so
-    // walking backward an expense *decreases* what the earlier balance was.
+    // A credit card's balance represents debt: the purchase raised what is
+    // owed, so it lowered net worth like any other expense.
     await accountRepository.save(
       makeAccount({ id: 'card-1', type: 'credit', balance: 300 }),
     );
@@ -299,8 +299,8 @@ describe('GetFinancialReportUseCase', () => {
     expect(report.netWorthByMonth).toHaveLength(2);
     // July, before the purchase, had no debt on the card.
     expect(report.netWorthByMonth[0]).toMatchObject({ netWorth: 0 });
-    // August carries the current (debt) balance.
-    expect(report.netWorthByMonth[1]).toMatchObject({ netWorth: 300 });
+    // August carries the current debt, counted against net worth.
+    expect(report.netWorthByMonth[1]).toMatchObject({ netWorth: -300 });
   });
 
   it('excludes hidden accounts from net worth', async () => {

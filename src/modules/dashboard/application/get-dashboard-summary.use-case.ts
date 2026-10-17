@@ -4,6 +4,7 @@ import type { TransactionRepository } from '@/core/contracts/transaction-reposit
 import type { Account } from '@/core/entities/account';
 import type { Transaction } from '@/core/entities/transaction';
 import { computeCurrentBalance } from '@/core/value-objects/current-balance';
+import { netWorthContribution } from '@/core/value-objects/net-worth';
 import type { AccountWithBalances } from '@/modules/accounts/application/get-accounts.use-case';
 import {
   type BudgetProgress,
@@ -13,6 +14,7 @@ import {
   buildMonthlyCashFlow,
   type MonthlyCashFlow,
 } from '@/shared/lib/build-monthly-cash-flow';
+import { sumByType } from '@/shared/lib/sum-by-type';
 
 export type { MonthlyCashFlow };
 
@@ -44,7 +46,8 @@ function startOfTomorrow(): Date {
 /**
  * Answers, in one call, the questions ui-ux.md requires the dashboard to
  * answer immediately: "Quanto tenho?" (netWorth — computed from current
- * account balances, per domain.md, never stored), "Quanto gastei?"/"Quanto
+ * account balances, per domain.md, never stored, with card debt counted
+ * against it), "Quanto gastei?"/"Quanto
  * recebi?" (monthIncome/monthExpense), "Estou dentro do orçamento?"
  * (budgets), "Como evoluíram minhas finanças?" (cashFlow).
  */
@@ -106,7 +109,11 @@ export class GetDashboardSummaryUseCase {
 
     const netWorth = accountBalances
       .filter(({ account }) => !account.hidden)
-      .reduce((sum, { currentBalance }) => sum + currentBalance, 0);
+      .reduce(
+        (sum, { account, currentBalance }) =>
+          sum + netWorthContribution(account, currentBalance),
+        0,
+      );
 
     const cashFlow = buildMonthlyCashFlow(rangeStart, now, transactionsInRange);
 
@@ -128,13 +135,4 @@ export class GetDashboardSummaryUseCase {
       budgets: budgetProgress,
     };
   }
-}
-
-function sumByType(
-  transactions: Transaction[],
-  type: Transaction['type'],
-): number {
-  return transactions
-    .filter((t) => t.type === type)
-    .reduce((sum, t) => sum + t.amount, 0);
 }

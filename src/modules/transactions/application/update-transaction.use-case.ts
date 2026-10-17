@@ -56,6 +56,16 @@ export class UpdateTransactionUseCase {
           ? amountChange
           : account.deltaFor(transaction.type, amountChange);
       await this.accountRepository.save(account.withBalanceDelta(delta));
+
+      // A bill payment's amount is also what it took off the card's debt.
+      const settledCard = transaction.settlesAccountId
+        ? await this.accountRepository.findById(transaction.settlesAccountId)
+        : null;
+      if (settledCard && settledCard.userId === input.userId) {
+        await this.accountRepository.save(
+          settledCard.withBalanceDelta(-amountChange),
+        );
+      }
     }
 
     await this.transactionRepository.save(updatedTransaction);

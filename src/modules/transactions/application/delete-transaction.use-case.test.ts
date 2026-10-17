@@ -50,4 +50,51 @@ describe('DeleteTransactionUseCase', () => {
     const account = await accountRepository.findById('acc-1');
     expect(account!.balance).toBe(100);
   });
+
+  it('puts a deleted bill payment back on the card it had paid down', async () => {
+    const accountRepository = new FakeAccountRepository();
+    const transactionRepository = new FakeTransactionRepository();
+    for (const [id, type, balance] of [
+      ['checking-1', 'checking', 700],
+      ['card-1', 'credit', 200],
+    ] as const) {
+      await accountRepository.save(
+        new Account({
+          id,
+          userId: USER_ID,
+          name: id,
+          type,
+          balance,
+          currency: 'BRL',
+          archived: false,
+          hidden: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+    }
+    await transactionRepository.save(
+      new Transaction({
+        id: 'payment',
+        accountId: 'checking-1',
+        description: 'Pagamento de fatura',
+        amount: 300,
+        type: 'expense',
+        settlesAccountId: 'card-1',
+        occurredAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+
+    await new DeleteTransactionUseCase(
+      transactionRepository,
+      accountRepository,
+    ).execute({ id: 'payment', userId: USER_ID });
+
+    expect((await accountRepository.findById('checking-1'))!.balance).toBe(
+      1000,
+    );
+    expect((await accountRepository.findById('card-1'))!.balance).toBe(500);
+  });
 });

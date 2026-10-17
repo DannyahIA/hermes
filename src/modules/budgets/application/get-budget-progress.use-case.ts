@@ -36,8 +36,10 @@ export class GetBudgetProgressUseCase {
         );
 
         const spent = transactions
-          .filter((transaction) =>
-            budget.period.contains(transaction.occurredAt),
+          .filter(
+            (transaction) =>
+              transaction.countsAs('expense') &&
+              budget.period.contains(transaction.occurredAt),
           )
           .reduce((total, transaction) => total + transaction.amount, 0);
 

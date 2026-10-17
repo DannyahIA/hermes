@@ -6,7 +6,7 @@ import {
 } from '@/shared/lib/build-monthly-cash-flow';
 
 import {
-  calculateNetWorthByMonth,
+  calculateBalanceByMonth,
   type NetWorthPoint,
 } from './calculate-net-worth-by-month';
 
@@ -35,12 +35,17 @@ export function calculateAccountSeries(
       const accountTransactions = transactions.filter(
         (t) => t.accountId === account.id,
       );
+      // A bill payment lives on the paying account but pays down this
+      // card's balance too.
+      const settlingPayments = transactions.filter(
+        (t) => t.settlesAccountId === account.id,
+      );
       return {
         accountId: account.id,
         accountName: account.name,
-        balanceByMonth: calculateNetWorthByMonth(
-          [account],
-          accountTransactions,
+        balanceByMonth: calculateBalanceByMonth(
+          account,
+          [...accountTransactions, ...settlingPayments],
           period,
           now,
         ),
@@ -48,6 +53,7 @@ export function calculateAccountSeries(
           period.from,
           period.to,
           accountTransactions,
+          { perAccount: true },
         ),
       };
     });

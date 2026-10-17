@@ -24,6 +24,10 @@ export interface PayCreditCardBillInput {
  * the real expense on the paying account — while the credit account's
  * owed balance is adjusted directly via `withBalanceDelta`, with no second
  * transaction row invented to represent "debt paid off".
+ *
+ * The row records the card it settles (`settlesAccountId`), so income/
+ * expense totals can leave it out — the purchases it pays for already
+ * count as spending on the card — and net worth sees it as neutral.
  */
 export class PayCreditCardBillUseCase {
   constructor(
@@ -75,6 +79,7 @@ export class PayCreditCardBillUseCase {
       description: input.description?.trim() || 'Pagamento de fatura',
       amount: input.amount,
       type: 'expense',
+      settlesAccountId: creditAccount.id,
       occurredAt: now,
       createdAt: now,
       updatedAt: now,

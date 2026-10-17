@@ -16,7 +16,7 @@ export function calculateCategorySpending(
   const totalsByCategory = new Map<string, number>();
 
   for (const transaction of transactions) {
-    if (transaction.type !== 'expense') continue;
+    if (!transaction.countsAs('expense')) continue;
     const key = transaction.categoryId ?? UNCATEGORIZED_KEY;
     totalsByCategory.set(
       key,

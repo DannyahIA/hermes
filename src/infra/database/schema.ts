@@ -265,6 +265,13 @@ export const transactions = pgTable(
       () => recurringTransactions.id,
       { onDelete: 'set null' },
     ),
+    // The card a bill payment pays down (see PayCreditCardBillUseCase).
+    // Sets to null if the card is deleted: its purchases go with it
+    // (cascade), so the payment is the only trace of that spending left
+    // and should count as an expense again.
+    settlesAccountId: uuid('settles_account_id').references(() => accounts.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),

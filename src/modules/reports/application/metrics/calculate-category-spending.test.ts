@@ -33,6 +33,17 @@ function category(id: string, name: string) {
 }
 
 describe('calculateCategorySpending', () => {
+  it('leaves card bill payments out of "Sem categoria", since the card purchases already count', () => {
+    const transactions = [
+      tx({ id: 'purchase', accountId: 'card-1', amount: 300 }),
+      tx({ id: 'payment', amount: 300, settlesAccountId: 'card-1' }),
+    ];
+
+    expect(calculateCategorySpending(transactions, [])).toEqual([
+      expect.objectContaining({ total: 300 }),
+    ]);
+  });
+
   it('ranks spending by category, grouping uncategorized expenses, descending by total', () => {
     const categories = [
       category('cat-food', 'Alimentação'),

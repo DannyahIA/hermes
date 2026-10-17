@@ -88,7 +88,7 @@ describe('calculateNetWorthByMonth', () => {
     expect(points[1]).toMatchObject({ netWorth: 1000 });
   });
 
-  it('inverts the delta for a credit card (balance is debt)', () => {
+  it('counts a credit card balance, which is debt, against net worth', () => {
     const now = new Date('2026-08-31T00:00:00');
     const points = calculateNetWorthByMonth(
       [account({ id: 'card-1', type: 'credit', balance: 300 })],
@@ -107,7 +107,77 @@ describe('calculateNetWorthByMonth', () => {
       now,
     );
     expect(points[0]).toMatchObject({ netWorth: 0 });
-    expect(points[1]).toMatchObject({ netWorth: 300 });
+    expect(points[1]).toMatchObject({ netWorth: -300 });
+  });
+
+  it('leaves net worth unchanged when a card bill is paid', () => {
+    const now = new Date('2026-08-31T00:00:00');
+    // Before paying: 1000 in cash, 500 owed on the card (net worth 500).
+    // Paying 300 leaves 700 in cash and 200 owed — still 500.
+    const points = calculateNetWorthByMonth(
+      [
+        account({ id: 'checking-1', balance: 700 }),
+        account({ id: 'card-1', type: 'credit', balance: 200 }),
+      ],
+      [
+        new Transaction({
+          id: 'payment',
+          accountId: 'checking-1',
+          description: 'Pagamento de fatura',
+          amount: 300,
+          type: 'expense',
+          settlesAccountId: 'card-1',
+          occurredAt: new Date('2026-08-10T00:00:00'),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      ],
+      {
+        from: new Date('2026-07-01T00:00:00'),
+        to: new Date('2026-08-31T00:00:00'),
+      },
+      now,
+    );
+    expect(points.map((p) => p.netWorth)).toEqual([500, 500]);
+  });
+
+  it('starts from today, not from the stored balance that already includes future installments', () => {
+    const now = new Date('2026-08-20T00:00:00');
+    // Stored 835 = 1000 today minus a 165 installment dated next month.
+    const points = calculateNetWorthByMonth(
+      [account({ balance: 835 })],
+      [tx({ amount: 165, occurredAt: new Date('2026-09-10T00:00:00') })],
+      {
+        from: new Date('2026-08-01T00:00:00'),
+        to: new Date('2026-08-31T00:00:00'),
+      },
+      now,
+    );
+    expect(points).toEqual([{ month: new Date(2026, 7, 1), netWorth: 1000 }]);
+  });
+
+  it('ends a past period on its own balance, walking back through the months after it', () => {
+    const now = new Date('2026-08-20T00:00:00');
+    // 1000 today; 400 was earned in August, after the June–July period.
+    const points = calculateNetWorthByMonth(
+      [account({ balance: 1000 })],
+      [
+        tx({
+          type: 'income',
+          amount: 400,
+          occurredAt: new Date('2026-08-05T00:00:00'),
+        }),
+      ],
+      {
+        from: new Date('2026-06-01T00:00:00'),
+        to: new Date('2026-07-31T00:00:00'),
+      },
+      now,
+    );
+    expect(points).toEqual([
+      { month: new Date(2026, 5, 1), netWorth: 600 },
+      { month: new Date(2026, 6, 1), netWorth: 600 },
+    ]);
   });
 
   it('excludes hidden accounts', () => {
@@ -129,16 +199,10 @@ describe('calculateNetWorthByMonth', () => {
 });
 
 describe('netWorthFetchRange', () => {
-  it('starts at the first day of the period.from month and ends at min(period.to, now)', () => {
-    const now = new Date('2026-08-20T00:00:00');
-    const range = netWorthFetchRange(
-      {
-        from: new Date('2026-07-15T00:00:00'),
-        to: new Date('2026-09-01T00:00:00'),
-      },
-      now,
-    );
-    expect(range.from).toEqual(new Date(2026, 6, 1));
-    expect(range.to).toEqual(now);
+  it('starts at the first day of the period.from month, with no upper bound', () => {
+    const range = netWorthFetchRange({
+      from: new Date('2026-07-15T00:00:00'),
+    });
+    expect(range).toEqual({ from: new Date(2026, 6, 1) });
   });
 });
