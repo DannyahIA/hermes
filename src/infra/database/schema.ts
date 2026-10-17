@@ -349,3 +349,36 @@ export const userViewPreferences = pgTable(
     ),
   ],
 );
+
+/**
+ * The category a user chose for a merchant (see normalizeMerchant for the
+ * key), so the next purchase there is suggested — or, when captured from
+ * Apple Pay, filed — the same way. Spec 2026-10-17-telegram-apple-pay-design.md §4.2.
+ */
+export const merchantRules = pgTable(
+  'merchant_rules',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .references(() => user.id, { onDelete: 'cascade' })
+      .notNull(),
+    merchantKey: varchar('merchant_key', { length: 255 }).notNull(),
+    displayName: varchar('display_name', { length: 255 }).notNull(),
+    categoryId: uuid('category_id')
+      .references(() => categories.id, { onDelete: 'cascade' })
+      .notNull(),
+    hits: integer('hits').notNull().default(1),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('merchant_rules_user_key_idx').on(
+      table.userId,
+      table.merchantKey,
+    ),
+  ],
+);
