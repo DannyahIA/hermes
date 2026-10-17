@@ -19,9 +19,10 @@ import { GetDashboardSummaryUseCase } from '@/modules/dashboard/application/get-
 import { formatCurrency } from '@/shared/lib/format-currency';
 import {
   formatDate,
-  formatDateTime,
   formatMonthLabel,
+  formatOccurredAt,
 } from '@/shared/lib/format-date';
+import { getCategoryOptions } from '@/shared/server/reference-options';
 
 export default async function DashboardPage() {
   const userId = await requireCurrentUserId();
@@ -31,7 +32,13 @@ export default async function DashboardPage() {
     new DrizzleTransactionRepository(),
     new DrizzleBudgetRepository(),
   );
-  const summary = await useCase.execute(userId);
+  const [summary, categories] = await Promise.all([
+    useCase.execute(userId),
+    getCategoryOptions(userId),
+  ]);
+  const categoryNames = new Map(
+    categories.map((category) => [category.id, category.name]),
+  );
 
   if (summary.accounts.length === 0) {
     return (
@@ -254,11 +261,10 @@ export default async function DashboardPage() {
               <div className="text-muted-foreground mt-3 flex items-center gap-4 text-xs">
                 <span className="flex items-center gap-1.5">
                   <span className="bg-success inline-block h-2 w-2" /> Receitas
-                  (traço azul)
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="bg-destructive inline-block h-2 w-2" />{' '}
-                  Despesas (redline)
+                  Despesas
                 </span>
               </div>
             </CardContent>
@@ -281,30 +287,37 @@ export default async function DashboardPage() {
                   </Link>
                 </p>
               ) : (
-                summary.budgets.slice(0, 4).map(({ budget, percentage }) => (
-                  <div key={budget.id} className="dimension-row block">
-                    <div className="mb-2 flex items-center justify-between text-sm">
-                      <span className="dimension-figure">
+                summary.budgets
+                  .slice(0, 4)
+                  .map(({ budget, spent, percentage }) => (
+                    <div key={budget.id} className="dimension-row block">
+                      <div className="flex items-baseline justify-between gap-3 text-sm">
+                        <span className="truncate font-medium">
+                          {categoryNames.get(budget.categoryId) ??
+                            'Categoria removida'}
+                        </span>
+                        <span className="text-muted-foreground dimension-figure">
+                          {Math.round(percentage * 100)}%
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground dimension-figure mt-0.5 mb-2 text-xs">
+                        {formatCurrency(spent, budget.currency)} de{' '}
                         {formatCurrency(budget.amount, budget.currency)}
-                      </span>
-                      <span className="text-muted-foreground dimension-figure">
-                        {Math.round(percentage * 100)}%
-                      </span>
+                      </p>
+                      <div className="bg-muted h-1.5">
+                        <div
+                          className={`h-1.5 ${
+                            percentage > 1
+                              ? 'bg-destructive'
+                              : percentage >= 0.8
+                                ? 'bg-warning'
+                                : 'bg-primary'
+                          }`}
+                          style={{ width: `${Math.min(percentage, 1) * 100}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="bg-muted h-1.5">
-                      <div
-                        className={`h-1.5 ${
-                          percentage > 1
-                            ? 'bg-destructive'
-                            : percentage >= 0.8
-                              ? 'bg-warning'
-                              : 'bg-primary'
-                        }`}
-                        style={{ width: `${Math.min(percentage, 1) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
+                  ))
               )}
             </CardContent>
           </Card>
@@ -333,11 +346,11 @@ export default async function DashboardPage() {
                     <div>
                       <p className="font-medium">{transaction.description}</p>
                       <p className="text-muted-foreground text-sm">
-                        {formatDateTime(transaction.occurredAt)}
+                        {formatOccurredAt(transaction.occurredAt)}
                       </p>
                     </div>
                     <p
-                      className={`dimension-figure font-semibold ${
+                      className={`dimension-figure font-semibold whitespace-nowrap ${
                         transaction.type === 'income'
                           ? 'text-success'
                           : transaction.type === 'expense'
@@ -348,7 +361,7 @@ export default async function DashboardPage() {
                       {transaction.type === 'income'
                         ? '+ '
                         : transaction.type === 'expense'
-                          ? '- '
+                          ? '− '
                           : '⇄ '}
                       {formatCurrency(transaction.amount)}
                     </p>

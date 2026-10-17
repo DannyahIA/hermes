@@ -220,8 +220,10 @@ function SidebarBrand({
       </div>
       {!hideText && (
         <div>
-          <p className="font-display text-sm font-semibold">{APP_NAME}</p>
-          <p className="text-muted-foreground text-xs">
+          <p className="font-display text-sidebar-foreground text-sm font-semibold">
+            {APP_NAME}
+          </p>
+          <p className="text-sidebar-foreground/70 text-xs">
             Sua prancheta financeira
           </p>
         </div>
