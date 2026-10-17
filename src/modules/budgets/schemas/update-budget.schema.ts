@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { localDay } from '@/shared/lib/local-day';
+
 export const updateBudgetSchema = z
   .object({
     id: z.uuid('Orçamento inválido.'),
@@ -12,12 +14,18 @@ export const updateBudgetSchema = z
       .trim()
       .length(3, 'A moeda deve ter 3 letras (ex: BRL).')
       .optional(),
-    periodStart: z.coerce
-      .date({ message: 'Informe uma data de início válida.' })
-      .optional(),
-    periodEnd: z.coerce
-      .date({ message: 'Informe uma data de término válida.' })
-      .optional(),
+    periodStart: z.preprocess(
+      (value) => localDay(value, 'start'),
+      z.coerce
+        .date({ message: 'Informe uma data de início válida.' })
+        .optional(),
+    ),
+    periodEnd: z.preprocess(
+      (value) => localDay(value, 'end'),
+      z.coerce
+        .date({ message: 'Informe uma data de término válida.' })
+        .optional(),
+    ),
   })
   .refine(
     (data) =>
