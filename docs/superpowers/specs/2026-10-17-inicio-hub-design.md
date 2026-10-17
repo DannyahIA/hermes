@@ -374,12 +374,18 @@ modules/dashboard/application/
     calculate-budget-pace.ts         [novo] §4.4
     calculate-upcoming.ts            [novo] §4.5 (projeta recorrências sem gravar)
     calculate-month-to-date.ts       [novo] gasto/recebido no mês vs. mesmo dia do mês anterior
-    suggest-categories.ts            [novo] §4.2 (compartilhado com o Telegram)
+    group-recent-by-day.ts           [novo] §4.6
+modules/categories/application/
+  suggest-categories.ts              [novo] §4.2 (compartilhado com o Telegram, por isso fora do
+                                            módulo do Início)
+modules/transactions/application/
+  categorize-transaction.use-case.ts [novo] classifica e grava a regra do estabelecimento
   get-dashboard-summary.use-case.ts  (passa a orquestrar; também usa o repositório de
                                       recorrências e o de categorias)
 shared/lib/
   dimension-layout.ts                [novo] geometria de cotas (PDF e web)
 modules/capture/domain/
+  normalize-merchant.ts              [novo] chave e nome limpo do estabelecimento (F3)
   parse-quick-entry.ts               [novo] §4.8 (compartilhado com o Telegram)
 ```
 
@@ -399,7 +405,11 @@ modules/capture/domain/
 **Renderização:**
 
 - Server Components.
-- Um único `loading.tsx` com skeleton que reproduz a nova grade.
+- Sem `loading.tsx` nem `Suspense` em volta do conteúdo. No Next 16.2.10, com qualquer um dos
+  dois, a re-renderização que uma Server Action devolve (`revalidatePath`) ou um
+  `router.refresh()` nunca é aplicada: a transição fica pendente e a tela mostra os dados antigos
+  até um reload. Isso quebrava "Pagar fatura" e "Nova transação" no Início desde antes deste
+  redesenho, e quebraria a classificação com um toque. Rever ao atualizar o Next.
 - Interatividade em ilhas cliente pequenas: registro rápido, classificação em "Para revisar" e
   "Mostrar mais".
 

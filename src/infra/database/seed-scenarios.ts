@@ -113,6 +113,18 @@ const BASE_CATEGORIES = [
   'Salário',
 ];
 
+/** The colors a person would likely pick; the extra categories of "muitos" stay uncolored. */
+const CATEGORY_COLORS: Record<string, string> = {
+  Mercado: '#2f855a',
+  Restaurantes: '#dd6b20',
+  Transporte: '#3182ce',
+  Farmácia: '#d53f8c',
+  Lazer: '#805ad5',
+  Moradia: '#975a16',
+  Assinaturas: '#4a5568',
+  Salário: '#1d4e89',
+};
+
 const SUBSCRIPTIONS = [
   { name: 'Netflix', amount: 55.9, day: 20 },
   { name: 'Spotify', amount: 21.9, day: 15 },
@@ -136,9 +148,9 @@ const SCENARIOS: Scenario[] = [
     installment: { description: 'Geladeira', amount: 349.9, count: 10 },
     budgets: [
       { category: 'Mercado', amount: 1200 },
-      { category: 'Restaurantes', amount: 600 },
-      { category: 'Transporte', amount: 450 },
-      { category: 'Lazer', amount: 300 },
+      { category: 'Restaurantes', amount: 900 },
+      { category: 'Transporte', amount: 900 },
+      { category: 'Lazer', amount: 450 },
       { category: 'Farmácia', amount: 200 },
     ],
     paysBills: true,
@@ -244,9 +256,9 @@ const SCENARIOS: Scenario[] = [
       { category: 'Mercado', amount: 1800 },
       { category: 'Restaurantes', amount: 900 },
       { category: 'Transporte', amount: 700 },
-      { category: 'Lazer', amount: 500 },
-      { category: 'Farmácia', amount: 300 },
-      { category: 'Pets', amount: 400 },
+      { category: 'Lazer', amount: 800 },
+      { category: 'Farmácia', amount: 500 },
+      { category: 'Pets', amount: 600 },
       { category: 'Vestuário', amount: 500 },
       { category: 'Saúde', amount: 600 },
       {
@@ -259,6 +271,10 @@ const SCENARIOS: Scenario[] = [
       { name: 'Amazon', amount: 213.4, daysAgo: 0 },
       { name: 'Posto Shell', amount: 245, daysAgo: 1 },
       { name: 'Mercado Livre', amount: 89.9, daysAgo: 2 },
+      { name: 'PADARIA REAL LTDA *4471', amount: 31.5, daysAgo: 3 },
+      { name: 'Kalunga', amount: 64.8, daysAgo: 5 },
+      { name: 'Drogaria São Paulo', amount: 47.3, daysAgo: 8 },
+      { name: 'Shopee', amount: 129.9, daysAgo: 12 },
     ],
   },
 ];
@@ -347,6 +363,7 @@ async function build(tx: Executor, userId: string, scenario: Scenario) {
       id,
       userId,
       name,
+      color: CATEGORY_COLORS[name],
     });
     categoryIds.set(name, id);
   }

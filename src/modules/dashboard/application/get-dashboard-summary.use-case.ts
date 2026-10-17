@@ -1,26 +1,30 @@
 import type { AccountRepository } from '@/core/contracts/account-repository';
 import type { BudgetRepository } from '@/core/contracts/budget-repository';
+import type { CategoryRepository } from '@/core/contracts/category-repository';
+import type { MerchantRuleRepository } from '@/core/contracts/merchant-rule-repository';
 import type { RecurringTransactionRepository } from '@/core/contracts/recurring-transaction-repository';
 import type { TransactionRepository } from '@/core/contracts/transaction-repository';
 import type { Account } from '@/core/entities/account';
+import type { Category } from '@/core/entities/category';
 import type { Transaction } from '@/core/entities/transaction';
 import { computeCurrentBalance } from '@/core/value-objects/current-balance';
 import { netWorthContribution } from '@/core/value-objects/net-worth';
 import type { AccountWithBalances } from '@/modules/accounts/application/get-accounts.use-case';
+import { GetBudgetProgressUseCase } from '@/modules/budgets/application/get-budget-progress.use-case';
+import { createCategorySuggester } from '@/modules/categories/application/suggest-categories';
 import {
-  type BudgetProgress,
-  GetBudgetProgressUseCase,
-} from '@/modules/budgets/application/get-budget-progress.use-case';
-import {
-  buildMonthlyCashFlow,
-  type MonthlyCashFlow,
-} from '@/shared/lib/build-monthly-cash-flow';
-import { sumByType } from '@/shared/lib/sum-by-type';
+  calculateNetWorthByMonth,
+  type NetWorthPoint,
+} from '@/modules/reports/application/metrics/calculate-net-worth-by-month';
 
 import {
   type AvailableToSpend,
   calculateAvailableToSpend,
 } from './metrics/calculate-available-to-spend';
+import {
+  type BudgetPace,
+  calculateBudgetPace,
+} from './metrics/calculate-budget-pace';
 import {
   calculateCardStatements,
   type CardStatement,
@@ -30,27 +34,32 @@ import {
   type MonthToDate,
 } from './metrics/calculate-month-to-date';
 import { calculateUpcoming, type Upcoming } from './metrics/calculate-upcoming';
-
-export type { MonthlyCashFlow };
+import {
+  groupRecentByDay,
+  type RecentDay,
+} from './metrics/group-recent-by-day';
 
 export interface DashboardSummary {
   netWorth: number;
   /** Net worth once every known future commitment (installments) has landed. */
   projectedNetWorth: number;
+  /** Net worth at the end of each of the last months, this one as of today. */
+  netWorthTrend: NetWorthPoint[];
   /** What's owed on visible credit cards today. */
   owedOnCards: number;
   accounts: Account[];
   accountBalances: AccountWithBalances[];
-  /** Every not-yet-occurred transaction across all accounts — already
-   * fetched to compute `accountBalances`, exposed here too so the UI can
-   * list upcoming commitments (e.g. remaining installments) without a
-   * second query. */
+  /** Every not-yet-occurred transaction across all accounts. */
   futureTransactions: Transaction[];
-  monthIncome: number;
-  monthExpense: number;
-  recentTransactions: Transaction[];
-  cashFlow: MonthlyCashFlow[];
-  budgets: BudgetProgress[];
+  /** Every category, archived ones too, to name what's already filed under them. */
+  categories: Category[];
+  /** Uncategorized income and expenses of the last 30 days, newest first. */
+  toReview: Transaction[];
+  /** Up to three category ids per uncategorized transaction shown. */
+  categorySuggestions: Record<string, string[]>;
+  /** Budgets running today, blown and ahead-of-pace first. */
+  budgetPace: BudgetPace[];
+  recentDays: RecentDay[];
   /** Null without a checking account to spend from. */
   availableToSpend: AvailableToSpend | null;
   monthToDate: MonthToDate;
@@ -58,22 +67,24 @@ export interface DashboardSummary {
   upcoming: Upcoming;
 }
 
-const CASH_FLOW_MONTHS = 6;
+const TREND_MONTHS = 6;
+const REVIEW_DAYS = 30;
+const SUGGESTION_HISTORY_DAYS = 90;
+const RECENT_COUNT = 8;
+/** Suggestions are worked out for the queue's first rows only. */
+export const REVIEW_VISIBLE = 5;
 
-function startOfTomorrow(): Date {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 1);
-  return date;
+function daysBefore(date: Date, days: number): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() - days);
 }
 
 /**
- * Answers, in one call, the questions ui-ux.md requires the dashboard to
- * answer immediately: "Quanto tenho?" (netWorth — computed from current
- * account balances, per domain.md, never stored, with card debt counted
- * against it), "Quanto gastei?"/"Quanto
- * recebi?" (monthIncome/monthExpense), "Estou dentro do orçamento?"
- * (budgets), "Como evoluíram minhas finanças?" (cashFlow).
+ * Everything the Início shows, in one call (spec
+ * 2026-10-17-inicio-hub-design.md): what's still free to spend, the cards,
+ * what comes next, what needs a category, how budgets are pacing, the
+ * latest transactions and how net worth has moved. Net worth is computed
+ * from current account balances, per domain.md, never stored, with card
+ * debt counted against it.
  */
 export class GetDashboardSummaryUseCase {
   constructor(
@@ -81,41 +92,51 @@ export class GetDashboardSummaryUseCase {
     private readonly transactionRepository: TransactionRepository,
     private readonly budgetRepository: BudgetRepository,
     private readonly recurringTransactionRepository: RecurringTransactionRepository,
+    private readonly categoryRepository: CategoryRepository,
+    private readonly merchantRuleRepository: MerchantRuleRepository,
   ) {}
 
   async execute(userId: string): Promise<DashboardSummary> {
     const now = new Date();
     const rangeStart = new Date(
       now.getFullYear(),
-      now.getMonth() - (CASH_FLOW_MONTHS - 1),
+      now.getMonth() - (TREND_MONTHS - 1),
       1,
     );
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const [
       accounts,
       transactionsInRange,
       futureTransactions,
-      allRecent,
+      latest,
       budgetProgress,
       recurringRules,
+      categories,
+      merchantRules,
     ] = await Promise.all([
       this.accountRepository.findByUserId(userId),
       this.transactionRepository.findByUserId(userId, {
         from: rangeStart,
         to: now,
-        pageSize: 1000,
-      }),
-      this.transactionRepository.findByUserId(userId, {
-        from: startOfTomorrow(),
         pageSize: 10_000,
       }),
-      this.transactionRepository.findByUserId(userId, { pageSize: 5 }),
+      this.transactionRepository.findByUserId(userId, {
+        from: daysBefore(now, -1),
+        pageSize: 10_000,
+      }),
+      // Not limited to the range above: a quiet half-year still shows the
+      // last things that happened.
+      this.transactionRepository.findByUserId(userId, {
+        to: now,
+        pageSize: RECENT_COUNT * 4,
+      }),
       new GetBudgetProgressUseCase(
         this.budgetRepository,
         this.transactionRepository,
       ).execute(userId),
       this.recurringTransactionRepository.findByUserId(userId),
+      this.categoryRepository.findByUserId(userId),
+      this.merchantRuleRepository.findByUserId(userId),
     ]);
 
     const futureByAccountId = new Map<string, typeof futureTransactions>();
@@ -137,6 +158,12 @@ export class GetDashboardSummaryUseCase {
     const visibleBalances = accountBalances.filter(
       ({ account }) => !account.hidden,
     );
+    const visibleIds = new Set(
+      visibleBalances.map(({ account }) => account.id),
+    );
+    const onVisibleAccount = (transaction: Transaction) =>
+      visibleIds.has(transaction.accountId);
+
     const netWorth = visibleBalances.reduce(
       (sum, { account, currentBalance }) =>
         sum + netWorthContribution(account, currentBalance),
@@ -154,32 +181,69 @@ export class GetDashboardSummaryUseCase {
       0,
     );
 
-    const cashFlow = buildMonthlyCashFlow(rangeStart, now, transactionsInRange);
-
-    const monthTransactions = transactionsInRange.filter(
-      (t) => t.occurredAt >= monthStart,
-    );
-    const monthIncome = sumByType(monthTransactions, 'income');
-    const monthExpense = sumByType(monthTransactions, 'expense');
-
     const cardStatements = calculateCardStatements(
       accountBalances,
       transactionsInRange,
       now,
     );
 
+    const reviewFrom = daysBefore(now, REVIEW_DAYS);
+    const toReview = transactionsInRange
+      .filter(
+        (transaction) =>
+          onVisibleAccount(transaction) &&
+          !transaction.categoryId &&
+          transaction.occurredAt >= reviewFrom &&
+          (transaction.countsAs('expense') || transaction.countsAs('income')),
+      )
+      .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
+
+    const recent = latest.filter(onVisibleAccount).slice(0, RECENT_COUNT);
+
+    const historyFrom = daysBefore(now, SUGGESTION_HISTORY_DAYS);
+    const suggest = createCategorySuggester({
+      categoryIds: categories
+        .filter((category) => !category.archived)
+        .map((category) => category.id),
+      rules: merchantRules,
+      history: transactionsInRange.filter(
+        (transaction) =>
+          transaction.categoryId && transaction.occurredAt >= historyFrom,
+      ),
+    });
+    const categorySuggestions: Record<string, string[]> = {};
+    for (const transaction of [
+      ...toReview.slice(0, REVIEW_VISIBLE),
+      ...recent,
+    ]) {
+      if (transaction.categoryId || transaction.type === 'transfer') continue;
+      categorySuggestions[transaction.id] = suggest(
+        transaction.description,
+        transaction.type,
+      );
+    }
+
     return {
       netWorth,
       projectedNetWorth,
+      netWorthTrend: calculateNetWorthByMonth(
+        accounts,
+        [...transactionsInRange, ...futureTransactions],
+        { from: rangeStart, to: now },
+        now,
+      ),
       owedOnCards,
       accounts,
       accountBalances,
       futureTransactions,
-      monthIncome,
-      monthExpense,
-      recentTransactions: allRecent,
-      cashFlow,
-      budgets: budgetProgress,
+      categories,
+      toReview,
+      categorySuggestions,
+      budgetPace: calculateBudgetPace(budgetProgress, now),
+      recentDays: groupRecentByDay(
+        recent,
+        transactionsInRange.filter(onVisibleAccount),
+      ),
       availableToSpend: calculateAvailableToSpend({
         balances: accountBalances,
         recurringRules,

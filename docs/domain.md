@@ -188,6 +188,19 @@ Não é persistido.
 - Uma categoria pode ser arquivada.
 - Uma categoria pode possuir cor.
 - Uma categoria pode possuir ícone.
+- Transferências e pagamentos de fatura não têm categoria.
+- Ao classificar uma transação, o Hermes lembra a categoria escolhida para o estabelecimento
+  (regra de estabelecimento). Grafias diferentes do mesmo lugar ("PADARIA REAL LTDA \*123",
+  "Padaria Real") contam como um só. A regra serve de primeira sugestão nas próximas compras ali;
+  escolher outra categoria a substitui.
+
+---
+
+## Orçamento
+
+- Um orçamento vale para dias inteiros: do começo do primeiro dia ao fim do último.
+- O ritmo compara o quanto já foi gasto com o quanto do período já passou. Até 10 pontos acima
+  do calendário ainda conta como "no ritmo"; acima do limite, o orçamento está estourado.
 
 ---
 

@@ -9,9 +9,9 @@ export interface MonthlyCashFlow {
 
 /**
  * Buckets transactions into calendar months from `start` through `end`
- * (inclusive), summing income and expense separately. Shared by
- * `GetDashboardSummaryUseCase` and `GetFinancialReportUseCase` so the two
- * never drift apart on what "cash flow by month" means.
+ * (inclusive), summing income and expense separately. Shared by the
+ * report's overview and its per-account series so the two never drift
+ * apart on what "cash flow by month" means.
  *
  * `perAccount` is money in and out of a single account, where a card bill
  * payment is a real outflow. Everywhere else it is left out, since the card
