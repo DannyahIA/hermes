@@ -1,5 +1,6 @@
 import type { AccountRepository } from '@/core/contracts/account-repository';
 import type { BudgetRepository } from '@/core/contracts/budget-repository';
+import type { RecurringTransactionRepository } from '@/core/contracts/recurring-transaction-repository';
 import type { TransactionRepository } from '@/core/contracts/transaction-repository';
 import type { Account } from '@/core/entities/account';
 import type { Transaction } from '@/core/entities/transaction';
@@ -16,12 +17,23 @@ import {
 } from '@/shared/lib/build-monthly-cash-flow';
 import { sumByType } from '@/shared/lib/sum-by-type';
 
+import {
+  type AvailableToSpend,
+  calculateAvailableToSpend,
+} from './metrics/calculate-available-to-spend';
+import {
+  calculateMonthToDate,
+  type MonthToDate,
+} from './metrics/calculate-month-to-date';
+
 export type { MonthlyCashFlow };
 
 export interface DashboardSummary {
   netWorth: number;
   /** Net worth once every known future commitment (installments) has landed. */
   projectedNetWorth: number;
+  /** What's owed on visible credit cards today. */
+  owedOnCards: number;
   accounts: Account[];
   accountBalances: AccountWithBalances[];
   /** Every not-yet-occurred transaction across all accounts — already
@@ -34,6 +46,9 @@ export interface DashboardSummary {
   recentTransactions: Transaction[];
   cashFlow: MonthlyCashFlow[];
   budgets: BudgetProgress[];
+  /** Null without a checking account to spend from. */
+  availableToSpend: AvailableToSpend | null;
+  monthToDate: MonthToDate;
 }
 
 const CASH_FLOW_MONTHS = 6;
@@ -58,6 +73,7 @@ export class GetDashboardSummaryUseCase {
     private readonly accountRepository: AccountRepository,
     private readonly transactionRepository: TransactionRepository,
     private readonly budgetRepository: BudgetRepository,
+    private readonly recurringTransactionRepository: RecurringTransactionRepository,
   ) {}
 
   async execute(userId: string): Promise<DashboardSummary> {
@@ -75,6 +91,7 @@ export class GetDashboardSummaryUseCase {
       futureTransactions,
       allRecent,
       budgetProgress,
+      recurringRules,
     ] = await Promise.all([
       this.accountRepository.findByUserId(userId),
       this.transactionRepository.findByUserId(userId, {
@@ -91,6 +108,7 @@ export class GetDashboardSummaryUseCase {
         this.budgetRepository,
         this.transactionRepository,
       ).execute(userId),
+      this.recurringTransactionRepository.findByUserId(userId),
     ]);
 
     const futureByAccountId = new Map<string, typeof futureTransactions>();
@@ -117,6 +135,12 @@ export class GetDashboardSummaryUseCase {
         sum + netWorthContribution(account, currentBalance),
       0,
     );
+    const owedOnCards = visibleBalances
+      .filter(({ account }) => account.type === 'credit')
+      .reduce(
+        (sum, { currentBalance }) => sum + Math.max(0, currentBalance),
+        0,
+      );
     const projectedNetWorth = visibleBalances.reduce(
       (sum, { account, projectedBalance }) =>
         sum + netWorthContribution(account, projectedBalance),
@@ -134,6 +158,7 @@ export class GetDashboardSummaryUseCase {
     return {
       netWorth,
       projectedNetWorth,
+      owedOnCards,
       accounts,
       accountBalances,
       futureTransactions,
@@ -142,6 +167,13 @@ export class GetDashboardSummaryUseCase {
       recentTransactions: allRecent,
       cashFlow,
       budgets: budgetProgress,
+      availableToSpend: calculateAvailableToSpend({
+        balances: accountBalances,
+        recurringRules,
+        futureTransactions,
+        today: now,
+      }),
+      monthToDate: calculateMonthToDate(transactionsInRange, now),
     };
   }
 }

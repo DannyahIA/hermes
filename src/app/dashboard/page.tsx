@@ -8,21 +8,19 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { DimensionLine } from '@/components/ui/dimension-line';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ROUTES } from '@/config/routes';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleBudgetRepository } from '@/infra/repositories/drizzle-budget.repository';
+import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { GetDashboardSummaryUseCase } from '@/modules/dashboard/application/get-dashboard-summary.use-case';
 import { formatCurrency } from '@/shared/lib/format-currency';
-import {
-  formatDate,
-  formatMonthLabel,
-  formatOccurredAt,
-} from '@/shared/lib/format-date';
+import { formatMonthLabel, formatOccurredAt } from '@/shared/lib/format-date';
 import { getCategoryOptions } from '@/shared/server/reference-options';
+
+import { AvailableHero } from './available-hero';
 
 export default async function DashboardPage() {
   const userId = await requireCurrentUserId();
@@ -31,6 +29,7 @@ export default async function DashboardPage() {
     new DrizzleAccountRepository(),
     new DrizzleTransactionRepository(),
     new DrizzleBudgetRepository(),
+    new DrizzleRecurringTransactionRepository(),
   );
   const [summary, categories] = await Promise.all([
     useCase.execute(userId),
@@ -77,25 +76,6 @@ export default async function DashboardPage() {
     );
   }
 
-  const netFlow = summary.monthIncome - summary.monthExpense;
-  const subStats = [
-    {
-      label: 'Receitas do mês',
-      value: summary.monthIncome,
-      tone: 'success' as const,
-    },
-    {
-      label: 'Despesas do mês',
-      value: summary.monthExpense,
-      tone: 'error' as const,
-    },
-    {
-      label: 'Fluxo de caixa',
-      value: netFlow,
-      tone: netFlow >= 0 ? ('success' as const) : ('error' as const),
-    },
-  ];
-
   const maxFlow = Math.max(
     1,
     ...summary.cashFlow.map((m) => Math.max(m.income, m.expense)),
@@ -105,51 +85,16 @@ export default async function DashboardPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Hero — the sheet's title-block figure: today's net worth,
-            measured like a dimensioned drawing's headline span. */}
+        {/* Hero — how much is still free to spend until the next income,
+            with the month so far and net worth beside it. */}
         <Card className="registration-frame p-6 sm:p-8">
-          <p className="font-display text-muted-foreground text-sm italic">
-            Patrimônio · {formatDate(new Date())}
-          </p>
-          <p className="dimension-figure mt-2 text-3xl font-semibold break-all sm:text-4xl md:text-5xl">
-            {formatCurrency(summary.netWorth)}
-          </p>
-
-          {(() => {
-            const projectedTotal = summary.projectedNetWorth;
-            const difference = projectedTotal - summary.netWorth;
-
-            if (Math.abs(difference) < 0.005) return null;
-
-            return (
-              <div className="mt-3 max-w-xs">
-                <DimensionLine label="compromissos futuros" />
-                <p className="text-muted-foreground flex items-baseline justify-between text-sm">
-                  <span>Projetado</span>
-                  <span className="dimension-figure font-medium">
-                    {formatCurrency(projectedTotal)}
-                  </span>
-                </p>
-              </div>
-            );
-          })()}
-
-          <div className="border-border mt-6 grid grid-cols-1 gap-4 border-t pt-6 sm:grid-cols-3">
-            {subStats.map((stat) => (
-              <div key={stat.label}>
-                <p className="text-muted-foreground text-sm">{stat.label}</p>
-                <p
-                  className={`dimension-figure mt-1 text-xl font-semibold ${
-                    stat.tone === 'success'
-                      ? 'text-success'
-                      : 'text-destructive'
-                  }`}
-                >
-                  {formatCurrency(stat.value)}
-                </p>
-              </div>
-            ))}
-          </div>
+          <AvailableHero
+            available={summary.availableToSpend}
+            owedOnCards={summary.owedOnCards}
+            monthToDate={summary.monthToDate}
+            netWorth={summary.netWorth}
+            projectedNetWorth={summary.projectedNetWorth}
+          />
 
           {(() => {
             const futureExpenses = summary.futureTransactions.filter(

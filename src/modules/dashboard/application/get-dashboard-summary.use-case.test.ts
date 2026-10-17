@@ -5,6 +5,7 @@ import { Transaction } from '@/core/entities/transaction';
 import { GetDashboardSummaryUseCase } from '@/modules/dashboard/application/get-dashboard-summary.use-case';
 import { FakeAccountRepository } from '@/tests/fakes/fake-account.repository';
 import { FakeBudgetRepository } from '@/tests/fakes/fake-budget.repository';
+import { FakeRecurringTransactionRepository } from '@/tests/fakes/fake-recurring-transaction.repository';
 import { FakeTransactionRepository } from '@/tests/fakes/fake-transaction.repository';
 
 describe('GetDashboardSummaryUseCase', () => {
@@ -44,6 +45,7 @@ describe('GetDashboardSummaryUseCase', () => {
       accountRepository,
       transactionRepository,
       budgetRepository,
+      new FakeRecurringTransactionRepository(),
     ).execute('user-1');
 
     expect(summary.netWorth).toBe(1000);
@@ -77,6 +79,7 @@ describe('GetDashboardSummaryUseCase', () => {
       accountRepository,
       transactionRepository,
       budgetRepository,
+      new FakeRecurringTransactionRepository(),
     ).execute('user-1');
 
     expect(summary.netWorth).toBe(500);
@@ -121,9 +124,11 @@ describe('GetDashboardSummaryUseCase', () => {
       accountRepository,
       transactionRepository,
       budgetRepository,
+      new FakeRecurringTransactionRepository(),
     ).execute('user-1');
 
     expect(summary.netWorth).toBe(700);
+    expect(summary.owedOnCards).toBe(300);
   });
 
   it('projects net worth after future card installments, counting them as debt', async () => {
@@ -162,6 +167,7 @@ describe('GetDashboardSummaryUseCase', () => {
       accountRepository,
       transactionRepository,
       budgetRepository,
+      new FakeRecurringTransactionRepository(),
     ).execute('user-1');
 
     expect(summary.netWorth).toBe(-300);
@@ -205,6 +211,7 @@ describe('GetDashboardSummaryUseCase', () => {
       accountRepository,
       transactionRepository,
       budgetRepository,
+      new FakeRecurringTransactionRepository(),
     ).execute('user-1');
 
     expect(summary.monthExpense).toBe(300);
@@ -248,6 +255,7 @@ describe('GetDashboardSummaryUseCase', () => {
       accountRepository,
       transactionRepository,
       budgetRepository,
+      new FakeRecurringTransactionRepository(),
     ).execute('user-1');
 
     expect(summary.netWorth).toBe(100);
