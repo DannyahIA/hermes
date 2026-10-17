@@ -22,9 +22,14 @@ import {
   calculateAvailableToSpend,
 } from './metrics/calculate-available-to-spend';
 import {
+  calculateCardStatements,
+  type CardStatement,
+} from './metrics/calculate-card-statements';
+import {
   calculateMonthToDate,
   type MonthToDate,
 } from './metrics/calculate-month-to-date';
+import { calculateUpcoming, type Upcoming } from './metrics/calculate-upcoming';
 
 export type { MonthlyCashFlow };
 
@@ -49,6 +54,8 @@ export interface DashboardSummary {
   /** Null without a checking account to spend from. */
   availableToSpend: AvailableToSpend | null;
   monthToDate: MonthToDate;
+  cardStatements: CardStatement[];
+  upcoming: Upcoming;
 }
 
 const CASH_FLOW_MONTHS = 6;
@@ -155,6 +162,12 @@ export class GetDashboardSummaryUseCase {
     const monthIncome = sumByType(monthTransactions, 'income');
     const monthExpense = sumByType(monthTransactions, 'expense');
 
+    const cardStatements = calculateCardStatements(
+      accountBalances,
+      transactionsInRange,
+      now,
+    );
+
     return {
       netWorth,
       projectedNetWorth,
@@ -174,6 +187,14 @@ export class GetDashboardSummaryUseCase {
         today: now,
       }),
       monthToDate: calculateMonthToDate(transactionsInRange, now),
+      cardStatements,
+      upcoming: calculateUpcoming({
+        balances: accountBalances,
+        recurringRules,
+        futureTransactions,
+        cardStatements,
+        today: now,
+      }),
     };
   }
 }

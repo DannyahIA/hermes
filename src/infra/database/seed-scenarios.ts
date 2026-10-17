@@ -547,7 +547,7 @@ async function build(tx: Executor, userId: string, scenario: Scenario) {
           card.dueDay,
           9,
         );
-        if (due > today || previousClosing < historyStart) continue;
+        if (due > today) continue;
 
         const statement = charges
           .filter(
