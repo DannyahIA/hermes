@@ -126,6 +126,48 @@ describe('GetDashboardSummaryUseCase', () => {
     expect(summary.netWorth).toBe(700);
   });
 
+  it('projects net worth after future card installments, counting them as debt', async () => {
+    const accountRepository = new FakeAccountRepository();
+    const transactionRepository = new FakeTransactionRepository();
+    const budgetRepository = new FakeBudgetRepository();
+
+    await accountRepository.save(
+      new Account({
+        id: 'card-1',
+        userId: 'user-1',
+        name: 'Cartão',
+        type: 'credit',
+        balance: 500, // 300 owed today + a 200 installment dated next month
+        currency: 'BRL',
+        archived: false,
+        hidden: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+    await transactionRepository.save(
+      new Transaction({
+        id: 'tx-future',
+        accountId: 'card-1',
+        description: 'Parcela futura',
+        amount: 200,
+        type: 'expense',
+        occurredAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+
+    const summary = await new GetDashboardSummaryUseCase(
+      accountRepository,
+      transactionRepository,
+      budgetRepository,
+    ).execute('user-1');
+
+    expect(summary.netWorth).toBe(-300);
+    expect(summary.projectedNetWorth).toBe(-500);
+  });
+
   it('leaves a card bill payment out of the month’s spending', async () => {
     const accountRepository = new FakeAccountRepository();
     const transactionRepository = new FakeTransactionRepository();

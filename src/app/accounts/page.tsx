@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { netWorthContribution } from '@/core/value-objects/net-worth';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
@@ -26,7 +27,11 @@ export default async function AccountsPage() {
 
   const total = accountsWithBalances
     .filter(({ account }) => !account.hidden && !account.archived)
-    .reduce((sum, { currentBalance }) => sum + currentBalance, 0);
+    .reduce(
+      (sum, { account, currentBalance }) =>
+        sum + netWorthContribution(account, currentBalance),
+      0,
+    );
 
   // Client Components can only receive plain objects — entity class
   // instances aren't serializable — so `nextDueDate` is computed here and

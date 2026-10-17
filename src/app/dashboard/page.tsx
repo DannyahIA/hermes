@@ -116,9 +116,7 @@ export default async function DashboardPage() {
           </p>
 
           {(() => {
-            const projectedTotal = summary.accountBalances
-              .filter(({ account }) => !account.hidden)
-              .reduce((sum, { projectedBalance }) => sum + projectedBalance, 0);
+            const projectedTotal = summary.projectedNetWorth;
             const difference = projectedTotal - summary.netWorth;
 
             if (Math.abs(difference) < 0.005) return null;

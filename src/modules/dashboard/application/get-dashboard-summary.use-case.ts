@@ -20,6 +20,8 @@ export type { MonthlyCashFlow };
 
 export interface DashboardSummary {
   netWorth: number;
+  /** Net worth once every known future commitment (installments) has landed. */
+  projectedNetWorth: number;
   accounts: Account[];
   accountBalances: AccountWithBalances[];
   /** Every not-yet-occurred transaction across all accounts — already
@@ -107,13 +109,19 @@ export class GetDashboardSummaryUseCase {
       };
     });
 
-    const netWorth = accountBalances
-      .filter(({ account }) => !account.hidden)
-      .reduce(
-        (sum, { account, currentBalance }) =>
-          sum + netWorthContribution(account, currentBalance),
-        0,
-      );
+    const visibleBalances = accountBalances.filter(
+      ({ account }) => !account.hidden,
+    );
+    const netWorth = visibleBalances.reduce(
+      (sum, { account, currentBalance }) =>
+        sum + netWorthContribution(account, currentBalance),
+      0,
+    );
+    const projectedNetWorth = visibleBalances.reduce(
+      (sum, { account, projectedBalance }) =>
+        sum + netWorthContribution(account, projectedBalance),
+      0,
+    );
 
     const cashFlow = buildMonthlyCashFlow(rangeStart, now, transactionsInRange);
 
@@ -125,6 +133,7 @@ export class GetDashboardSummaryUseCase {
 
     return {
       netWorth,
+      projectedNetWorth,
       accounts,
       accountBalances,
       futureTransactions,
