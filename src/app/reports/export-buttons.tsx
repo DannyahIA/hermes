@@ -1,5 +1,9 @@
+import type { ReportTab } from './report-tabs-nav';
+
 interface ExportButtonsProps {
   periodQueryString: string;
+  /** The PDF prints the tab being viewed as its own sheet (spec §6). */
+  activeTab: ReportTab;
 }
 
 /**
@@ -7,7 +11,10 @@ interface ExportButtonsProps {
  * download, which a normal navigation already handles — no client JS, and
  * the browser's own "save as" dialog does the rest.
  */
-export function ExportButtons({ periodQueryString }: ExportButtonsProps) {
+export function ExportButtons({
+  periodQueryString,
+  activeTab,
+}: ExportButtonsProps) {
   return (
     <div className="flex gap-2">
       <a
@@ -17,7 +24,7 @@ export function ExportButtons({ periodQueryString }: ExportButtonsProps) {
         Exportar CSV
       </a>
       <a
-        href={`/api/reports/export?${periodQueryString}&format=pdf`}
+        href={`/api/reports/export?${periodQueryString}&tab=${activeTab}&format=pdf`}
         className="border-input bg-background hover:bg-accent rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
       >
         Exportar PDF

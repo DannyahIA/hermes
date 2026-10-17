@@ -56,7 +56,10 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           {/* Period selector — a plain GET form, same pattern as the
               transactions filters: filtering works with zero client JS. */}
-          <form className="grid flex-1 gap-3 sm:grid-cols-[1fr_1fr_auto]" method="get">
+          <form
+            className="grid flex-1 gap-3 sm:grid-cols-[1fr_1fr_auto]"
+            method="get"
+          >
             {/* Keeps the active tab across a period change. */}
             <input type="hidden" name="tab" value={tab} />
             <input
@@ -80,7 +83,10 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               Filtrar período
             </button>
           </form>
-          <ExportButtons periodQueryString={periodQueryString} />
+          <ExportButtons
+            periodQueryString={periodQueryString}
+            activeTab={tab}
+          />
         </div>
 
         <ReportTabsNav activeTab={tab} periodQueryString={periodQueryString} />

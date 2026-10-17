@@ -1,74 +1,72 @@
-import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Document } from '@react-pdf/renderer';
 
 import type { FinancialReport } from '@/modules/reports/application/get-financial-report.use-case';
-import { formatCurrency } from '@/shared/lib/format-currency';
-import { formatDate } from '@/shared/lib/format-date';
 
-/*
- * Colors are literal hex rather than the app's CSS variables: a PDF has no
- * stylesheet and no theme to resolve them against. These are the light-mode
- * values of --primary, --foreground and --muted-foreground, so a printed
- * report still reads as the same document as the screen.
- */
-const styles = StyleSheet.create({
-  page: { padding: 32, fontSize: 11, fontFamily: 'Helvetica' },
-  title: { fontSize: 16, marginBottom: 4, color: '#1d4e89' },
-  subtitle: { fontSize: 10, marginBottom: 16, color: '#5a7185' },
-  sectionTitle: {
-    fontSize: 12,
-    marginTop: 16,
-    marginBottom: 6,
-    color: '#1d4e89',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 3,
-  },
-  label: { color: '#12233d' },
-  value: { fontFamily: 'Helvetica-Bold' },
-});
+import { ACCOUNTS_NOTES, AccountsSheet } from './pdf/accounts-sheet';
+import { COMPARISONS_NOTES, ComparisonsSheet } from './pdf/comparisons-sheet';
+import { OVERVIEW_NOTES, OverviewSheet } from './pdf/overview-sheet';
+import { formatPeriod } from './pdf/pdf-format';
+import { ReportSheet } from './pdf/report-sheet';
+import { REPORT_SHEETS, type ReportSheetId } from './pdf/report-sheets';
 
 interface ReportPdfDocumentProps {
   report: FinancialReport;
   period: { from: Date; to: Date };
+  /** Which tab of `/reports` this export is — each tab prints as its own sheet. */
+  sheet: ReportSheetId;
+  issuedAt: Date;
+  /** Budgets only carry a category id; the overview sheet prints the name. */
+  categoryNames: Record<string, string>;
 }
 
-export function ReportPdfDocument({ report, period }: ReportPdfDocumentProps) {
+/**
+ * The report as a printed drawing sheet (see ./pdf/pdf-theme.ts): one sheet
+ * per tab, numbered R.01–R.03 in its title block, flowing onto as many A4
+ * pages as its content needs.
+ */
+export function ReportPdfDocument({
+  report,
+  period,
+  sheet,
+  issuedAt,
+  categoryNames,
+}: ReportPdfDocumentProps) {
+  const meta = REPORT_SHEETS[sheet];
+  const notes = {
+    overview: OVERVIEW_NOTES,
+    accounts: ACCOUNTS_NOTES,
+    comparisons: COMPARISONS_NOTES,
+  }[sheet];
+
   return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>Relatório financeiro — Hermes</Text>
-        <Text style={styles.subtitle}>
-          {formatDate(period.from)} — {formatDate(period.to)}
-        </Text>
-
-        <Text style={styles.sectionTitle}>Totais do período</Text>
-        <View style={styles.row}>
-          <Text style={styles.label}>Receitas</Text>
-          <Text style={styles.value}>{formatCurrency(report.totalIncome)}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Despesas</Text>
-          <Text style={styles.value}>
-            {formatCurrency(report.totalExpense)}
-          </Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>Gastos por categoria</Text>
-        {report.spendingByCategory.length === 0 ? (
-          <Text style={styles.label}>
-            Nenhuma despesa registrada neste período.
-          </Text>
-        ) : (
-          report.spendingByCategory.map((category) => (
-            <View key={category.categoryId} style={styles.row}>
-              <Text style={styles.label}>{category.categoryName}</Text>
-              <Text style={styles.value}>{formatCurrency(category.total)}</Text>
-            </View>
-          ))
+    <Document
+      title={`Relatório financeiro, ${meta.title} — ${formatPeriod(period.from, period.to)}`}
+      author="Hermes"
+      creator="Hermes"
+      producer="Hermes"
+      language="pt-BR"
+    >
+      <ReportSheet
+        sheet={meta}
+        period={period}
+        issuedAt={issuedAt}
+        notes={notes}
+      >
+        {sheet === 'overview' && (
+          <OverviewSheet report={report} categoryNames={categoryNames} />
         )}
-      </Page>
+        {sheet === 'accounts' && (
+          <AccountsSheet accounts={report.accountSeries} />
+        )}
+        {sheet === 'comparisons' && (
+          <ComparisonsSheet
+            yearOverYear={report.yearOverYear}
+            sameMonthLastYear={report.sameMonthLastYear}
+            trendStats={report.trendStats}
+            issuedAt={issuedAt}
+          />
+        )}
+      </ReportSheet>
     </Document>
   );
 }
