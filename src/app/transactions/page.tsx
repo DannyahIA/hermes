@@ -31,6 +31,7 @@ import { GetViewPreferenceUseCase } from '@/modules/preferences/application/get-
 import { GetRecurringTransactionsUseCase } from '@/modules/recurring-transactions/application/get-recurring-transactions.use-case';
 import { GetTransactionsUseCase } from '@/modules/transactions/application/get-transactions.use-case';
 import { encodeTransactionCursor } from '@/shared/lib/transaction-cursor';
+import { parseCategoryFilter } from '@/shared/lib/transaction-filters';
 import {
   getAccountOptions,
   getCategoryOptions,
@@ -95,7 +96,7 @@ export default async function TransactionsPage({
     new DrizzleTransactionRepository(),
   ).execute(userId, {
     accountId: filters.accountId || undefined,
-    categoryId: filters.categoryId || undefined,
+    ...parseCategoryFilter(filters.categoryId),
     type:
       (filters.type as 'income' | 'expense' | 'transfer' | undefined) ||
       undefined,

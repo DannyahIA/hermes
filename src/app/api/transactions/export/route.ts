@@ -10,6 +10,7 @@ import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { GetTransactionsUseCase } from '@/modules/transactions/application/get-transactions.use-case';
 import { buildCsv } from '@/shared/lib/csv';
+import { parseCategoryFilter } from '@/shared/lib/transaction-filters';
 
 const CSV_HEADER = ['Data', 'Descrição', 'Conta', 'Categoria', 'Tipo', 'Valor'];
 
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
 
   const params = request.nextUrl.searchParams;
   const accountId = params.get('accountId') || undefined;
-  const categoryId = params.get('categoryId') || undefined;
+  const categoryFilter = parseCategoryFilter(params.get('categoryId'));
   const typeParam = params.get('type');
   const type = isTransactionType(typeParam) ? typeParam : undefined;
   const fromParam = params.get('from');
@@ -54,7 +55,14 @@ export async function GET(request: NextRequest) {
     new DrizzleCategoryRepository().findByUserId(userId),
     new GetTransactionsUseCase(new DrizzleTransactionRepository()).execute(
       userId,
-      { accountId, categoryId, type, from, to, pageSize: EXPORT_MAX_ROWS },
+      {
+        accountId,
+        ...categoryFilter,
+        type,
+        from,
+        to,
+        pageSize: EXPORT_MAX_ROWS,
+      },
     ),
   ]);
 

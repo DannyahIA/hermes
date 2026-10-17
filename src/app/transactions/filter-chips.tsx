@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { TRANSACTION_TYPE_LABELS } from '@/config/constants';
+import { UNCATEGORIZED_FILTER } from '@/shared/lib/transaction-filters';
 
 interface FilterChipsProps {
   accounts: Array<{ id: string; name: string }>;
@@ -37,7 +38,10 @@ export function FilterChips({
     const category = categories.find((c) => c.id === filters.categoryId);
     chips.push({
       key: 'categoryId',
-      label: `Categoria: ${category?.name ?? '—'}`,
+      label:
+        filters.categoryId === UNCATEGORIZED_FILTER
+          ? 'Sem categoria'
+          : `Categoria: ${category?.name ?? '—'}`,
     });
   }
   if (filters.type) {

@@ -27,6 +27,11 @@ export class FakeTransactionRepository implements TransactionRepository {
           return false;
         if (filters.categoryId && t.categoryId !== filters.categoryId)
           return false;
+        if (
+          filters.uncategorized &&
+          (t.categoryId || t.type === 'transfer' || t.isCardBillPayment)
+        )
+          return false;
         if (filters.type && t.type !== filters.type) return false;
         if (filters.from && t.occurredAt < filters.from) return false;
         if (filters.to && t.occurredAt > filters.to) return false;

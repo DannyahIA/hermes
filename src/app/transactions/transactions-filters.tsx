@@ -4,6 +4,7 @@ import { useRef } from 'react';
 
 import { TRANSACTION_TYPE_LABELS } from '@/config/constants';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
+import { UNCATEGORIZED_FILTER } from '@/shared/lib/transaction-filters';
 
 interface TransactionsFiltersProps {
   accounts: Array<{ id: string; name: string }>;
@@ -120,6 +121,7 @@ export function TransactionsFilters({
           className={FIELD_BASE_CLASSES}
         >
           <option value="">Todas as categorias</option>
+          <option value={UNCATEGORIZED_FILTER}>Sem categoria</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}

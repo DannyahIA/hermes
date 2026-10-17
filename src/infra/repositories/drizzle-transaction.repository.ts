@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, lte, or } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lt, lte, ne, or } from 'drizzle-orm';
 
 import type {
   TransactionFilters,
@@ -62,6 +62,13 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       conditions.push(eq(transactions.accountId, filters.accountId));
     if (filters.categoryId)
       conditions.push(eq(transactions.categoryId, filters.categoryId));
+    if (filters.uncategorized) {
+      conditions.push(
+        isNull(transactions.categoryId),
+        isNull(transactions.settlesAccountId),
+        ne(transactions.type, 'transfer'),
+      );
+    }
     if (filters.type) conditions.push(eq(transactions.type, filters.type));
     if (filters.from)
       conditions.push(gte(transactions.occurredAt, filters.from));

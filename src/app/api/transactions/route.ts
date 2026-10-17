@@ -10,6 +10,7 @@ import {
   decodeTransactionCursor,
   encodeTransactionCursor,
 } from '@/shared/lib/transaction-cursor';
+import { parseCategoryFilter } from '@/shared/lib/transaction-filters';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   const params = request.nextUrl.searchParams;
   const accountId = params.get('accountId') || undefined;
-  const categoryId = params.get('categoryId') || undefined;
+  const categoryFilter = parseCategoryFilter(params.get('categoryId'));
   const typeParam = params.get('type');
   const type = isTransactionType(typeParam) ? typeParam : undefined;
   const fromParam = params.get('from');
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
       userId,
       {
         accountId,
-        categoryId,
+        ...categoryFilter,
         type,
         from,
         to,

@@ -3,6 +3,9 @@ import type { Transaction } from '@/core/entities/transaction';
 export interface TransactionFilters {
   accountId?: string;
   categoryId?: string;
+  /** Only income and expenses still without a category — transfers and
+   * card bill payments never take one. */
+  uncategorized?: boolean;
   type?: Transaction['type'];
   from?: Date;
   to?: Date;
