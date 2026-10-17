@@ -37,6 +37,19 @@ async function getOrCreateDemoUser(): Promise<string> {
 async function main() {
   const userId = await getOrCreateDemoUser();
 
+  // The rows below get fresh ids every run, so onConflictDoNothing never
+  // fires — seeding twice used to duplicate every account and category.
+  const [alreadySeeded] = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(eq(accounts.userId, userId))
+    .limit(1);
+  if (alreadySeeded) {
+    console.log('Demo user already has data; nothing to seed.');
+    console.log(`Demo login: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
+    return;
+  }
+
   const essentialsCategoryId = randomUUID();
   const leisureCategoryId = randomUUID();
   const checkingAccountId = randomUUID();

@@ -78,6 +78,26 @@ describe('PayCreditCardBillUseCase', () => {
     expect(transactions).toHaveLength(1);
   });
 
+  it('records the payment on the date it was paid, when given', async () => {
+    await accountRepository.save(
+      makeAccount({ id: 'credit-1', type: 'credit', balance: 500 }),
+    );
+    await accountRepository.save(
+      makeAccount({ id: 'checking-1', type: 'checking', balance: 1000 }),
+    );
+    const paidAt = new Date(2026, 8, 10);
+
+    const transaction = await useCase.execute({
+      userId: 'user-1',
+      creditAccountId: 'credit-1',
+      payingAccountId: 'checking-1',
+      amount: 300,
+      paidAt,
+    });
+
+    expect(transaction.occurredAt).toEqual(paidAt);
+  });
+
   it('uses a custom description when given', async () => {
     const credit = makeAccount({
       id: 'credit-1',

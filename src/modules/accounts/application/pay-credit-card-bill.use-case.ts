@@ -12,6 +12,8 @@ export interface PayCreditCardBillInput {
   payingAccountId: string;
   amount: number;
   description?: string;
+  /** When the bill was paid. Defaults to now. */
+  paidAt?: Date;
 }
 
 /**
@@ -80,7 +82,7 @@ export class PayCreditCardBillUseCase {
       amount: input.amount,
       type: 'expense',
       settlesAccountId: creditAccount.id,
-      occurredAt: now,
+      occurredAt: input.paidAt ?? now,
       createdAt: now,
       updatedAt: now,
     });
