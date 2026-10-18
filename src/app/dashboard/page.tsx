@@ -31,6 +31,7 @@ import { BudgetPaceList } from './budget-pace';
 import { CardStatements } from './card-statements';
 import type { CategoryOption } from './category-picker';
 import { NetWorthTrend } from './net-worth-trend';
+import { QuickEntry } from './quick-entry';
 import { type RecentDayView, RecentTransactions } from './recent-transactions';
 import { ReviewQueue } from './review-queue';
 import { UpcomingList } from './upcoming-list';
@@ -183,6 +184,12 @@ async function DashboardContent() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
+      <QuickEntry
+        accounts={summary.quickEntry.accounts}
+        categories={selectable}
+        merchants={summary.quickEntry.merchants}
+      />
+
       {/* Hero — how much is still free to spend until the next income,
             with the month so far and net worth beside it. */}
       <Card className="registration-frame p-6 sm:p-8">

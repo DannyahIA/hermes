@@ -354,4 +354,120 @@ describe('GetDashboardSummaryUseCase', () => {
     expect(summary.categorySuggestions.padaria).toEqual(['restaurantes']);
     expect(summary.categorySuggestions.refund).toEqual([]);
   });
+
+  it('prepares the quick entry: accounts by how much they are used, and what each merchant was', async () => {
+    const accountRepository = new FakeAccountRepository();
+    const transactionRepository = new FakeTransactionRepository();
+    const categoryRepository = new FakeCategoryRepository();
+    const now = new Date();
+    const daysAgo = (days: number) =>
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() - days, 12);
+
+    for (const [id, name, type, archived] of [
+      ['checking-1', 'Nubank Conta', 'checking', false],
+      ['card-1', 'Nubank Crédito', 'credit', false],
+      ['old-1', 'Conta antiga', 'checking', true],
+    ] as const) {
+      await accountRepository.save(
+        new Account({
+          id,
+          userId: 'user-1',
+          name,
+          type,
+          balance: 0,
+          currency: 'BRL',
+          archived,
+          hidden: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+    }
+    await categoryRepository.save(
+      new Category({
+        id: 'restaurantes',
+        userId: 'user-1',
+        name: 'Restaurantes',
+        archived: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+    const save = (
+      id: string,
+      description: string,
+      occurredAt: Date,
+      overrides: Partial<ConstructorParameters<typeof Transaction>[0]> = {},
+    ) =>
+      transactionRepository.save(
+        new Transaction({
+          id,
+          accountId: 'card-1',
+          description,
+          amount: 20,
+          type: 'expense',
+          occurredAt,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          ...overrides,
+        }),
+      );
+
+    await save('padaria', 'PADARIA REAL *1', daysAgo(5), {
+      categoryId: 'restaurantes',
+    });
+    await save('uber', 'Uber', daysAgo(3));
+    await save('salario', 'Salário', daysAgo(10), {
+      type: 'income',
+      accountId: 'checking-1',
+    });
+    await save('bill', 'Pagamento de fatura', daysAgo(1), {
+      accountId: 'checking-1',
+      settlesAccountId: 'card-1',
+    });
+    await save('long-ago', 'Cinemark', daysAgo(120));
+
+    const summary = await summarize(
+      accountRepository,
+      transactionRepository,
+      undefined,
+      categoryRepository,
+    );
+
+    expect(summary.quickEntry.accounts).toEqual([
+      {
+        id: 'checking-1',
+        name: 'Nubank Conta',
+        type: 'checking',
+        uses: { expense: 0, income: 1 },
+      },
+      {
+        id: 'card-1',
+        name: 'Nubank Crédito',
+        type: 'credit',
+        uses: { expense: 2, income: 0 },
+      },
+    ]);
+    expect(summary.quickEntry.merchants).toEqual([
+      {
+        key: 'padaria real',
+        displayName: 'Padaria Real',
+        categoryId: 'restaurantes',
+        type: 'expense',
+        accountId: 'card-1',
+      },
+      {
+        key: 'salario',
+        displayName: 'Salário',
+        type: 'income',
+        accountId: 'checking-1',
+      },
+      {
+        key: 'uber',
+        displayName: 'Uber',
+        type: 'expense',
+        accountId: 'card-1',
+      },
+    ]);
+  });
 });

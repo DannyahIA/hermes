@@ -1,5 +1,7 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
+
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -11,6 +13,11 @@ import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.r
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
 import { DrizzleMerchantRuleRepository } from '@/infra/repositories/drizzle-merchant-rule.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
+import { RecordQuickEntryUseCase } from '@/modules/capture/application/record-quick-entry.use-case';
+import {
+  type RecordQuickEntrySchema,
+  recordQuickEntrySchema,
+} from '@/modules/capture/schemas/record-quick-entry.schema';
 import { CategorizeTransactionUseCase } from '@/modules/transactions/application/categorize-transaction.use-case';
 
 export interface CategorizeResult {
@@ -24,6 +31,15 @@ const categorizeSchema = z.object({
 });
 
 const FAILED = 'Não foi possível salvar a categoria. Tente novamente.';
+const ARCHIVED = 'Essa categoria foi arquivada. Escolha outra.';
+
+function revalidateMoneyPages() {
+  revalidatePath(ROUTES.dashboard);
+  revalidatePath(ROUTES.transactions);
+  revalidatePath(ROUTES.accounts);
+  revalidatePath(ROUTES.budgets);
+  revalidatePath(ROUTES.reports);
+}
 
 /**
  * One tap in "Para revisar" (or on "Sem categoria" in the latest
@@ -49,17 +65,54 @@ export async function categorizeTransactionAction(
     });
   } catch (error) {
     if (error instanceof DomainError && error.code === 'CATEGORY_ARCHIVED') {
-      return {
-        success: false,
-        error: 'Essa categoria foi arquivada. Escolha outra.',
-      };
+      return { success: false, error: ARCHIVED };
     }
     return { success: false, error: FAILED };
   }
 
-  revalidatePath(ROUTES.dashboard);
-  revalidatePath(ROUTES.transactions);
-  revalidatePath(ROUTES.budgets);
-  revalidatePath(ROUTES.reports);
+  revalidateMoneyPages();
   return { success: true };
+}
+
+export type RecordQuickEntryResult =
+  { success: true; transactionId: string } | { success: false; error: string };
+
+const NOT_RECORDED = 'Não foi possível registrar. Tente novamente.';
+
+/**
+ * Enter in the quick entry: records the line as it was understood
+ * (`parseQuickEntry`, in the browser) and remembers its category for the
+ * merchant. Returns the new transaction's id so the toast can undo it.
+ */
+export async function recordQuickEntryAction(
+  entry: RecordQuickEntrySchema,
+): Promise<RecordQuickEntryResult> {
+  const parsed = recordQuickEntrySchema.safeParse(entry);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? NOT_RECORDED,
+    };
+  }
+
+  const transactionId = randomUUID();
+  try {
+    const userId = await requireCurrentUserId();
+    await withTransaction(async (tx) => {
+      await new RecordQuickEntryUseCase(
+        new DrizzleTransactionRepository(tx),
+        new DrizzleAccountRepository(tx),
+        new DrizzleCategoryRepository(tx),
+        new DrizzleMerchantRuleRepository(tx),
+      ).execute({ id: transactionId, userId, ...parsed.data });
+    });
+  } catch (error) {
+    if (error instanceof DomainError && error.code === 'CATEGORY_ARCHIVED') {
+      return { success: false, error: ARCHIVED };
+    }
+    return { success: false, error: NOT_RECORDED };
+  }
+
+  revalidateMoneyPages();
+  return { success: true, transactionId };
 }

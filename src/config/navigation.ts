@@ -22,7 +22,7 @@ export interface NavigationItem {
  * highlights whichever item's `href` prefixes the current pathname.
  */
 export const PRIMARY_NAVIGATION: NavigationItem[] = [
-  { href: ROUTES.dashboard, label: 'Dashboard', icon: Home },
+  { href: ROUTES.dashboard, label: 'Início', icon: Home },
   { href: ROUTES.accounts, label: 'Contas', icon: LayoutGrid },
   { href: ROUTES.transactions, label: 'Transações', icon: ReceiptText },
   { href: ROUTES.budgets, label: 'Orçamentos', icon: PiggyBank },

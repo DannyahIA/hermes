@@ -11,6 +11,12 @@ import { computeCurrentBalance } from '@/core/value-objects/current-balance';
 import { netWorthContribution } from '@/core/value-objects/net-worth';
 import type { AccountWithBalances } from '@/modules/accounts/application/get-accounts.use-case';
 import { GetBudgetProgressUseCase } from '@/modules/budgets/application/get-budget-progress.use-case';
+import {
+  buildMerchantMemory,
+  type MerchantMemoryEntry,
+} from '@/modules/capture/domain/merchant-memory';
+import type { QuickEntryAccount } from '@/modules/capture/domain/parse-quick-entry';
+import { quickEntryAccounts } from '@/modules/capture/domain/quick-entry-accounts';
 import { createCategorySuggester } from '@/modules/categories/application/suggest-categories';
 import {
   calculateNetWorthByMonth,
@@ -65,6 +71,11 @@ export interface DashboardSummary {
   monthToDate: MonthToDate;
   cardStatements: CardStatement[];
   upcoming: Upcoming;
+  /** What the quick entry needs to understand a line as it is typed. */
+  quickEntry: {
+    accounts: QuickEntryAccount[];
+    merchants: MerchantMemoryEntry[];
+  };
 }
 
 const TREND_MONTHS = 6;
@@ -201,16 +212,18 @@ export class GetDashboardSummaryUseCase {
     const recent = latest.filter(onVisibleAccount).slice(0, RECENT_COUNT);
 
     const historyFrom = daysBefore(now, SUGGESTION_HISTORY_DAYS);
+    const history = transactionsInRange.filter(
+      (transaction) => transaction.occurredAt >= historyFrom,
+    );
+    const selectableCategoryIds = categories
+      .filter((category) => !category.archived)
+      .map((category) => category.id);
     const suggest = createCategorySuggester({
-      categoryIds: categories
-        .filter((category) => !category.archived)
-        .map((category) => category.id),
+      categoryIds: selectableCategoryIds,
       rules: merchantRules,
-      history: transactionsInRange.filter(
-        (transaction) =>
-          transaction.categoryId && transaction.occurredAt >= historyFrom,
-      ),
+      history: history.filter((transaction) => transaction.categoryId),
     });
+    const entryAccounts = quickEntryAccounts(accounts, history);
     const categorySuggestions: Record<string, string[]> = {};
     for (const transaction of [
       ...toReview.slice(0, REVIEW_VISIBLE),
@@ -259,6 +272,15 @@ export class GetDashboardSummaryUseCase {
         cardStatements,
         today: now,
       }),
+      quickEntry: {
+        accounts: entryAccounts,
+        merchants: buildMerchantMemory({
+          rules: merchantRules,
+          history,
+          categoryIds: selectableCategoryIds,
+          accountIds: entryAccounts.map((account) => account.id),
+        }),
+      },
     };
   }
 }

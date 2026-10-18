@@ -327,11 +327,19 @@ Um bloco por conta `credit` visível. Para cada um:
   - "uber 18 débito";
   - "+3000 salário";
   - "mercado 250,40 ontem".
-- **Prévia:** enquanto o usuário digita, aparece o que foi entendido, em fichas:
-  "Despesa · R$ 32,50 · Nubank Crédito · Alimentação · hoje".
+- **Prévia:** enquanto o usuário digita, aparece o que foi entendido, numa fileira de células
+  rotuladas, como o carimbo de uma prancha sendo preenchido: Descrição, Valor, Tipo, Conta,
+  Categoria e Data ("Hoje às 10:02"). Tipo, Conta e Categoria trocam ali mesmo, num select nativo
+  sobre a célula. No desktop as células ficam numa linha, cada uma da largura do valor; no celular,
+  em duas colunas.
+- **Avisos:** "Falta o valor, como em almoço 32,50 crédito." bloqueia o registro. Com dois números
+  e nenhum escrito como dinheiro ("2 cafés 9"), registra o último e avisa: "Usei R$ 9,00 como
+  valor; 2 ficou na descrição."
 - **Teclas:** Enter salva, Esc limpa. "Mais opções" abre o diálogo completo já preenchido.
-- **O parser:** `parseQuickEntry` (função pura) é o mesmo do Telegram. Quem chegar primeiro cria a
-  função; o outro reaproveita.
+- **Confirmação:** o campo limpa na hora e um toast diz "Registrado: Almoço, R$ 32,50", com a conta e
+  a categoria, e o botão "Desfazer".
+- **O parser:** `parseQuickEntry` (função pura) é o mesmo do Telegram. As regras de leitura estão
+  em `docs/domain.md` (Registro rápido).
 
 ---
 
@@ -378,15 +386,24 @@ modules/dashboard/application/
 modules/categories/application/
   suggest-categories.ts              [novo] §4.2 (compartilhado com o Telegram, por isso fora do
                                             módulo do Início)
+  remember-merchant-category.ts      [novo] grava a regra do estabelecimento (Para revisar e
+                                            registro rápido)
 modules/transactions/application/
   categorize-transaction.use-case.ts [novo] classifica e grava a regra do estabelecimento
   get-dashboard-summary.use-case.ts  (passa a orquestrar; também usa o repositório de
                                       recorrências e o de categorias)
 shared/lib/
   dimension-layout.ts                [novo] geometria de cotas (PDF e web)
-modules/capture/domain/
-  normalize-merchant.ts              [novo] chave e nome limpo do estabelecimento (F3)
-  parse-quick-entry.ts               [novo] §4.8 (compartilhado com o Telegram)
+modules/capture/
+  domain/
+    normalize-merchant.ts            [novo] chave e nome limpo do estabelecimento (F3)
+    parse-amount.ts                  [novo] valores em pt-BR; também lê o valor do atalho do iPhone
+    parse-quick-entry.ts             [novo] §4.8 (compartilhado com o Telegram)
+    merchant-memory.ts               [novo] o que já se sabe de cada estabelecimento: categoria,
+                                            tipo, conta e grafia
+    quick-entry-accounts.ts          [novo] contas que aceitam lançamento, com o uso de cada uma
+  application/
+    record-quick-entry.use-case.ts   [novo] registra a linha entendida e ensina a regra
 ```
 
 **Correções de modelo (§0.1):**

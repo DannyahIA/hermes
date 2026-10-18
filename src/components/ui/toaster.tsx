@@ -31,7 +31,7 @@ export function Toaster() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed right-4 bottom-4 z-50 flex w-full max-w-sm flex-col gap-2">
+    <div className="fixed inset-x-4 bottom-4 z-50 flex flex-col gap-2 sm:left-auto sm:w-full sm:max-w-sm">
       {toasts.map((t) => {
         const Icon = VARIANT_ICONS[t.variant];
         return (
@@ -44,12 +44,24 @@ export function Toaster() {
             )}
           >
             <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-            <div className="flex-1 text-sm">
+            <div className="min-w-0 flex-1 text-sm">
               <p className="font-medium">{t.title}</p>
               {t.description && (
                 <p className="mt-0.5 opacity-80">{t.description}</p>
               )}
             </div>
+            {t.action && (
+              <button
+                type="button"
+                onClick={() => {
+                  t.action?.onClick();
+                  dismissToast(t.id);
+                }}
+                className="focus-visible:ring-ring -my-1 shrink-0 rounded-md border border-current/30 px-2.5 py-1 text-sm font-medium transition-colors hover:bg-current/10 focus-visible:ring-2 focus-visible:outline-none"
+              >
+                {t.action.label}
+              </button>
+            )}
             <button
               onClick={() => dismissToast(t.id)}
               aria-label="Fechar notificação"

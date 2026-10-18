@@ -14,9 +14,20 @@ import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
 import { formatCurrency } from '@/shared/lib/format-currency';
 import { toDateInput } from '@/shared/lib/local-day';
 
+/** What the form opens with — e.g. a quick entry handed over to "Mais opções". */
+export interface TransactionDraft {
+  type?: 'expense' | 'income';
+  amount?: number;
+  description?: string;
+  accountId?: string;
+  categoryId?: string;
+  occurredAt?: Date;
+}
+
 interface TransactionFormProps {
   accounts: Array<{ id: string; name: string }>;
   categories: Array<{ id: string; name: string }>;
+  defaults?: TransactionDraft;
   state: ActionResult;
   formAction: (formData: FormData) => void;
   repeating: boolean;
@@ -27,21 +38,30 @@ interface TransactionFormProps {
 export function TransactionForm({
   accounts,
   categories,
+  defaults,
   state,
   formAction,
   repeating,
   onRepeatingChange,
   onCancel,
 }: TransactionFormProps) {
-  const [type, setType] = useState<'expense' | 'income'>('expense');
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
-  const [categoryId, setCategoryId] = useState('');
-  const [occurredAt, setOccurredAt] = useState(() => toDateInput(new Date()));
+  const [type, setType] = useState<'expense' | 'income'>(
+    defaults?.type ?? 'expense',
+  );
+  const [accountId, setAccountId] = useState(
+    defaults?.accountId ?? accounts[0]?.id ?? '',
+  );
+  const [categoryId, setCategoryId] = useState(defaults?.categoryId ?? '');
+  const [occurredAt, setOccurredAt] = useState(() =>
+    toDateInput(defaults?.occurredAt ?? new Date()),
+  );
   const [installments, setInstallments] = useState(false);
   const [amountMode, setAmountMode] = useState<'total' | 'installment'>(
     'total',
   );
-  const [amountValue, setAmountValue] = useState('');
+  const [amountValue, setAmountValue] = useState(
+    defaults?.amount ? String(defaults.amount) : '',
+  );
   const [installmentCountValue, setInstallmentCountValue] = useState(2);
 
   const formRef = useRef<HTMLFormElement>(null);
@@ -98,6 +118,8 @@ export function TransactionForm({
       // não precisa da mesma restauração (ver comentário acima, junto aos
       // refs). O resto (descrição, valor, parcelamento) é sempre limpo.
       formRef.current?.reset();
+      // A reset puts back the description it opened with, if any.
+      if (descriptionRef.current) descriptionRef.current.value = '';
       if (typeSelectRef.current) {
         typeSelectRef.current.value = latestTypeRef.current;
       }
@@ -207,6 +229,7 @@ export function TransactionForm({
           name="description"
           ref={descriptionRef}
           required
+          defaultValue={defaults?.description}
           placeholder="Supermercado"
         />
       </div>

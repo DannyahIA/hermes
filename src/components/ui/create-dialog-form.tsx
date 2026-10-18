@@ -22,10 +22,15 @@ export interface CreateDialogFormProps<State extends { success: boolean }> {
    * (o botão pode viver em lugares diferentes — cabeçalho de página, estado
    * vazio, header global — sem duplicar o estado do dialog). */
   trigger: (open: () => void) => React.ReactNode;
+  /** Optional control from outside, when what opens it lives elsewhere. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title: string;
   description?: string;
   action: (state: State, formData: FormData) => Promise<State>;
   initialState: State;
+  /** Called after each successful submission, e.g. to clear what led here. */
+  onSuccess?: (state: State) => void;
   children: (args: CreateDialogFormRenderArgs<State>) => React.ReactNode;
 }
 
@@ -45,19 +50,33 @@ export interface CreateDialogFormProps<State extends { success: boolean }> {
  */
 export function CreateDialogForm<State extends { success: boolean }>({
   trigger,
+  open: controlledOpen,
+  onOpenChange,
   title,
   description,
   action,
   initialState,
+  onSuccess,
   children,
 }: CreateDialogFormProps<State>) {
-  const [open, setOpen] = React.useState(false);
+  const [ownOpen, setOwnOpen] = React.useState(false);
   const [repeating, setRepeating] = React.useState(false);
+  const open = controlledOpen ?? ownOpen;
+
+  // "Criar mais" nunca começa marcado — decisão explícita do usuário (sem
+  // persistência entre aberturas), venha a abertura do gatilho ou de fora.
+  const [wasOpen, setWasOpen] = React.useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setRepeating(false);
+  }
+
+  function setOpen(next: boolean) {
+    setOwnOpen(next);
+    onOpenChange?.(next);
+  }
 
   function openDialog() {
-    // "Criar mais" nunca começa marcado — decisão explícita do usuário
-    // (sem persistência entre aberturas).
-    setRepeating(false);
     setOpen(true);
   }
 
@@ -73,6 +92,7 @@ export function CreateDialogForm<State extends { success: boolean }>({
         onOpenChange={setOpen}
         action={action}
         initialState={initialState}
+        onSuccess={onSuccess}
         closeOnSuccess={!repeating}
       >
         {({ state, formAction }) => (
