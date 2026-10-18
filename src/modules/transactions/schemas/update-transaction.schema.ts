@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { localDay } from '@/shared/lib/local-day';
+
 export const updateTransactionSchema = z.object({
   id: z.uuid(),
   description: z.string().trim().min(1).max(255).optional(),
@@ -11,7 +13,10 @@ export const updateTransactionSchema = z.object({
     .uuid()
     .optional()
     .or(z.literal('').transform(() => undefined)),
-  occurredAt: z.coerce.date().optional(),
+  occurredAt: z.preprocess(
+    (value) => localDay(value, 'start'),
+    z.coerce.date({ message: 'Informe uma data válida.' }).optional(),
+  ),
 });
 
 export type UpdateTransactionSchema = z.infer<typeof updateTransactionSchema>;

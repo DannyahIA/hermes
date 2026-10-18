@@ -12,3 +12,14 @@ export function localDay(value: unknown, edge: 'start' | 'end'): unknown {
   if (typeof value !== 'string' || !DATE_ONLY.test(value)) return value;
   return new Date(`${value}T${edge === 'start' ? '00:00:00' : '23:59:59.999'}`);
 }
+
+/**
+ * The calendar day a moment falls on, in local time, as an
+ * `<input type="date">` value ("2026-10-18"). `toISOString()` would give
+ * the UTC day instead — tomorrow's date after 21:00 in Brazil.
+ */
+export function toDateInput(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}

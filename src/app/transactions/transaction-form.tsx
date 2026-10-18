@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { TRANSACTION_TYPE_LABELS } from '@/config/constants';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
 import { formatCurrency } from '@/shared/lib/format-currency';
+import { toDateInput } from '@/shared/lib/local-day';
 
 interface TransactionFormProps {
   accounts: Array<{ id: string; name: string }>;
@@ -21,10 +22,6 @@ interface TransactionFormProps {
   repeating: boolean;
   onRepeatingChange: (repeating: boolean) => void;
   onCancel: () => void;
-}
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 export function TransactionForm({
@@ -39,7 +36,7 @@ export function TransactionForm({
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
   const [categoryId, setCategoryId] = useState('');
-  const [occurredAt, setOccurredAt] = useState(today());
+  const [occurredAt, setOccurredAt] = useState(() => toDateInput(new Date()));
   const [installments, setInstallments] = useState(false);
   const [amountMode, setAmountMode] = useState<'total' | 'installment'>(
     'total',

@@ -8,6 +8,7 @@ import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-trans
 import { GetFinancialReportUseCase } from '@/modules/reports/application/get-financial-report.use-case';
 import { defaultPeriod } from '@/modules/reports/default-period';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
+import { toDateInput } from '@/shared/lib/local-day';
 
 import { AccountsSection } from './accounts-section';
 import { ComparisonsSection } from './comparisons-section';
@@ -17,12 +18,6 @@ import { type ReportTab, ReportTabsNav } from './report-tabs-nav';
 
 interface ReportsPageProps {
   searchParams: Promise<{ from?: string; to?: string; tab?: string }>;
-}
-
-/** Matches the `toISOString().slice(0, 10)` convention already used by the
- * transaction forms for a `<input type="date">` default value. */
-function toDateInputValue(date: Date): string {
-  return date.toISOString().slice(0, 10);
 }
 
 function parseTab(value: string | undefined): ReportTab {
@@ -48,7 +43,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     new DrizzleRecurringTransactionRepository(),
   ).execute(userId, { from, to });
 
-  const periodQueryString = `from=${toDateInputValue(from)}&to=${toDateInputValue(to)}`;
+  const periodQueryString = `from=${toDateInput(from)}&to=${toDateInput(to)}`;
 
   return (
     <AppShell>
@@ -66,14 +61,14 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               type="date"
               name="from"
               aria-label="De"
-              defaultValue={toDateInputValue(from)}
+              defaultValue={toDateInput(from)}
               className={FIELD_BASE_CLASSES}
             />
             <input
               type="date"
               name="to"
               aria-label="Até"
-              defaultValue={toDateInputValue(to)}
+              defaultValue={toDateInput(to)}
               className={FIELD_BASE_CLASSES}
             />
             <button

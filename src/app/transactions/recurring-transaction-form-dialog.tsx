@@ -15,16 +15,13 @@ import { DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { TRANSACTION_TYPE_LABELS } from '@/config/constants';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
+import { toDateInput } from '@/shared/lib/local-day';
 
 const INITIAL_STATE: ActionResult = { success: false };
 
 interface RecurringTransactionFormDialogProps {
   accounts: Array<{ id: string; name: string }>;
   categories: Array<{ id: string; name: string }>;
-}
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 export function RecurringTransactionFormDialog({
@@ -89,7 +86,7 @@ function RecurringTransactionForm({
     'fixed_day' | 'first_business_day' | 'last_business_day'
   >('fixed_day');
   const [dayRuleDay, setDayRuleDay] = useState('');
-  const [startDate, setStartDate] = useState(today());
+  const [startDate, setStartDate] = useState(() => toDateInput(new Date()));
 
   const formRef = useRef<HTMLFormElement>(null);
   const descriptionRef = useRef<HTMLInputElement>(null);

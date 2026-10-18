@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { localDay } from '@/shared/lib/local-day';
+
 export const createTransactionSchema = z.object({
   accountId: z.uuid('Selecione uma conta.'),
   categoryId: z
@@ -11,7 +13,10 @@ export const createTransactionSchema = z.object({
   type: z.enum(['income', 'expense'], {
     message: 'Selecione o tipo da transação.',
   }),
-  occurredAt: z.coerce.date().optional(),
+  occurredAt: z.preprocess(
+    (value) => localDay(value, 'start'),
+    z.coerce.date({ message: 'Informe uma data válida.' }).optional(),
+  ),
 });
 
 export type CreateTransactionSchema = z.infer<typeof createTransactionSchema>;

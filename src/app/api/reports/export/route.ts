@@ -16,15 +16,9 @@ import {
 } from '@/modules/reports/infra/pdf/report-sheets';
 import { ReportPdfDocument } from '@/modules/reports/infra/report-pdf-document';
 import { buildCsv } from '@/shared/lib/csv';
+import { toDateInput } from '@/shared/lib/local-day';
 
 export const runtime = 'nodejs';
-
-/** "2026-01-31" from local date parts — `toISOString()` would shift to UTC and can land on the wrong day. */
-function localIsoDate(date: Date): string {
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${month}-${day}`;
-}
 
 /**
  * Exports the same report `/reports` renders, as CSV or PDF. Reads the same
@@ -83,7 +77,7 @@ export async function GET(request: NextRequest) {
         categoryNames,
       }),
     );
-    const fileName = `hermes-relatorio-${REPORT_SHEETS[sheet].slug}-${localIsoDate(from)}-a-${localIsoDate(to)}.pdf`;
+    const fileName = `hermes-relatorio-${REPORT_SHEETS[sheet].slug}-${toDateInput(from)}-a-${toDateInput(to)}.pdf`;
     return new Response(new Uint8Array(pdf), {
       headers: {
         'Content-Type': 'application/pdf',

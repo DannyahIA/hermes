@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { localDay } from '@/shared/lib/local-day';
+
 export const createLoanSchema = z.object({
   description: z.string().trim().min(1, 'Informe uma descrição.').max(255),
   principal: z.coerce.number().positive('O valor deve ser maior que zero.'),
@@ -17,7 +19,10 @@ export const createLoanSchema = z.object({
     .max(60, 'Máximo de 60 parcelas.'),
   disbursementAccountId: z.uuid('Selecione a conta de recebimento.'),
   repaymentAccountId: z.uuid('Selecione a conta de pagamento.'),
-  startDate: z.coerce.date().optional(),
+  startDate: z.preprocess(
+    (value) => localDay(value, 'start'),
+    z.coerce.date({ message: 'Informe uma data válida.' }).optional(),
+  ),
 });
 
 export type CreateLoanSchema = z.infer<typeof createLoanSchema>;

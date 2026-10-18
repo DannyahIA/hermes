@@ -23,6 +23,7 @@ import {
   REVIEW_VISIBLE,
 } from '@/modules/dashboard/application/get-dashboard-summary.use-case';
 import { formatDayLabel, formatTimeOfDay } from '@/shared/lib/format-date';
+import { toDateInput } from '@/shared/lib/local-day';
 import { UNCATEGORIZED_FILTER } from '@/shared/lib/transaction-filters';
 
 import { AvailableHero } from './available-hero';
@@ -35,12 +36,6 @@ import { ReviewQueue } from './review-queue';
 import { UpcomingList } from './upcoming-list';
 
 const INSTALLMENT_SUFFIX = /\s*\((\d+\/\d+)\)\s*$/;
-
-function toDateParam(date: Date): string {
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${month}-${day}`;
-}
 
 /** "Geladeira (4/10)" reads as "Geladeira" with the mark "Parcela 4/10". */
 function splitOrigin(transaction: Transaction): {
@@ -212,7 +207,7 @@ async function DashboardContent() {
                 items={reviewItems}
                 total={summary.toReview.length}
                 categories={selectable}
-                seeAllHref={`${ROUTES.transactions}?categoryId=${UNCATEGORIZED_FILTER}&from=${toDateParam(reviewFrom)}`}
+                seeAllHref={`${ROUTES.transactions}?categoryId=${UNCATEGORIZED_FILTER}&from=${toDateInput(reviewFrom)}`}
               />
             </div>
           )}

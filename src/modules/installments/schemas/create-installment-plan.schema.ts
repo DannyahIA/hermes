@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { localDay } from '@/shared/lib/local-day';
+
 export const createInstallmentPlanSchema = z
   .object({
     accountId: z.uuid('Selecione uma conta.'),
@@ -21,7 +23,10 @@ export const createInstallmentPlanSchema = z
       .int()
       .min(2, 'Um parcelamento precisa de pelo menos 2 parcelas.')
       .max(60, 'Máximo de 60 parcelas.'),
-    startDate: z.coerce.date().optional(),
+    startDate: z.preprocess(
+      (value) => localDay(value, 'start'),
+      z.coerce.date({ message: 'Informe uma data válida.' }).optional(),
+    ),
   })
   .refine(
     (data) =>

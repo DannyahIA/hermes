@@ -10,6 +10,7 @@ import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { GetTransactionsUseCase } from '@/modules/transactions/application/get-transactions.use-case';
 import { buildCsv } from '@/shared/lib/csv';
+import { toDateInput } from '@/shared/lib/local-day';
 import { parseCategoryFilter } from '@/shared/lib/transaction-filters';
 
 const CSV_HEADER = ['Data', 'Descrição', 'Conta', 'Categoria', 'Tipo', 'Valor'];
@@ -17,10 +18,6 @@ const CSV_HEADER = ['Data', 'Descrição', 'Conta', 'Categoria', 'Tipo', 'Valor'
 // Large enough to cover any real user's history in one export, without
 // pulling in a second COUNT-based pagination scheme just for this route.
 const EXPORT_MAX_ROWS = 100_000;
-
-function toDateInput(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
 
 function isTransactionType(value: string | null): value is TransactionType {
   return value === 'income' || value === 'expense' || value === 'transfer';

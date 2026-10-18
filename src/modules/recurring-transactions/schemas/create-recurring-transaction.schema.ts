@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { localDay } from '@/shared/lib/local-day';
+
 export const createRecurringTransactionSchema = z.object({
   accountId: z.uuid('Selecione uma conta.'),
   categoryId: z
@@ -16,8 +18,14 @@ export const createRecurringTransactionSchema = z.object({
     },
   ),
   dayRuleDay: z.coerce.number().int().min(1).max(31).optional(),
-  startDate: z.coerce.date().optional(),
-  endDate: z.coerce.date().optional(),
+  startDate: z.preprocess(
+    (value) => localDay(value, 'start'),
+    z.coerce.date({ message: 'Informe uma data válida.' }).optional(),
+  ),
+  endDate: z.preprocess(
+    (value) => localDay(value, 'end'),
+    z.coerce.date({ message: 'Informe uma data válida.' }).optional(),
+  ),
 });
 
 export type CreateRecurringTransactionSchema = z.infer<

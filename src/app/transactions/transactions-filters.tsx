@@ -4,6 +4,7 @@ import { useRef } from 'react';
 
 import { TRANSACTION_TYPE_LABELS } from '@/config/constants';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
+import { toDateInput } from '@/shared/lib/local-day';
 import { UNCATEGORIZED_FILTER } from '@/shared/lib/transaction-filters';
 
 interface TransactionsFiltersProps {
@@ -14,13 +15,6 @@ interface TransactionsFiltersProps {
   defaultType?: string;
   defaultFrom?: string;
   defaultTo?: string;
-}
-
-function toDateInput(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }
 
 function startOfWeek(date: Date): Date {

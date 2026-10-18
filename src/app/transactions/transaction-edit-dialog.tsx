@@ -19,6 +19,7 @@ import {
 import { DialogForm } from '@/components/ui/dialog-form';
 import { Input } from '@/components/ui/input';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
+import { toDateInput } from '@/shared/lib/local-day';
 
 const INITIAL_STATE: ActionResult = { success: false };
 
@@ -33,10 +34,6 @@ interface TransactionEditDialogProps {
    * "apply to future installments" option and switches which use-case the
    * edit goes through. */
   isInstallment: boolean;
-}
-
-function toDateInputValue(date: Date): string {
-  return date.toISOString().slice(0, 10);
 }
 
 /**
@@ -128,7 +125,7 @@ export function TransactionEditDialog({
                     id="edit-occurredAt"
                     name="occurredAt"
                     type="date"
-                    defaultValue={toDateInputValue(occurredAt)}
+                    defaultValue={toDateInput(occurredAt)}
                     required
                   />
                 </div>
