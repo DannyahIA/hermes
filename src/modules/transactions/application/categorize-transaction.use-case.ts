@@ -1,14 +1,12 @@
-import { randomUUID } from 'node:crypto';
-
 import type { AccountRepository } from '@/core/contracts/account-repository';
 import type { CategoryRepository } from '@/core/contracts/category-repository';
 import type { MerchantRuleRepository } from '@/core/contracts/merchant-rule-repository';
 import type { TransactionRepository } from '@/core/contracts/transaction-repository';
-import { MerchantRule } from '@/core/entities/merchant-rule';
+import type { MerchantRule } from '@/core/entities/merchant-rule';
 import type { Transaction } from '@/core/entities/transaction';
 import { DomainError } from '@/core/errors/domain-error';
 import { NotFoundError } from '@/core/errors/not-found-error';
-import { normalizeMerchant } from '@/modules/capture/domain/normalize-merchant';
+import { rememberMerchantCategory } from '@/modules/categories/application/remember-merchant-category';
 
 import { UpdateTransactionUseCase } from './update-transaction.use-case';
 
@@ -72,28 +70,11 @@ export class CategorizeTransactionUseCase {
       categoryId: input.categoryId,
     });
 
-    const merchant = normalizeMerchant(transaction.description);
-    if (!merchant.key) return { transaction, rule: null };
-
-    const now = new Date();
-    const existing = await this.merchantRuleRepository.findByKey(
-      input.userId,
-      merchant.key,
-    );
-    const rule =
-      existing?.learn(input.categoryId, now) ??
-      new MerchantRule({
-        id: randomUUID(),
-        userId: input.userId,
-        merchantKey: merchant.key,
-        displayName: merchant.displayName,
-        categoryId: input.categoryId,
-        hits: 1,
-        createdAt: now,
-        updatedAt: now,
-      });
-    await this.merchantRuleRepository.save(rule);
-
+    const rule = await rememberMerchantCategory(this.merchantRuleRepository, {
+      userId: input.userId,
+      description: transaction.description,
+      categoryId: input.categoryId,
+    });
     return { transaction, rule };
   }
 }

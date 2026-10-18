@@ -104,6 +104,9 @@ Toda transação possuí:
 - categoria
 - descrição
 
+A data é um instante. Lançada só com o dia, ela fica no começo daquele dia no horário local, e o
+horário não aparece; lançada agora (registro rápido, captura do Apple Pay), guarda a hora.
+
 ---
 
 ## Category
@@ -201,6 +204,25 @@ Não é persistido.
 - Um orçamento vale para dias inteiros: do começo do primeiro dia ao fim do último.
 - O ritmo compara o quanto já foi gasto com o quanto do período já passou. Até 10 pontos acima
   do calendário ainda conta como "no ritmo"; acima do limite, o orçamento está estourado.
+
+---
+
+## Registro rápido
+
+- Uma linha escrita como numa mensagem vira uma receita ou despesa: "almoço 32,50 crédito",
+  "+3000 salário", "mercado 250,40 ontem". O mesmo leitor serve ao Início e, depois, ao Telegram.
+- O valor é o número escrito como dinheiro (com centavos, "R$" ou sinal); sem nenhum assim, o
+  último número, e a tela avisa que havia outro. "+" ou "recebi" fazem uma receita; sem sinal,
+  vale o que o estabelecimento costuma ser, ou despesa.
+- A conta vem do nome ou de parte dele ("itaú") e do tipo ("crédito", "cartão", "débito", "pix",
+  "dinheiro", "poupança"). Sem isso, a conta que o estabelecimento costuma usar, ou a mais usada
+  para receitas ou para despesas.
+- A data aceita "hoje", "ontem", "anteontem", "amanhã", "12/10", "12/10/25" e "dia 12". Sem data,
+  ou com a de hoje, vale o momento do registro.
+- A categoria só é preenchida quando já se sabe: a regra do estabelecimento, o histórico dele ou
+  uma categoria com o nome da descrição. Um estabelecimento novo entra sem categoria e aparece em
+  "Para revisar". Escolher a categoria no registro ensina a regra, como em "Para revisar".
+- Um estabelecimento já visto é escrito como da última vez ("padaria real" vira "Padaria Real").
 
 ---
 
