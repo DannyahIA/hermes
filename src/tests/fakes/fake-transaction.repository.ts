@@ -4,6 +4,23 @@ import type {
 } from '@/core/contracts/transaction-repository';
 import type { Transaction } from '@/core/entities/transaction';
 
+/** Like the Drizzle repository: a page holds 50 rows unless told otherwise. */
+const DEFAULT_PAGE_SIZE = 50;
+
+function compareIds(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/** Strictly after the cursor in newest-first order (the keyset predicate). */
+function isOlder(
+  transaction: Transaction,
+  cursor: NonNullable<TransactionFilters['cursor']>,
+): boolean {
+  const at = transaction.occurredAt.getTime();
+  const cursorAt = cursor.occurredAt.getTime();
+  return at < cursorAt || (at === cursorAt && transaction.id < cursor.id);
+}
+
 export class FakeTransactionRepository implements TransactionRepository {
   private readonly transactions = new Map<string, Transaction>();
 
@@ -35,9 +52,15 @@ export class FakeTransactionRepository implements TransactionRepository {
         if (filters.type && t.type !== filters.type) return false;
         if (filters.from && t.occurredAt < filters.from) return false;
         if (filters.to && t.occurredAt > filters.to) return false;
+        if (filters.cursor && !isOlder(t, filters.cursor)) return false;
         return true;
       })
-      .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
+      .sort(
+        (a, b) =>
+          b.occurredAt.getTime() - a.occurredAt.getTime() ||
+          compareIds(b.id, a.id),
+      )
+      .slice(0, filters.pageSize ?? DEFAULT_PAGE_SIZE);
   }
 
   async findByInstallmentPlanId(

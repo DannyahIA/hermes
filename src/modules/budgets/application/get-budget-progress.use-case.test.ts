@@ -77,4 +77,51 @@ describe('GetBudgetProgressUseCase', () => {
     expect(progress.remaining).toBe(120);
     expect(progress.percentage).toBe(0.4);
   });
+
+  it('counts every purchase in the period, not just a first page of them', async () => {
+    const budgetRepository = new FakeBudgetRepository();
+    await budgetRepository.save(
+      new Budget({
+        id: 'budget-1',
+        userId: USER_ID,
+        categoryId: 'cafe',
+        amount: 500,
+        currency: 'BRL',
+        periodStart: new Date(2026, 7, 1),
+        periodEnd: new Date(2026, 7, 31, 23, 59, 59, 999),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+    const transactionRepository = new FakeTransactionRepository();
+    // Two coffees a day for a month.
+    for (let index = 0; index < 60; index += 1) {
+      await transactionRepository.save(
+        new Transaction({
+          id: `coffee-${index}`,
+          accountId: 'acc-1',
+          categoryId: 'cafe',
+          description: 'Café',
+          amount: 10,
+          type: 'expense',
+          occurredAt: new Date(
+            2026,
+            7,
+            1 + Math.floor(index / 2),
+            9 + (index % 2),
+          ),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+    }
+
+    const [progress] = await new GetBudgetProgressUseCase(
+      budgetRepository,
+      transactionRepository,
+    ).execute(USER_ID);
+
+    expect(progress.spent).toBe(600);
+    expect(progress.remaining).toBe(-100);
+  });
 });

@@ -32,6 +32,8 @@ export class GetBudgetProgressUseCase {
             type: 'expense',
             from: budget.periodStart,
             to: budget.periodEnd,
+            // Every purchase in the period, not the repository's first page.
+            pageSize: 10_000,
           },
         );
 
