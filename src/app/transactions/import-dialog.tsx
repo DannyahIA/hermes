@@ -34,11 +34,20 @@ const INITIAL_STATE: ImportPreviewState = { success: false };
  * "preview ready," not "done" — the dialog only closes once the confirm
  * step actually succeeds.
  */
-export function ImportDialog() {
-  const [open, setOpen] = useState(false);
+interface ImportDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
   const [previewRows, setPreviewRows] = useState<ImportPreviewRow[] | null>(
     null,
   );
+
+  function setOpen(next: boolean) {
+    onOpenChange(next);
+    if (!next) setPreviewRows(null);
+  }
   const [isConfirming, startConfirming] = useTransition();
 
   function handleConfirm(selectedRows: ImportPreviewRow[]) {
@@ -52,31 +61,15 @@ export function ImportDialog() {
             : (result.error ?? 'Erro ao importar.')),
         variant: result.success ? 'success' : 'error',
       });
-      if (result.success) {
-        setOpen(false);
-        setPreviewRows(null);
-      }
+      if (result.success) setOpen(false);
     });
   }
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => {
-          setPreviewRows(null);
-          setOpen(true);
-        }}
-      >
-        Importar CSV
-      </Button>
       <DialogForm
         open={open}
-        onOpenChange={(next) => {
-          setOpen(next);
-          if (!next) setPreviewRows(null);
-        }}
+        onOpenChange={setOpen}
         action={previewImportAction}
         initialState={INITIAL_STATE}
         closeOnSuccess={false}

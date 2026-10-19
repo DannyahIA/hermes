@@ -27,10 +27,11 @@ export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
 export type TransactionViewMode =
   'chronological' | 'grouped_by_category' | 'grouped_by_month';
 
+/** How the transaction list groups its rows; "chronological" is by day. */
 export const VIEW_MODE_LABELS: Record<TransactionViewMode, string> = {
-  chronological: 'Cronológico',
-  grouped_by_category: 'Por categoria',
+  chronological: 'Por dia',
   grouped_by_month: 'Por mês',
+  grouped_by_category: 'Por categoria',
 };
 
 /** The full set of valid modes — the single source of truth other modules

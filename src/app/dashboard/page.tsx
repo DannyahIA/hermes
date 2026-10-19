@@ -25,6 +25,7 @@ import {
 import { formatDayLabel, formatTimeOfDay } from '@/shared/lib/format-date';
 import { toDateInput } from '@/shared/lib/local-day';
 import { UNCATEGORIZED_FILTER } from '@/shared/lib/transaction-filters';
+import { splitOrigin } from '@/shared/lib/transaction-origin';
 
 import { AvailableHero } from './available-hero';
 import { BudgetPaceList } from './budget-pace';
@@ -35,28 +36,6 @@ import { QuickEntry } from './quick-entry';
 import { type RecentDayView, RecentTransactions } from './recent-transactions';
 import { ReviewQueue } from './review-queue';
 import { UpcomingList } from './upcoming-list';
-
-const INSTALLMENT_SUFFIX = /\s*\((\d+\/\d+)\)\s*$/;
-
-/** "Geladeira (4/10)" reads as "Geladeira" with the mark "Parcela 4/10". */
-function splitOrigin(transaction: Transaction): {
-  description: string;
-  origin?: string;
-} {
-  const installment = transaction.installmentPlanId
-    ? INSTALLMENT_SUFFIX.exec(transaction.description)
-    : null;
-  if (installment) {
-    return {
-      description: transaction.description.slice(0, installment.index),
-      origin: `Parcela ${installment[1]}`,
-    };
-  }
-  return {
-    description: transaction.description,
-    origin: transaction.recurringRuleId ? 'Recorrente' : undefined,
-  };
-}
 
 /**
  * No `loading.tsx` and no Suspense boundary around the content, on purpose:

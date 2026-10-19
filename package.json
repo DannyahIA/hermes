@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",
-    "@tanstack/react-virtual": "^3.14.10",
     "better-auth": "1.6.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -12,7 +12,10 @@ import {
 } from '@/components/ui/dialog';
 
 interface ConfirmDialogProps {
-  trigger: React.ReactNode;
+  /** What opens it; leave it out to open it from elsewhere with `open`. */
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title: string;
   description: string;
   confirmLabel?: string;
@@ -27,17 +30,25 @@ interface ConfirmDialogProps {
  */
 export function ConfirmDialog({
   trigger,
+  open: controlledOpen,
+  onOpenChange,
   title,
   description,
   confirmLabel = 'Excluir',
   onConfirm,
 }: ConfirmDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const open = controlledOpen ?? ownOpen;
+
+  function setOpen(next: boolean) {
+    setOwnOpen(next);
+    onOpenChange?.(next);
+  }
 
   return (
     <>
-      <span onClick={() => setOpen(true)}>{trigger}</span>
+      {trigger && <span onClick={() => setOpen(true)}>{trigger}</span>}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

@@ -1,156 +1,212 @@
 'use client';
 
-import { deleteTransactionAction } from '@/app/transactions/actions';
-import { TransactionEditDialog } from '@/app/transactions/transaction-edit-dialog';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
-  TRANSACTION_TYPE_LABELS,
-  type TransactionType,
-} from '@/config/constants';
-import { toast } from '@/shared/hooks/use-toast';
+  ArrowLeftRight,
+  CreditCard,
+  Ellipsis,
+  type LucideIcon,
+  Vault,
+  Wallet,
+} from 'lucide-react';
+
+import {
+  CategoryDot,
+  type CategoryOption,
+  CategoryPicker,
+} from '@/app/dashboard/category-picker';
+import { Menu, MenuItem } from '@/components/ui/menu';
+import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/format-currency';
-import { formatDate } from '@/shared/lib/format-date';
+import { splitOrigin } from '@/shared/lib/transaction-origin';
 
-/**
- * Column widths shared by the desktop header row (`TransactionList`) and
- * every `TransactionRow` — defined once so header cells and data cells
- * always line up, instead of each row computing its own widths from its
- * own content (which is what a bare per-row `<table>` would do).
- * Data | Descrição | Conta | Categoria | Tipo | Valor | ações
- *
- * The Descrição track has a 160px floor (not `minmax(0,1fr)`): the page
- * puts this table in a `min-w-0` grid column next to a fixed 360px sidebar
- * (see transactions/page.tsx), so on a narrow-enough viewport the
- * available width drops below the other six columns' combined fixed
- * width. A `0` floor let that column collapse to 0px and its text render
- * on top of the Conta column instead of scrolling — `TRANSACTION_ROW_MIN_WIDTH`
- * below is what makes the table scroll horizontally instead once it does.
- */
-export const TRANSACTION_ROW_GRID_TEMPLATE =
-  '110px minmax(160px,1fr) 140px 140px 90px 120px 160px';
+import { type ListedTransaction, takesCategory } from './listed-transaction';
 
-/** Sum of every column's floor (110 + 160 + 140 + 140 + 90 + 120 + 160) —
- * applied as each row's `min-width` so the grid can never be squeezed
- * narrower than this, forcing the table's `overflow-x-auto` ancestor to
- * scroll instead of silently collapsing the Descrição column. */
-export const TRANSACTION_ROW_MIN_WIDTH = 920;
-
-interface TransactionRowProps {
+export interface AccountOption {
   id: string;
-  description: string;
-  amount: number;
-  type: TransactionType;
-  occurredAt: Date;
-  accountName: string;
-  categoryId?: string;
-  categoryName?: string;
-  categories: Array<{ id: string; name: string }>;
-  installmentLabel?: string;
-  isRecurring?: boolean;
+  name: string;
+  type: 'checking' | 'savings' | 'credit';
 }
 
+export const ACCOUNT_ICONS: Record<AccountOption['type'], LucideIcon> = {
+  checking: Wallet,
+  savings: Vault,
+  credit: CreditCard,
+};
+
 /**
- * Desktop row — rendered as a CSS grid row (not a `<table>` row) so its
- * column widths come from the shared `TRANSACTION_ROW_GRID_TEMPLATE`
- * rather than being computed independently per row, which is what left
- * columns ragged/misaligned between rows before this fix.
+ * One line per transaction on a wide list, two on a narrow one. The
+ * columns come from the list (`--lead` is the first one's width), so every
+ * row lines up with the others; on a narrow list the category, account and
+ * time fold into a second line.
  */
+const ROW_GRID =
+  'grid grid-cols-[minmax(0,1fr)_auto_2rem] items-center gap-x-3 gap-y-0.5 @3xl:grid-cols-[var(--lead)_minmax(0,1fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_8.75rem_2rem] @3xl:gap-x-4';
+
+export function signedAmount(
+  amount: number,
+  sign: 'in' | 'out' | 'none',
+): string {
+  const prefix = sign === 'in' ? '+ ' : sign === 'out' ? '− ' : '';
+  return `${prefix}${formatCurrency(amount)}`;
+}
+
+interface TransactionRowProps {
+  transaction: ListedTransaction;
+  category?: CategoryOption;
+  account?: AccountOption;
+  /** The card a bill payment settles. */
+  settledCard?: AccountOption;
+  /** The time within a day's group; the date in a month's or category's. */
+  lead: { text: string; isTime: boolean } | null;
+  suggestions: CategoryOption[];
+  /** The categories it can be filed under now. */
+  categories: CategoryOption[];
+  picking: boolean;
+  onTogglePicking: () => void;
+  onPick: (category: CategoryOption) => void;
+  /** Absent for a transfer, which is deleted and made again instead. */
+  onEdit?: () => void;
+  onDelete: () => void;
+}
+
 export function TransactionRow({
-  id,
-  description,
-  amount,
-  type,
-  occurredAt,
-  accountName,
-  categoryId,
-  categoryName,
+  transaction,
+  category,
+  account,
+  settledCard,
+  lead,
+  suggestions,
   categories,
-  installmentLabel,
-  isRecurring,
+  picking,
+  onTogglePicking,
+  onPick,
+  onEdit,
+  onDelete,
 }: TransactionRowProps) {
-  async function handleDelete() {
-    const result = await deleteTransactionAction(id);
-    toast(
-      result.success
-        ? { title: 'Transação excluída.', variant: 'success' }
-        : {
-            title: result.error ?? 'Não foi possível excluir.',
-            variant: 'error',
-          },
-    );
-  }
+  const { description, origin } = splitOrigin(transaction);
+  const between = !takesCategory(transaction);
+  const sign =
+    transaction.type === 'income'
+      ? 'in'
+      : transaction.type === 'expense'
+        ? 'out'
+        : 'none';
+  const AccountIcon = account ? ACCOUNT_ICONS[account.type] : Wallet;
 
   return (
-    <div
-      role="row"
-      className="border-border/70 grid items-center border-b last:border-0"
-      style={{
-        gridTemplateColumns: TRANSACTION_ROW_GRID_TEMPLATE,
-        minWidth: TRANSACTION_ROW_MIN_WIDTH,
-      }}
-    >
-      <div role="cell" className="px-4 py-3 text-sm">
-        {formatDate(occurredAt)}
-      </div>
-      <div role="cell" className="min-w-0 px-4 py-3 text-sm font-medium">
-        <span className="inline-block truncate">{description}</span>
-        {installmentLabel && (
-          <Badge variant="outline" className="ml-2 align-middle">
-            {installmentLabel}
-          </Badge>
-        )}
-        {isRecurring && (
-          <Badge variant="outline" className="ml-2 align-middle">
-            Recorrente
-          </Badge>
-        )}
-      </div>
-      <div role="cell" className="text-muted-foreground px-4 py-3 text-sm">
-        {accountName}
-      </div>
-      <div role="cell" className="text-muted-foreground px-4 py-3 text-sm">
-        {categoryName ?? '—'}
-      </div>
-      <div role="cell" className="px-4 py-3 text-sm">
-        {TRANSACTION_TYPE_LABELS[type]}
-      </div>
-      <div
-        role="cell"
-        className={`dimension-figure px-4 py-3 text-right text-sm font-semibold ${
-          type === 'income'
-            ? 'text-success'
-            : type === 'expense'
-              ? 'text-destructive'
-              : ''
-        }`}
-      >
-        {formatCurrency(amount)}
-      </div>
-      <div role="cell" className="px-4 py-3 text-right whitespace-nowrap">
-        {type !== 'transfer' && (
-          <TransactionEditDialog
-            id={id}
-            description={description}
-            amount={amount}
-            occurredAt={occurredAt}
-            categoryId={categoryId}
-            categories={categories}
-            isInstallment={Boolean(installmentLabel)}
-          />
-        )}
-        <ConfirmDialog
-          trigger={
-            <Button variant="ghost" size="sm">
+    <li className="border-border border-b border-dashed last:border-b-0">
+      <div className={cn(ROW_GRID, 'px-4 py-2.5')}>
+        <p className="col-start-1 row-start-1 flex min-w-0 items-baseline gap-2 @3xl:col-start-2">
+          <span className="truncate font-medium" title={description}>
+            {description}
+          </span>
+          {origin && (
+            <span className="text-muted-foreground hidden shrink-0 text-xs @3xl:inline">
+              {origin}
+            </span>
+          )}
+        </p>
+
+        <p
+          className={cn(
+            'dimension-figure col-start-2 row-start-1 text-right whitespace-nowrap @3xl:col-start-5',
+            !between && sign === 'in' && 'text-success',
+            !between && sign === 'out' && 'text-destructive',
+          )}
+        >
+          {signedAmount(transaction.amount, sign)}
+        </p>
+
+        {/* A second line on a narrow list, its parts told apart by their
+            marks; separate columns on a wide one. The category keeps its
+            room there, and the account's name gives way. */}
+        <div className="text-muted-foreground col-span-2 col-start-1 row-start-2 flex min-w-0 items-center gap-x-3 text-xs @3xl:contents @3xl:text-sm">
+          <span className="flex max-w-[55%] min-w-0 shrink-0 items-center gap-1.5 @3xl:col-start-3 @3xl:row-start-1 @3xl:max-w-none">
+            {category ? (
+              <>
+                <CategoryDot color={category.color} />
+                <span className="truncate" title={category.name}>
+                  {category.name}
+                </span>
+              </>
+            ) : transaction.type === 'transfer' ? (
+              <>
+                <ArrowLeftRight aria-hidden className="size-3.5 shrink-0" />
+                <span className="truncate">Transferência</span>
+              </>
+            ) : between ? (
+              <>
+                <CreditCard aria-hidden className="size-3.5 shrink-0" />
+                <span
+                  className="truncate"
+                  title={`Fatura ${settledCard?.name ?? 'do cartão'}`}
+                >
+                  Fatura {settledCard?.name ?? 'do cartão'}
+                </span>
+              </>
+            ) : (
+              <button
+                type="button"
+                aria-expanded={picking}
+                onClick={onTogglePicking}
+                className="border-muted-foreground/50 hover:border-foreground hover:text-foreground focus-visible:ring-ring shrink-0 rounded border border-dashed px-1.5 py-0.5 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
+              >
+                Sem categoria
+              </button>
+            )}
+          </span>
+
+          <span className="flex min-w-0 flex-1 items-center gap-1.5 @3xl:col-start-4 @3xl:row-start-1">
+            <AccountIcon aria-hidden className="size-3.5 shrink-0" />
+            <span className="truncate" title={account?.name}>
+              {account?.name ?? 'Conta removida'}
+            </span>
+          </span>
+
+          {/* On a narrow list the mark leaves the name its room; what an
+              installment or a recurrence writes has no time to share the
+              line with. */}
+          {origin && (
+            <span className="shrink-0 whitespace-nowrap @3xl:hidden">
+              {origin}
+            </span>
+          )}
+          {lead && (
+            <span
+              className={cn(
+                'shrink-0 whitespace-nowrap @3xl:col-start-1 @3xl:row-start-1',
+                // A time reads as a figure; a date as words.
+                lead.isTime && 'dimension-figure',
+              )}
+            >
+              {lead.text}
+            </span>
+          )}
+        </div>
+
+        <div className="col-start-3 row-span-2 row-start-1 justify-self-end @3xl:col-start-6 @3xl:row-span-1">
+          <Menu
+            label={`Ações de ${description}`}
+            trigger={<Ellipsis aria-hidden className="size-4" />}
+            triggerClassName="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-ring aria-expanded:bg-accent inline-flex size-8 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
+          >
+            {onEdit && <MenuItem onSelect={onEdit}>Editar</MenuItem>}
+            <MenuItem destructive onSelect={onDelete}>
               Excluir
-            </Button>
-          }
-          title="Excluir transação"
-          description={`Tem certeza que deseja excluir "${description}"? O saldo da conta será ajustado.`}
-          onConfirm={handleDelete}
-        />
+            </MenuItem>
+          </Menu>
+        </div>
       </div>
-    </div>
+
+      {picking && !category && !between && (
+        <CategoryPicker
+          className="px-4 pb-3 @3xl:pl-[calc(var(--lead)+2rem)]"
+          subject={description}
+          suggestions={suggestions}
+          categories={categories}
+          onPick={onPick}
+        />
+      )}
+    </li>
   );
 }

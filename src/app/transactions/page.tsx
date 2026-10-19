@@ -1,41 +1,43 @@
 import Link from 'next/link';
 
-import { CreateTransferDialog } from '@/app/transactions/create-transfer-dialog';
-import { FilterChips } from '@/app/transactions/filter-chips';
-import { ImportDialog } from '@/app/transactions/import-dialog';
-import { RecurringTransactionFormDialog } from '@/app/transactions/recurring-transaction-form-dialog';
-import { RecurringTransactionRow } from '@/app/transactions/recurring-transaction-row';
-import { TransactionList } from '@/app/transactions/transaction-list';
-import { TransactionsFilters } from '@/app/transactions/transactions-filters';
-import { ViewModeSelector } from '@/app/transactions/view-mode-selector';
-import { AppShell } from '@/components/layout/app-shell';
-import { Button } from '@/components/ui/button';
+import { GroupingSelect } from '@/app/transactions/grouping-select';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  GROUPING_BY_VIEW_MODE,
+  type ListedPage,
+  type ListedScheduled,
+} from '@/app/transactions/listed-transaction';
+import {
+  loadScheduled,
+  loadTransactionPage,
+} from '@/app/transactions/load-transaction-page';
+import { RecurringTransactionFormDialog } from '@/app/transactions/recurring-transaction-form-dialog';
+import {
+  type RecurringRuleView,
+  RecurringTransactionRow,
+} from '@/app/transactions/recurring-transaction-row';
+import { TransactionsBrowser } from '@/app/transactions/transactions-browser';
+import { TransactionsMoreMenu } from '@/app/transactions/transactions-more-menu';
+import { AppShell } from '@/components/layout/app-shell';
 import {
   TRANSACTION_VIEW_MODES,
   type TransactionViewMode,
 } from '@/config/constants';
+import { ROUTES } from '@/config/routes';
+import type { RecurringTransaction } from '@/core/entities/recurring-transaction';
+import { occurrencesToGenerate } from '@/core/value-objects/recurrence';
 import { requireCurrentUserId } from '@/infra/auth/session';
-import { DrizzleInstallmentPlanRepository } from '@/infra/repositories/drizzle-installment-plan.repository';
+import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
+import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
 import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
-import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { DrizzleViewPreferenceRepository } from '@/infra/repositories/drizzle-view-preference.repository';
-import { GetInstallmentPlansUseCase } from '@/modules/installments/application/get-installment-plans.use-case';
 import { GetViewPreferenceUseCase } from '@/modules/preferences/application/get-view-preference.use-case';
 import { GetRecurringTransactionsUseCase } from '@/modules/recurring-transactions/application/get-recurring-transactions.use-case';
-import { GetTransactionsUseCase } from '@/modules/transactions/application/get-transactions.use-case';
-import { encodeTransactionCursor } from '@/shared/lib/transaction-cursor';
-import { parseCategoryFilter } from '@/shared/lib/transaction-filters';
+import { cn } from '@/shared/lib/cn';
+import { toDateInput } from '@/shared/lib/local-day';
 import {
-  getAccountOptions,
-  getCategoryOptions,
-} from '@/shared/server/reference-options';
+  readTransactionQuery,
+  transactionSearch,
+} from '@/shared/lib/transaction-query';
 
 /** Defends against a stored view-preference value written by a future
  * version of the app with a mode this version doesn't know, or genuinely
@@ -45,34 +47,64 @@ function isTransactionViewMode(value: string): value is TransactionViewMode {
   return (TRANSACTION_VIEW_MODES as readonly string[]).includes(value);
 }
 
-interface TransactionsPageProps {
-  searchParams: Promise<{
-    accountId?: string;
-    categoryId?: string;
-    type?: string;
-    from?: string;
-    to?: string;
-  }>;
+type Tab = 'transactions' | 'recurring';
+
+const RULE_LABELS: Record<RecurringTransaction['dayRuleKind'], string> = {
+  fixed_day: 'Todo dia',
+  first_business_day: 'Primeiro dia útil',
+  last_business_day: 'Último dia útil',
+};
+
+const dayMonth = new Intl.DateTimeFormat('pt-BR', {
+  day: 'numeric',
+  month: 'short',
+});
+
+/** When a rule writes its next transaction; null when paused or over. */
+function nextOccurrence(rule: RecurringTransaction, now: Date): Date | null {
+  if (!rule.active) return null;
+  const endOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
+  const horizon = new Date(now.getFullYear() + 1, now.getMonth(), 1);
+  return (
+    occurrencesToGenerate(rule.props, horizon).find(
+      (date) => date > endOfToday,
+    ) ?? null
+  );
 }
 
+interface TransactionsPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+/**
+ * The statement (spec 2026-10-17-inicio-hub-design.md §5), with the
+ * recurring rules on a second tab.
+ *
+ * No `loading.tsx` and no Suspense boundary around the content, on purpose:
+ * on Next 16.2.10, with either one here, the re-render a Server Action sends
+ * back (revalidatePath) never commits, so classifying, editing or deleting a
+ * row would look like it did nothing until a reload.
+ */
 export default async function TransactionsPage({
   searchParams,
 }: TransactionsPageProps) {
   const userId = await requireCurrentUserId();
-  const filters = await searchParams;
+  const params = await searchParams;
+  const tab: Tab = params.tab === 'recurring' ? 'recurring' : 'transactions';
+  const query = readTransactionQuery(params);
+  const now = new Date();
 
-  const [
-    accounts,
-    categories,
-    installmentPlans,
-    recurringTransactions,
-    rawViewMode,
-  ] = await Promise.all([
-    getAccountOptions(userId),
-    getCategoryOptions(userId),
-    new GetInstallmentPlansUseCase(
-      new DrizzleInstallmentPlanRepository(),
-    ).execute(userId),
+  const [accounts, categories, rules, storedViewMode] = await Promise.all([
+    new DrizzleAccountRepository().findByUserId(userId),
+    new DrizzleCategoryRepository().findByUserId(userId),
     new GetRecurringTransactionsUseCase(
       new DrizzleRecurringTransactionRepository(),
     ).execute(userId),
@@ -82,198 +114,186 @@ export default async function TransactionsPage({
       'chronological',
     ),
   ]);
-  const viewMode = isTransactionViewMode(rawViewMode)
-    ? rawViewMode
+  const viewMode = isTransactionViewMode(storedViewMode)
+    ? storedViewMode
     : 'chronological';
+  const grouping = GROUPING_BY_VIEW_MODE[viewMode];
 
-  // Fetch one extra row to know whether a next page exists, without a
-  // separate COUNT query — a simple, cheap cursor-pagination pattern.
-  const from = filters.from ? new Date(`${filters.from}T00:00:00`) : undefined;
-  const to = filters.to ? new Date(`${filters.to}T23:59:59.999`) : undefined;
+  const accountOptions = accounts
+    .map((account) => ({
+      id: account.id,
+      name: account.name,
+      type: account.type,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  const categoryOptions = categories
+    .map((category) => ({
+      id: category.id,
+      name: category.name,
+      color: category.color,
+      archived: category.archived,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
-  const TRANSACTIONS_PAGE_SIZE = 50;
-  const rawPage = await new GetTransactionsUseCase(
-    new DrizzleTransactionRepository(),
-  ).execute(userId, {
-    accountId: filters.accountId || undefined,
-    ...parseCategoryFilter(filters.categoryId),
-    type:
-      (filters.type as 'income' | 'expense' | 'transfer' | undefined) ||
-      undefined,
-    from,
-    to,
-    pageSize: TRANSACTIONS_PAGE_SIZE + 1,
-  });
-  const hasMore = rawPage.length > TRANSACTIONS_PAGE_SIZE;
-  const transactions = rawPage.slice(0, TRANSACTIONS_PAGE_SIZE);
-  const lastTransaction = transactions.at(-1);
-  const nextCursor =
-    hasMore && lastTransaction
-      ? encodeTransactionCursor({
-          occurredAt: lastTransaction.occurredAt,
-          id: lastTransaction.id,
-        })
-      : null;
+  let page: ListedPage | null = null;
+  let scheduled: ListedScheduled | null = null;
+  if (tab === 'transactions' && accounts.length > 0) {
+    [page, scheduled] = await Promise.all([
+      loadTransactionPage(userId, { query, grouping, now }),
+      loadScheduled(userId, query, now),
+    ]);
+  }
 
-  const filterParams = new URLSearchParams();
-  if (filters.accountId) filterParams.set('accountId', filters.accountId);
-  if (filters.categoryId) filterParams.set('categoryId', filters.categoryId);
-  if (filters.type) filterParams.set('type', filters.type);
-  if (filters.from) filterParams.set('from', filters.from);
-  if (filters.to) filterParams.set('to', filters.to);
-
-  const accountsById = new Map(
-    accounts.map((account) => [account.id, account]),
+  const accountNames = new Map(
+    accounts.map((account) => [account.id, account.name]),
+  );
+  const accountTypes = new Map(
+    accounts.map((account) => [account.id, account.type]),
   );
   const categoriesById = new Map(
     categories.map((category) => [category.id, category]),
   );
-  // Plain object, not a Map — Map instances aren't serializable across the
-  // React Server Components boundary and throw a runtime error when passed
-  // as a prop into a 'use client' component like TransactionList.
-  const installmentCountByPlanId: Record<string, number> = Object.fromEntries(
-    installmentPlans.map((plan) => [plan.id, plan.installmentCount]),
-  );
+  const ruleViews: RecurringRuleView[] = rules.map((rule) => {
+    const next = nextOccurrence(rule, now);
+    const category = rule.categoryId
+      ? categoriesById.get(rule.categoryId)
+      : undefined;
+    return {
+      id: rule.id,
+      description: rule.description,
+      amount: rule.amount,
+      type: rule.type,
+      rule:
+        rule.dayRuleKind === 'fixed_day'
+          ? `${RULE_LABELS.fixed_day} ${rule.dayRuleDay}`
+          : RULE_LABELS[rule.dayRuleKind],
+      accountName: accountNames.get(rule.accountId) ?? 'Conta removida',
+      accountType: accountTypes.get(rule.accountId) ?? 'checking',
+      category: category
+        ? { name: category.name, color: category.color }
+        : undefined,
+      next: next ? dayMonth.format(next) : null,
+      active: rule.active,
+      ended: Boolean(rule.props.endDate && rule.props.endDate < now),
+    };
+  });
 
-  // `getAccountOptions`/`getCategoryOptions` already return plain
-  // `{id, name}` objects — safe to pass straight into Client Components
-  // without remapping.
-  const accountOptions = accounts;
-  const categoryOptions = categories;
+  const tabs: Array<{ id: Tab; label: string; href: string; count?: number }> =
+    [
+      { id: 'transactions', label: 'Transações', href: ROUTES.transactions },
+      {
+        id: 'recurring',
+        label: 'Recorrências',
+        href: `${ROUTES.transactions}?tab=recurring`,
+        count: rules.length,
+      },
+    ];
 
   return (
     <AppShell>
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="min-w-0 space-y-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <TransactionsFilters
+      <div className="space-y-4">
+        <div className="border-border flex items-end justify-between gap-3 border-b">
+          <nav aria-label="Transações e recorrências" className="flex gap-1">
+            {tabs.map((item) => (
+              <Link
+                key={item.id}
+                href={item.href}
+                aria-current={tab === item.id ? 'page' : undefined}
+                className={cn(
+                  '-mb-px flex items-baseline gap-2 rounded-t-md border-b-2 px-3 py-2 text-sm font-medium transition-colors sm:px-4',
+                  tab === item.id
+                    ? 'border-primary text-primary'
+                    : 'text-muted-foreground hover:text-foreground border-transparent',
+                )}
+              >
+                {item.label}
+                {item.count !== undefined && item.count > 0 && (
+                  <span className="dimension-figure text-muted-foreground text-xs font-normal">
+                    {item.count}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </nav>
+          {tab === 'transactions' && accounts.length > 0 && (
+            <div className="flex items-center gap-2 pb-2">
+              <GroupingSelect value={viewMode} className="hidden sm:flex" />
+              <TransactionsMoreMenu
+                accounts={accountOptions}
+                exportHref={`/api/transactions/export${transactionSearch(query)}`}
+              />
+            </div>
+          )}
+        </div>
+
+        {accounts.length === 0 ? (
+          <div className="sheet-surface px-6 py-12 text-center">
+            <p className="font-medium">Nenhuma conta cadastrada.</p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              {tab === 'transactions'
+                ? 'Crie uma conta para registrar transações.'
+                : 'Crie uma conta antes de configurar uma recorrência.'}
+            </p>
+            <Link
+              href={ROUTES.accounts}
+              className="bg-primary text-primary-foreground mt-4 inline-block rounded-md px-4 py-2 text-sm font-medium"
+            >
+              Criar conta
+            </Link>
+          </div>
+        ) : tab === 'recurring' ? (
+          <section
+            aria-labelledby="recurring-heading"
+            className="sheet-surface @container"
+          >
+            <header className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+              <div className="min-w-0">
+                <h2
+                  id="recurring-heading"
+                  className="font-display text-base font-semibold"
+                >
+                  Recorrências
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Receitas e despesas que se repetem todo mês. Cada uma vira uma
+                  transação no dia.
+                </p>
+              </div>
+              <RecurringTransactionFormDialog
+                accounts={accountOptions}
+                categories={categoryOptions.filter(
+                  (category) => !category.archived,
+                )}
+              />
+            </header>
+            {ruleViews.length === 0 ? (
+              <p className="text-muted-foreground px-4 py-8 text-center text-sm">
+                Nenhuma recorrência ainda. Salário, aluguel e assinaturas entram
+                aqui uma vez e passam a ser lançados sozinhos.
+              </p>
+            ) : (
+              <ul>
+                {ruleViews.map((rule) => (
+                  <RecurringTransactionRow key={rule.id} rule={rule} />
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : (
+          page &&
+          scheduled && (
+            <TransactionsBrowser
+              query={query}
+              viewMode={viewMode}
+              grouping={grouping}
+              today={toDateInput(now)}
               accounts={accountOptions}
               categories={categoryOptions}
-              defaultAccountId={filters.accountId}
-              defaultCategoryId={filters.categoryId}
-              defaultType={filters.type}
-              defaultFrom={filters.from}
-              defaultTo={filters.to}
+              initial={page}
+              scheduled={scheduled}
             />
-            <div className="flex shrink-0 flex-wrap gap-2">
-              <ViewModeSelector value={viewMode} />
-              {accountOptions.length >= 2 ? (
-                <CreateTransferDialog accounts={accountOptions} />
-              ) : null}
-              <Button variant="outline" asChild>
-                <Link
-                  href={`/api/transactions/export?${filterParams.toString()}`}
-                >
-                  Exportar
-                </Link>
-              </Button>
-              <ImportDialog />
-            </div>
-          </div>
-
-          <FilterChips
-            accounts={accountOptions}
-            categories={categoryOptions}
-            filters={{
-              accountId: filters.accountId,
-              categoryId: filters.categoryId,
-              type: filters.type,
-              from: filters.from,
-              to: filters.to,
-            }}
-          />
-
-          <Card className="overflow-hidden p-0">
-            {transactions.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 p-12 text-center">
-                <CardTitle>Nenhuma transação encontrada.</CardTitle>
-                <CardDescription>
-                  Registre sua primeira transação pelo botão &quot;Nova
-                  transação&quot; no topo da página.
-                </CardDescription>
-              </div>
-            ) : (
-              <TransactionList
-                initial={{
-                  transactions: transactions.map((transaction) => ({
-                    id: transaction.id,
-                    description: transaction.description,
-                    amount: transaction.amount,
-                    type: transaction.type,
-                    occurredAt: transaction.occurredAt.toISOString(),
-                    accountId: transaction.accountId,
-                    accountName:
-                      accountsById.get(transaction.accountId)?.name ?? '—',
-                    categoryId: transaction.categoryId ?? null,
-                    categoryName: transaction.categoryId
-                      ? (categoriesById.get(transaction.categoryId)?.name ??
-                        null)
-                      : null,
-                    installmentPlanId: transaction.installmentPlanId ?? null,
-                    installmentNumber: transaction.installmentNumber ?? null,
-                    recurringRuleId: transaction.recurringRuleId ?? null,
-                  })),
-                  nextCursor,
-                }}
-                filters={{
-                  accountId: filters.accountId,
-                  categoryId: filters.categoryId,
-                  type: filters.type,
-                  from: filters.from,
-                  to: filters.to,
-                }}
-                categories={categoryOptions}
-                installmentCountByPlanId={installmentCountByPlanId}
-                groupBy={viewMode}
-              />
-            )}
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card className="p-6">
-            <CardHeader className="p-0">
-              <CardTitle>Recorrências</CardTitle>
-              <CardDescription>
-                Receitas e despesas que se repetem todo mês.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="mt-4 space-y-4 p-0">
-              {accounts.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  Crie uma conta antes de configurar uma recorrência.
-                </p>
-              ) : (
-                <>
-                  {recurringTransactions.length > 0 && (
-                    <div className="divide-border/70 -mx-1 divide-y">
-                      {recurringTransactions.map((rule) => (
-                        <div
-                          key={rule.id}
-                          className="px-1 py-2 first:pt-0 last:pb-0"
-                        >
-                          <RecurringTransactionRow
-                            id={rule.id}
-                            description={rule.description}
-                            amount={rule.amount}
-                            type={rule.type}
-                            dayRuleKind={rule.dayRuleKind}
-                            dayRuleDay={rule.dayRuleDay}
-                            active={rule.active}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <RecurringTransactionFormDialog
-                    accounts={accountOptions}
-                    categories={categoryOptions}
-                  />
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+          )
+        )}
       </div>
     </AppShell>
   );

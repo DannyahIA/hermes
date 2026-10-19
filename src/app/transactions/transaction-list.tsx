@@ -1,275 +1,386 @@
 'use client';
 
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { useMemo, useRef } from 'react';
+import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { useId, useState, useTransition } from 'react';
+
+import { categorizeTransactionAction } from '@/app/dashboard/actions';
+import {
+  CategoryDot,
+  type CategoryOption,
+} from '@/app/dashboard/category-picker';
+import { deleteTransactionAction } from '@/app/transactions/actions';
+import { TransactionEditDialog } from '@/app/transactions/transaction-edit-dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ROUTES } from '@/config/routes';
+import type { TransactionGrouping } from '@/core/contracts/transaction-repository';
+import { toast } from '@/shared/hooks/use-toast';
+import { cn } from '@/shared/lib/cn';
+import { formatDayHeading } from '@/shared/lib/format-date';
+import { splitOrigin } from '@/shared/lib/transaction-origin';
+import type { TransactionQuery } from '@/shared/lib/transaction-query';
 
 import {
-  TRANSACTION_ROW_GRID_TEMPLATE,
-  TRANSACTION_ROW_MIN_WIDTH,
+  BETWEEN_ACCOUNTS,
+  groupListedTransactions,
+  type TransactionGroup,
+} from './group-listed-transactions';
+import {
+  type ListedPage,
+  type ListedScheduled,
+  type ListedTransaction,
+  takesCategory,
+} from './listed-transaction';
+import {
+  type AccountOption,
+  signedAmount,
   TransactionRow,
-} from '@/app/transactions/transaction-row';
-import { TransactionRowMobile } from '@/app/transactions/transaction-row-mobile';
-import {
-  TransactionRowSkeleton,
-  TransactionRowSkeletonMobile,
-} from '@/app/transactions/transaction-row-skeleton';
-import {
-  type ClientTransaction,
-  type InfiniteTransactionFilters,
-  useInfiniteTransactions,
-} from '@/app/transactions/use-infinite-transactions';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { groupTransactionsByCategory } from '@/shared/lib/group-transactions-by-category';
-import { groupTransactionsByMonth } from '@/shared/lib/group-transactions-by-month';
-import { groupTransactionsByPeriod } from '@/shared/lib/group-transactions-by-period';
+} from './transaction-row';
+import { useTransactionPages } from './use-transaction-pages';
+
+export type ListCategory = CategoryOption & { archived: boolean };
 
 interface TransactionListProps {
-  initial: { transactions: ClientTransaction[]; nextCursor: string | null };
-  filters: InfiniteTransactionFilters;
-  categories: Array<{ id: string; name: string }>;
-  installmentCountByPlanId: Record<string, number>;
-  groupBy: 'chronological' | 'grouped_by_category' | 'grouped_by_month';
+  initial: ListedPage;
+  scheduled: ListedScheduled;
+  query: TransactionQuery;
+  grouping: TransactionGrouping;
+  /** "2026-10-19", as the server reads it. */
+  today: string;
+  accounts: AccountOption[];
+  /** Every category, archived ones too, to name what's already filed. */
+  categories: ListCategory[];
+  /** Whether any filter or search narrows the list. */
+  filtered: boolean;
+  /** A new search or filter is on its way. */
+  pending: boolean;
 }
 
-/** `ClientTransaction` with `occurredAt` parsed to a real `Date` — both
- * `groupTransactionsByPeriod` (needs `{ occurredAt: Date }`) and the row
- * components (which take `occurredAt: Date`, not a string) can consume this
- * directly, with the ISO string parsed exactly once per transaction. */
-type EnrichedTransaction = Omit<ClientTransaction, 'occurredAt'> & {
-  occurredAt: Date;
-};
+const shortDate = new Intl.DateTimeFormat('pt-BR', {
+  day: 'numeric',
+  month: 'short',
+});
 
-type VirtualItem =
-  | { kind: 'header'; label: string }
-  | { kind: 'row'; transaction: EnrichedTransaction };
+function dateOf(day: string): Date {
+  const [year, month, date] = day.split('-').map(Number);
+  return new Date(year, month - 1, date);
+}
 
+const shortDateYear = new Intl.DateTimeFormat('pt-BR', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
+/** "amanhã", "8 de nov.", or "8 de mar. de 2027" in another year. */
+function whenLabel(day: string, today: string): string {
+  if (formatDayHeading(day, today) === 'Amanhã') return 'amanhã';
+  const date = dateOf(day);
+  return (
+    date.getFullYear() === Number(today.slice(0, 4)) ? shortDate : shortDateYear
+  ).format(date);
+}
+
+function signedNet(net: number): string {
+  return signedAmount(Math.abs(net), net > 0 ? 'in' : 'out');
+}
+
+/**
+ * The statement (spec 2026-10-17-inicio-hub-design.md §5): what already
+ * happened, grouped by day, month or category, each group with its total;
+ * what is scheduled after today folded above it. "Sem categoria" opens the
+ * same one-tap picker as "Para revisar" on the Início.
+ */
 export function TransactionList({
   initial,
-  filters,
+  scheduled,
+  query,
+  grouping,
+  today,
+  accounts,
   categories,
-  installmentCountByPlanId,
-  groupBy,
+  filtered,
+  pending,
 }: TransactionListProps) {
   const {
     transactions,
-    isFetchingMore,
-    hasMore,
-    error,
+    totals,
+    suggestions: pageSuggestions,
+    status,
     loadMore,
     sentinelRef,
-  } = useInfiniteTransactions(initial, filters);
+  } = useTransactionPages(initial, query, grouping);
+  const [filed, setFiled] = useState<Record<string, string>>({});
+  const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
+  const [picking, setPicking] = useState<string | null>(null);
+  const [editing, setEditing] = useState<ListedTransaction | null>(null);
+  const [deleting, setDeleting] = useState<ListedTransaction | null>(null);
+  const [showScheduled, setShowScheduled] = useState(
+    initial.transactions.length === 0,
+  );
+  const [, startTransition] = useTransition();
+  const scheduledId = useId();
 
-  const enriched = useMemo<EnrichedTransaction[]>(
-    () =>
-      transactions.map((t) => ({ ...t, occurredAt: new Date(t.occurredAt) })),
-    [transactions],
+  const accountsById = new Map(
+    accounts.map((account) => [account.id, account]),
+  );
+  const categoriesById = new Map(
+    categories.map((category) => [category.id, category]),
+  );
+  const selectable = categories.filter((category) => !category.archived);
+  const suggestions = { ...scheduled.suggestions, ...pageSuggestions };
+
+  const present = (rows: ListedTransaction[]) =>
+    rows
+      .filter((row) => !removed.has(row.id))
+      .map((row) =>
+        filed[row.id] ? { ...row, categoryId: filed[row.id] } : row,
+      );
+  const rows = present(transactions);
+  const upcoming = present(scheduled.transactions);
+  const groups = groupListedTransactions(
+    rows,
+    grouping,
+    totals,
+    today,
+    categoriesById,
   );
 
-  const groups = useMemo(() => {
-    if (groupBy === 'grouped_by_category')
-      return groupTransactionsByCategory(enriched);
-    if (groupBy === 'grouped_by_month')
-      return groupTransactionsByMonth(enriched);
-    return groupTransactionsByPeriod(enriched, new Date());
-  }, [enriched, groupBy]);
-
-  // Each group's `items` are already the exact EnrichedTransaction objects
-  // from `enriched` (groupTransactionsByPeriod only buckets, never clones),
-  // so flattening is a single pass with no `.find()` — the O(n²) re-scan
-  // this component exists to avoid.
-  const flatItems = useMemo<VirtualItem[]>(() => {
-    const items: VirtualItem[] = [];
-    for (const group of groups) {
-      items.push({ kind: 'header', label: group.label });
-      for (const transaction of group.items) {
-        items.push({ kind: 'row', transaction });
+  function categorize(row: ListedTransaction, category: CategoryOption) {
+    setPicking(null);
+    setFiled((current) => ({ ...current, [row.id]: category.id }));
+    startTransition(async () => {
+      const result = await categorizeTransactionAction(row.id, category.id);
+      if (!result.success) {
+        setFiled((current) => {
+          const next = { ...current };
+          delete next[row.id];
+          return next;
+        });
+        toast({
+          title: result.error ?? 'Não foi possível salvar a categoria.',
+          variant: 'error',
+        });
       }
-    }
-    return items;
-  }, [groups]);
-
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  // TanStack Virtual's useVirtualizer() returns functions (measureElement,
-  // etc.) that the React Compiler can't safely memoize; this is expected
-  // for this API, so the compiler's warning is suppressed below.
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const virtualizer = useVirtualizer({
-    count: flatItems.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: (index) => (flatItems[index]?.kind === 'header' ? 40 : 64),
-    overscan: 8,
-  });
-
-  if (transactions.length === 0) {
-    return null; // empty state is rendered by the parent page (Round 3 scope) — this component only handles a non-empty list
+    });
   }
 
+  async function remove(row: ListedTransaction) {
+    const result = await deleteTransactionAction(row.id);
+    if (!result.success) {
+      toast({
+        title: result.error ?? 'Não foi possível excluir.',
+        variant: 'error',
+      });
+      return;
+    }
+    setRemoved((current) => new Set(current).add(row.id));
+    toast({ title: 'Transação excluída.', variant: 'success' });
+  }
+
+  function renderRow(row: ListedTransaction, byDay: boolean) {
+    const lead = !byDay
+      ? { text: shortDate.format(dateOf(row.day)), isTime: false }
+      : row.time
+        ? { text: row.time, isTime: true }
+        : null;
+    return (
+      <TransactionRow
+        key={row.id}
+        transaction={row}
+        category={
+          row.categoryId ? categoriesById.get(row.categoryId) : undefined
+        }
+        account={accountsById.get(row.accountId)}
+        settledCard={
+          row.settlesAccountId
+            ? accountsById.get(row.settlesAccountId)
+            : undefined
+        }
+        lead={lead}
+        suggestions={(suggestions[row.id] ?? [])
+          .map((id) => categoriesById.get(id))
+          .filter((category): category is ListCategory => !!category)}
+        categories={selectable}
+        picking={picking === row.id}
+        onTogglePicking={() =>
+          setPicking((current) => (current === row.id ? null : row.id))
+        }
+        onPick={(category) => categorize(row, category)}
+        onEdit={row.type === 'transfer' ? undefined : () => setEditing(row)}
+        onDelete={() => setDeleting(row)}
+      />
+    );
+  }
+
+  function renderGroup(group: TransactionGroup, byDay: boolean) {
+    return (
+      <section key={group.key} aria-label={group.label}>
+        <h3 className="border-border flex items-baseline justify-between gap-3 border-b px-4 pt-4 pb-1.5 text-sm font-medium">
+          <span className="flex min-w-0 items-center gap-2">
+            {grouping === 'category' && group.key !== BETWEEN_ACCOUNTS && (
+              <CategoryDot color={group.color} />
+            )}
+            <span className="truncate">{group.label}</span>
+          </span>
+          {group.total !== undefined && Math.abs(group.total) >= 0.005 && (
+            <span className="dimension-figure text-muted-foreground shrink-0 font-normal whitespace-nowrap">
+              <span className="sr-only">Total: </span>
+              {signedNet(group.total)}
+            </span>
+          )}
+        </h3>
+        <ul>{group.rows.map((row) => renderRow(row, byDay))}</ul>
+      </section>
+    );
+  }
+
+  const nothing = rows.length === 0 && upcoming.length === 0;
+  const lastUpcoming = upcoming.at(-1);
+
   return (
-    <div role="table" aria-label="Transações">
-      <div
-        ref={parentRef}
-        className="max-h-[75vh] overflow-x-auto overflow-y-auto"
-        role="rowgroup"
-      >
-        {/* Desktop column header — lives inside the same horizontally
-            scrolling container as the rows (not outside it) so it tracks
-            their columns when TRANSACTION_ROW_MIN_WIDTH forces a
-            horizontal scroll; `sticky top-0` (the same device the group
-            headers below use) is what keeps it pinned through *vertical*
-            scrolling instead. */}
-        <div
-          role="row"
-          className="bg-background/95 text-muted-foreground border-border/70 sticky top-0 z-20 hidden border-b text-xs font-semibold tracking-wide uppercase backdrop-blur sm:grid"
-          style={{
-            gridTemplateColumns: TRANSACTION_ROW_GRID_TEMPLATE,
-            minWidth: TRANSACTION_ROW_MIN_WIDTH,
-          }}
-        >
-          <div role="columnheader" className="px-4 py-2">
-            Data
-          </div>
-          <div role="columnheader" className="px-4 py-2">
-            Descrição
-          </div>
-          <div role="columnheader" className="px-4 py-2">
-            Conta
-          </div>
-          <div role="columnheader" className="px-4 py-2">
-            Categoria
-          </div>
-          <div role="columnheader" className="px-4 py-2">
-            Tipo
-          </div>
-          <div role="columnheader" className="px-4 py-2 text-right">
-            Valor
-          </div>
-          <div role="columnheader" className="px-4 py-2">
-            <span className="sr-only">Ações</span>
-          </div>
-        </div>
+    <div
+      aria-busy={pending}
+      className={cn(
+        'sheet-surface @container transition-opacity',
+        grouping === 'day' ? '[--lead:3rem]' : '[--lead:4.5rem]',
+        pending && 'opacity-60',
+      )}
+    >
+      <h2 className="sr-only">Lista de transações</h2>
+      {upcoming.length > 0 && lastUpcoming && (
+        <section aria-label="Agendadas" className="border-border border-b">
+          <button
+            type="button"
+            aria-expanded={showScheduled}
+            aria-controls={scheduledId}
+            onClick={() => setShowScheduled((open) => !open)}
+            className="hover:bg-accent/60 focus-visible:ring-ring flex w-full items-center gap-2 px-4 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+          >
+            <ChevronRight
+              aria-hidden
+              className={cn(
+                'text-muted-foreground size-4 shrink-0 transition-transform',
+                showScheduled && 'rotate-90',
+              )}
+            />
+            <span className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2">
+              <span className="font-medium">Agendadas</span>
+              <span className="text-muted-foreground truncate text-sm">
+                {upcoming.length === 1
+                  ? `1 lançamento, ${whenLabel(lastUpcoming.day, today) === 'amanhã' ? 'amanhã' : `em ${whenLabel(lastUpcoming.day, today)}`}`
+                  : `${upcoming.length} lançamentos, até ${whenLabel(lastUpcoming.day, today)}`}
+              </span>
+            </span>
+            {Math.abs(scheduled.net) >= 0.005 && (
+              <span className="dimension-figure ml-auto shrink-0 pl-2 text-sm whitespace-nowrap">
+                {signedNet(scheduled.net)}
+              </span>
+            )}
+          </button>
+          {showScheduled && (
+            <div id={scheduledId} className="pb-1">
+              {groupListedTransactions(
+                upcoming,
+                'day',
+                {},
+                today,
+                categoriesById,
+              ).map((group) => renderGroup(group, true))}
+            </div>
+          )}
+        </section>
+      )}
 
-        <div
-          style={{
-            height: virtualizer.getTotalSize(),
-            position: 'relative',
-            width: '100%',
-          }}
-        >
-          {virtualizer.getVirtualItems().map((virtualRow) => {
-            const item = flatItems[virtualRow.index];
-            return (
-              <div
-                key={virtualRow.key}
-                data-index={virtualRow.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                {item.kind === 'header' ? (
-                  <div className="bg-background/95 text-muted-foreground sticky top-0 z-10 px-4 py-2 text-xs font-semibold tracking-wide uppercase backdrop-blur">
-                    {item.label}
-                  </div>
-                ) : (
-                  <>
-                    <div className="hidden sm:block">
-                      <TransactionRow
-                        id={item.transaction.id}
-                        description={item.transaction.description}
-                        amount={item.transaction.amount}
-                        type={item.transaction.type}
-                        occurredAt={item.transaction.occurredAt}
-                        accountName={item.transaction.accountName}
-                        categoryId={item.transaction.categoryId ?? undefined}
-                        categoryName={
-                          item.transaction.categoryName ?? undefined
-                        }
-                        categories={categories}
-                        installmentLabel={
-                          item.transaction.installmentPlanId &&
-                          item.transaction.installmentNumber
-                            ? `${item.transaction.installmentNumber}/${installmentCountByPlanId[item.transaction.installmentPlanId] ?? '?'}`
-                            : undefined
-                        }
-                        isRecurring={Boolean(item.transaction.recurringRuleId)}
-                      />
-                    </div>
-                    <div className="px-4 sm:hidden">
-                      <TransactionRowMobile
-                        id={item.transaction.id}
-                        description={item.transaction.description}
-                        amount={item.transaction.amount}
-                        type={item.transaction.type}
-                        occurredAt={item.transaction.occurredAt}
-                        accountName={item.transaction.accountName}
-                        categoryId={item.transaction.categoryId ?? undefined}
-                        categoryName={
-                          item.transaction.categoryName ?? undefined
-                        }
-                        categories={categories}
-                        installmentLabel={
-                          item.transaction.installmentPlanId &&
-                          item.transaction.installmentNumber
-                            ? `${item.transaction.installmentNumber}/${installmentCountByPlanId[item.transaction.installmentPlanId] ?? '?'}`
-                            : undefined
-                        }
-                        isRecurring={Boolean(item.transaction.recurringRuleId)}
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <div ref={sentinelRef} className="h-px" aria-hidden />
-
-        {error ? (
-          <div className="px-4 py-3">
-            <Alert variant="error">
-              <AlertDescription className="flex items-center justify-between gap-3">
-                <span>{error}</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void loadMore()}
+      {nothing ? (
+        <div className="px-6 py-12 text-center">
+          <p className="font-medium">
+            {filtered ? 'Nada encontrado.' : 'Nenhuma transação ainda.'}
+          </p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {filtered ? (
+              <>
+                Nenhuma transação com esses filtros.{' '}
+                <Link
+                  href={ROUTES.transactions}
+                  className="text-foreground underline underline-offset-4"
                 >
-                  Tentar novamente
-                </Button>
-              </AlertDescription>
-            </Alert>
-          </div>
-        ) : (
-          <>
-            {isFetchingMore && (
-              <div className="sm:hidden">
-                <TransactionRowSkeletonMobile />
-                <TransactionRowSkeletonMobile />
-              </div>
+                  Limpar filtros
+                </Link>
+              </>
+            ) : (
+              <>
+                Registre pelo botão “Nova transação” ou pelo{' '}
+                <Link
+                  href={ROUTES.dashboard}
+                  className="text-foreground underline underline-offset-4"
+                >
+                  registro rápido do Início
+                </Link>
+                .
+              </>
             )}
-            {isFetchingMore && (
-              <div className="hidden sm:block">
-                <TransactionRowSkeleton />
-                <TransactionRowSkeleton />
-                <TransactionRowSkeleton />
-              </div>
-            )}
-            {!hasMore && (
-              <p className="text-muted-foreground py-4 text-center text-xs">
-                Fim da lista.
-              </p>
-            )}
-          </>
+          </p>
+        </div>
+      ) : rows.length === 0 ? (
+        <p className="text-muted-foreground px-4 py-6 text-sm">
+          Nada aconteceu ainda nesse período; só há o que está agendado.
+        </p>
+      ) : (
+        <div className="pb-1">
+          {groups.map((group) => renderGroup(group, grouping === 'day'))}
+        </div>
+      )}
+
+      <div ref={sentinelRef} aria-hidden className="h-px" />
+      <div aria-live="polite" className="text-muted-foreground text-sm">
+        {status === 'loading' && (
+          <p className="border-border border-t px-4 py-3">Carregando mais…</p>
+        )}
+        {status === 'error' && (
+          <p className="border-border flex items-center justify-between gap-3 border-t px-4 py-3">
+            Não foi possível carregar mais.
+            <button
+              type="button"
+              onClick={() => void loadMore()}
+              className="text-foreground underline underline-offset-4"
+            >
+              Tentar de novo
+            </button>
+          </p>
         )}
       </div>
+
+      <TransactionEditDialog
+        transaction={
+          editing && {
+            id: editing.id,
+            description: editing.description,
+            amount: editing.amount,
+            day: editing.day,
+            categoryId: filed[editing.id] ?? editing.categoryId,
+            isInstallment: Boolean(editing.installmentPlanId),
+            takesCategory: takesCategory(editing),
+          }
+        }
+        categories={categories}
+        onClose={() => setEditing(null)}
+      />
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        title="Excluir transação"
+        description={
+          deleting
+            ? `Excluir "${splitOrigin(deleting).description}"? O saldo da conta será ajustado.`
+            : ''
+        }
+        onConfirm={async () => {
+          if (deleting) await remove(deleting);
+        }}
+      />
     </div>
   );
 }

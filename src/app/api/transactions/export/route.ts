@@ -1,9 +1,6 @@
 import type { NextRequest } from 'next/server';
 
-import {
-  TRANSACTION_TYPE_LABELS,
-  type TransactionType,
-} from '@/config/constants';
+import { TRANSACTION_TYPE_LABELS } from '@/config/constants';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
@@ -11,7 +8,10 @@ import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-trans
 import { GetTransactionsUseCase } from '@/modules/transactions/application/get-transactions.use-case';
 import { buildCsv } from '@/shared/lib/csv';
 import { toDateInput } from '@/shared/lib/local-day';
-import { parseCategoryFilter } from '@/shared/lib/transaction-filters';
+import {
+  readTransactionQuery,
+  toTransactionFilters,
+} from '@/shared/lib/transaction-query';
 
 const CSV_HEADER = ['Data', 'Descrição', 'Conta', 'Categoria', 'Tipo', 'Valor'];
 
@@ -19,15 +19,11 @@ const CSV_HEADER = ['Data', 'Descrição', 'Conta', 'Categoria', 'Tipo', 'Valor'
 // pulling in a second COUNT-based pagination scheme just for this route.
 const EXPORT_MAX_ROWS = 100_000;
 
-function isTransactionType(value: string | null): value is TransactionType {
-  return value === 'income' || value === 'expense' || value === 'transfer';
-}
-
 /**
  * Streams the user's own transactions (filtered the same way the
- * `/transactions` page's filters work) as a CSV file. Reads the same
- * `accountId`/`categoryId`/`type`/`from`/`to` query params, so an "Exportar"
- * link on that page can simply carry its current query string here.
+ * `/transactions` page's filters work) as a CSV file. Reads the same query
+ * params (`readTransactionQuery`), search included, so "Exportar CSV" on
+ * that page can simply carry its current query string here.
  */
 export async function GET(request: NextRequest) {
   let userId: string;
@@ -37,29 +33,16 @@ export async function GET(request: NextRequest) {
     return new Response('Não autenticado.', { status: 401 });
   }
 
-  const params = request.nextUrl.searchParams;
-  const accountId = params.get('accountId') || undefined;
-  const categoryFilter = parseCategoryFilter(params.get('categoryId'));
-  const typeParam = params.get('type');
-  const type = isTransactionType(typeParam) ? typeParam : undefined;
-  const fromParam = params.get('from');
-  const toParam = params.get('to');
-  const from = fromParam ? new Date(`${fromParam}T00:00:00`) : undefined;
-  const to = toParam ? new Date(`${toParam}T23:59:59.999`) : undefined;
+  const filters = toTransactionFilters(
+    readTransactionQuery(request.nextUrl.searchParams),
+  );
 
   const [accounts, categories, transactions] = await Promise.all([
     new DrizzleAccountRepository().findByUserId(userId),
     new DrizzleCategoryRepository().findByUserId(userId),
     new GetTransactionsUseCase(new DrizzleTransactionRepository()).execute(
       userId,
-      {
-        accountId,
-        ...categoryFilter,
-        type,
-        from,
-        to,
-        pageSize: EXPORT_MAX_ROWS,
-      },
+      { ...filters, pageSize: EXPORT_MAX_ROWS },
     ),
   ]);
 

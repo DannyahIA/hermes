@@ -31,12 +31,7 @@ export function RecurringTransactionFormDialog({
   return (
     <CreateDialogForm
       trigger={(open) => (
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={open}
-        >
+        <Button type="button" variant="outline" size="sm" onClick={open}>
           Nova recorrência
         </Button>
       )}

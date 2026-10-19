@@ -155,7 +155,7 @@ export async function updateInstallmentAction(
     id: formData.get('id'),
     description: formData.get('description'),
     amount: formData.get('amount') || undefined,
-    categoryId: formData.get('categoryId'),
+    categoryId: formData.get('categoryId') ?? undefined,
     occurredAt: formData.get('occurredAt') || undefined,
     propagateToFuture: formData.get('propagateToFuture') === 'on',
   });
@@ -216,7 +216,10 @@ export async function updateTransactionAction(
     id: formData.get('id'),
     description: formData.get('description'),
     amount: formData.get('amount') || undefined,
-    categoryId: formData.get('categoryId'),
+    // Left out for a card bill payment, which never takes a category.
+    categoryId: formData.get('categoryId') ?? undefined,
+    // Left out unless the day changed: a new day means "that day", but
+    // saving a new description shouldn't drop the time it happened at.
     occurredAt: formData.get('occurredAt') || undefined,
   });
 

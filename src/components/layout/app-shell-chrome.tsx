@@ -84,7 +84,10 @@ export function AppShellChrome({
   return (
     <div className="text-foreground min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(232,162,61,0.08),_transparent_40%)]">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 lg:px-6 lg:py-6">
-        <div className="border-border/70 bg-background/80 flex flex-1 overflow-hidden rounded-[1.25rem] border shadow-[var(--shadow-elevation)] backdrop-blur-xl">
+        {/* `overflow-clip`, not `hidden`: it trims the rounded corners just
+            the same, but isn't a scroll container, so a `sticky` bar inside
+            (the transaction list's toolbar on a phone) sticks to the window. */}
+        <div className="border-border/70 bg-background/80 flex flex-1 overflow-clip rounded-[1.25rem] border shadow-[var(--shadow-elevation)] backdrop-blur-xl">
           <aside
             className={cn(
               'border-border/70 bg-sidebar hidden shrink-0 flex-col border-r py-6 transition-[width] duration-200 lg:flex',

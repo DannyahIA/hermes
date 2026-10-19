@@ -364,6 +364,31 @@ Um bloco por conta `credit` visível. Para cada um:
 - **Sem categoria:** classificação no lugar, com o mesmo componente de "Para revisar".
 - **Recorrências:** saem da coluna fixa e viram uma aba "Recorrências" na mesma página.
 
+**Como ficou (F5):**
+
+- **A "ordenação"** é o seletor que já existia ("Cronológico", "Por categoria", "Por mês"),
+  agora "Agrupar: Por dia, Por mês, Por categoria", guardado por usuário como antes. "Por dia" é o
+  padrão. Uma ordenação por valor exigiria outra paginação e ficou de fora.
+- **Agendadas:** o extrato termina hoje. O que tem data depois (as parcelas futuras abriam a
+  lista com meses à frente) fica num bloco recolhido no topo, com a quantidade, até quando vai e o
+  total; abre sozinho quando o período escolhido só tem o que está agendado.
+- **Totais:** cada dia, mês ou categoria mostra o total do grupo inteiro dentro dos filtros,
+  calculado no banco (`TransactionRepository#totalsBy`), mesmo quando a lista ainda não carregou
+  todas as linhas dele.
+- **Rolagem:** 50 linhas por vez, sem virtualização: a lista rola com a página, o que deixa a barra
+  fixa funcionar no celular. Depois de editar, excluir ou classificar uma linha, o servidor manda
+  a primeira página de novo e o resto do que já estava carregado é buscado outra vez numa só
+  requisição, sem a lista encolher.
+- **Linhas:** uma linha por transação na lista larga e duas na estreita, conforme a largura da
+  própria lista (container query), não a da tela. Editar e Excluir ficam num menu "…" por linha. A
+  edição não apaga mais a hora de quem só trocou a descrição.
+- **Barra:** no desktop, busca e "Filtros" numa linha e, abaixo, os atalhos de período (o ativo
+  marcado; tocar de novo desfaz) e as fichas. No celular, busca, "Filtros" e um seletor de período,
+  fixos no topo; "Agrupar" fica dentro de "Filtros".
+- **Sem `loading.tsx`:** pelo mesmo motivo do Início (§6, Renderização). O esqueleto de
+  carregamento da página foi removido; enquanto um filtro novo carrega, a lista atual fica
+  esmaecida.
+
 ---
 
 ## 6. Arquitetura
@@ -388,8 +413,11 @@ modules/categories/application/
                                             módulo do Início)
   remember-merchant-category.ts      [novo] grava a regra do estabelecimento (Para revisar e
                                             registro rápido)
+  get-category-suggestions.use-case.ts [novo] sugestões para as linhas sem categoria do extrato
 modules/transactions/application/
   categorize-transaction.use-case.ts [novo] classifica e grava a regra do estabelecimento
+  get-transaction-page.use-case.ts   [novo] §5: uma página do extrato, com o total de cada grupo
+  get-scheduled-transactions.use-case.ts [novo] §5: o que tem data depois de hoje
   get-dashboard-summary.use-case.ts  (passa a orquestrar; também usa o repositório de
                                       recorrências e o de categorias)
 shared/lib/
