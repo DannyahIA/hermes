@@ -353,6 +353,9 @@ describe('GetDashboardSummaryUseCase', () => {
     expect(summary.toReview.map((t) => t.id)).toEqual(['padaria', 'refund']);
     expect(summary.categorySuggestions.padaria).toEqual(['restaurantes']);
     expect(summary.categorySuggestions.refund).toEqual([]);
+    // Listed among the latest, but neither one ever takes a category.
+    expect(summary.categorySuggestions.transfer).toBeUndefined();
+    expect(summary.categorySuggestions.bill).toBeUndefined();
   });
 
   it('prepares the quick entry: accounts by how much they are used, and what each merchant was', async () => {

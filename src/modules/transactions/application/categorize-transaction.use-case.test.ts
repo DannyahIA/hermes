@@ -176,4 +176,23 @@ describe('CategorizeTransactionUseCase', () => {
       }),
     ).rejects.toMatchObject({ code: 'TRANSFER_HAS_NO_CATEGORY' });
   });
+
+  it('does not categorize a card bill payment', async () => {
+    await transactions.save(
+      new Transaction({
+        ...purchase('tx-4', 'Pagamento de fatura').props,
+        settlesAccountId: 'card-1',
+      }),
+    );
+
+    await expect(
+      useCase.execute({
+        userId: USER_ID,
+        transactionId: 'tx-4',
+        categoryId: 'lazer',
+      }),
+    ).rejects.toMatchObject({ code: 'BILL_PAYMENT_HAS_NO_CATEGORY' });
+    expect((await transactions.findById('tx-4'))?.categoryId).toBeUndefined();
+    expect(await rules.findByUserId(USER_ID)).toEqual([]);
+  });
 });

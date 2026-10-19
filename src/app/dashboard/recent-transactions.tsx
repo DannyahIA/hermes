@@ -24,6 +24,8 @@ export interface RecentRow {
   time: string | null;
   amount: number;
   type: 'income' | 'expense' | 'transfer';
+  /** The card a bill payment settles, by name; such a row takes no category. */
+  settles?: string;
   suggestions: CategoryOption[];
 }
 
@@ -137,6 +139,8 @@ export function RecentTransactions({
                       </span>
                     ) : row.type === 'transfer' ? (
                       <span>Transferência,</span>
+                    ) : row.settles !== undefined ? (
+                      <span className="truncate">Fatura {row.settles},</span>
                     ) : (
                       <button
                         type="button"
@@ -154,7 +158,7 @@ export function RecentTransactions({
                       {row.time && `, ${row.time}`}
                     </span>
                   </p>
-                  {picking === row.id && !category && (
+                  {picking === row.id && !category && !row.settles && (
                     <CategoryPicker
                       className="mt-2"
                       subject={row.description}

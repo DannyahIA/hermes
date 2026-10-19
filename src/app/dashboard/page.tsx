@@ -173,6 +173,9 @@ async function DashboardContent() {
       time: formatTimeOfDay(transaction.occurredAt),
       amount: transaction.amount,
       type: transaction.type,
+      settles: transaction.settlesAccountId
+        ? (accountNames.get(transaction.settlesAccountId) ?? 'do cartão')
+        : undefined,
       suggestions: suggestionsFor(transaction),
     })),
   }));

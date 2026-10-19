@@ -229,7 +229,12 @@ export class GetDashboardSummaryUseCase {
       ...toReview.slice(0, REVIEW_VISIBLE),
       ...recent,
     ]) {
-      if (transaction.categoryId || transaction.type === 'transfer') continue;
+      if (
+        transaction.categoryId ||
+        transaction.type === 'transfer' ||
+        transaction.isCardBillPayment
+      )
+        continue;
       categorySuggestions[transaction.id] = suggest(
         transaction.description,
         transaction.type,

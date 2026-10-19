@@ -59,6 +59,13 @@ export class CategorizeTransactionUseCase {
         'TRANSFER_HAS_NO_CATEGORY',
       );
     }
+    // What it pays for was already filed, purchase by purchase, on the card.
+    if (current?.isCardBillPayment) {
+      throw new DomainError(
+        'A card bill payment has no category.',
+        'BILL_PAYMENT_HAS_NO_CATEGORY',
+      );
+    }
 
     // Also checks that the transaction belongs to the user.
     const transaction = await new UpdateTransactionUseCase(
