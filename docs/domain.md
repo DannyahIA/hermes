@@ -105,7 +105,8 @@ Toda transação possuí:
 - descrição
 
 A data é um instante. Lançada só com o dia, ela fica no começo daquele dia no horário local, e o
-horário não aparece; lançada agora (registro rápido, captura do Apple Pay), guarda a hora.
+horário não aparece; lançada agora (registro rápido, captura do Apple Pay), guarda a hora. Editar
+outra coisa numa transação não muda a hora dela; trocar o dia a põe no começo do dia novo.
 
 ---
 
@@ -223,6 +224,23 @@ Não é persistido.
   uma categoria com o nome da descrição. Um estabelecimento novo entra sem categoria e aparece em
   "Para revisar". Escolher a categoria no registro ensina a regra, como em "Para revisar".
 - Um estabelecimento já visto é escrito como da última vez ("padaria real" vira "Padaria Real").
+
+---
+
+## Extrato (Transações)
+
+- O extrato mostra o que já aconteceu, até o fim de hoje, do mais novo para o mais antigo. O que
+  tem data depois de hoje (parcelas futuras, sobretudo) fica à parte, em "Agendadas", do mais
+  próximo para o mais distante.
+- As transações se agrupam por dia, por mês ou por categoria, à escolha da pessoa, que fica
+  guardada. O total de cada grupo é o que entrou menos o que saiu em todo o grupo dentro dos
+  filtros, mesmo quando a lista ainda não carregou todas as linhas dele. Transferências e
+  pagamentos de fatura não entram nos totais.
+- A busca encontra a descrição sem diferenciar maiúsculas nem acentos ("cafe" encontra "Café").
+- Os filtros (busca, período, conta, categoria e tipo) ficam no endereço da página, e a
+  exportação em CSV leva os mesmos filtros.
+- "Este mês" vai do dia 1 ao último dia do mês, então o que está agendado no resto do mês aparece
+  em "Agendadas"; "7 dias" são os sete dias até hoje, contando hoje.
 
 ---
 

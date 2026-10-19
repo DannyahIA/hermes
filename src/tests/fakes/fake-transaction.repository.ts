@@ -1,8 +1,12 @@
 import type {
+  GroupTotal,
   TransactionFilters,
+  TransactionGrouping,
   TransactionRepository,
 } from '@/core/contracts/transaction-repository';
 import type { Transaction } from '@/core/entities/transaction';
+import { foldText } from '@/shared/lib/fold-text';
+import { toDateInput } from '@/shared/lib/local-day';
 
 /** Like the Drizzle repository: a page holds 50 rows unless told otherwise. */
 const DEFAULT_PAGE_SIZE = 50;
@@ -38,8 +42,10 @@ export class FakeTransactionRepository implements TransactionRepository {
     _userId: string,
     filters: TransactionFilters = {},
   ): Promise<Transaction[]> {
+    const search = filters.search ? foldText(filters.search).trim() : '';
     return [...this.transactions.values()]
       .filter((t) => {
+        if (search && !foldText(t.description).includes(search)) return false;
         if (filters.accountId && t.accountId !== filters.accountId)
           return false;
         if (filters.categoryId && t.categoryId !== filters.categoryId)
@@ -61,6 +67,31 @@ export class FakeTransactionRepository implements TransactionRepository {
           compareIds(b.id, a.id),
       )
       .slice(0, filters.pageSize ?? DEFAULT_PAGE_SIZE);
+  }
+
+  async totalsBy(
+    userId: string,
+    grouping: TransactionGrouping,
+    filters: TransactionFilters = {},
+  ): Promise<GroupTotal[]> {
+    const rows = await this.findByUserId(userId, {
+      ...filters,
+      cursor: undefined,
+      pageSize: Number.POSITIVE_INFINITY,
+    });
+    const totals = new Map<string, GroupTotal>();
+    for (const t of rows) {
+      if (!t.countsAs('income') && !t.countsAs('expense')) continue;
+      const key =
+        grouping === 'category'
+          ? (t.categoryId ?? 'none')
+          : toDateInput(t.occurredAt).slice(0, grouping === 'day' ? 10 : 7);
+      const total = totals.get(key) ?? { key, income: 0, expense: 0 };
+      if (t.type === 'income') total.income += t.amount;
+      else total.expense += t.amount;
+      totals.set(key, total);
+    }
+    return [...totals.values()];
   }
 
   async findByInstallmentPlanId(

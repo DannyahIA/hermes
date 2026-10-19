@@ -3,6 +3,9 @@ import { normalizeMerchant } from '@/modules/capture/domain/normalize-merchant';
 
 const DEFAULT_LIMIT = 3;
 
+/** How far back the history behind a suggestion goes. */
+export const SUGGESTION_HISTORY_DAYS = 90;
+
 interface SuggesterInput {
   /** Categories that can still receive transactions (not archived). */
   categoryIds: string[];

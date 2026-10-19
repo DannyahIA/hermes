@@ -52,3 +52,50 @@ export function formatTimeOfDay(date: Date): string | null {
   if (date.getHours() === 0 && date.getMinutes() === 0) return null;
   return new Intl.DateTimeFormat('pt-BR', { timeStyle: 'short' }).format(date);
 }
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** Days from `a` to `b`, both calendar days ("2026-10-13"); counted in UTC so a daylight saving change can't shift it. */
+function daysBetween(a: string, b: string): number {
+  const [ay, am, ad] = a.split('-').map(Number);
+  const [by, bm, bd] = b.split('-').map(Number);
+  return Math.round(
+    (Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / MS_PER_DAY,
+  );
+}
+
+const dayMonthYear = new Intl.DateTimeFormat('pt-BR', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
+/**
+ * A day as a heading in the transaction list: "Hoje", "Ontem", "Amanhã",
+ * "ter., 13 de out.", or "31 de dez. de 2025" in another year. Takes
+ * calendar days ("2026-10-13") already read in the server's time zone, so
+ * the browser renders the same heading the server did.
+ */
+export function formatDayHeading(day: string, today: string): string {
+  const diff = daysBetween(day, today);
+  if (diff === 0) return 'Hoje';
+  if (diff === 1) return 'Ontem';
+  if (diff === -1) return 'Amanhã';
+  const [year, month, date] = day.split('-').map(Number);
+  const value = new Date(year, month - 1, date);
+  return year === Number(today.slice(0, 4))
+    ? weekdayDayMonth.format(value)
+    : dayMonthYear.format(value);
+}
+
+const monthYear = new Intl.DateTimeFormat('pt-BR', {
+  month: 'long',
+  year: 'numeric',
+});
+
+/** "Outubro de 2026", from "2026-10". */
+export function formatMonthHeading(month: string): string {
+  const [year, index] = month.split('-').map(Number);
+  const label = monthYear.format(new Date(year, index - 1, 1));
+  return label.charAt(0).toLocaleUpperCase('pt-BR') + label.slice(1);
+}

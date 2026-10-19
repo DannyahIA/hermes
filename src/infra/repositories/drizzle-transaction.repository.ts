@@ -1,15 +1,47 @@
-import { and, desc, eq, gte, isNull, lt, lte, ne, or } from 'drizzle-orm';
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  isNull,
+  lt,
+  lte,
+  ne,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm';
 
 import type {
+  GroupTotal,
   TransactionFilters,
+  TransactionGrouping,
   TransactionRepository,
 } from '@/core/contracts/transaction-repository';
 import { Transaction, type TransactionKind } from '@/core/entities/transaction';
 import type { Executor } from '@/infra/database/client';
 import { db } from '@/infra/database/client';
 import { accounts, transactions } from '@/infra/database/schema';
+import { foldText } from '@/shared/lib/fold-text';
 
 type TransactionRow = typeof transactions.$inferSelect;
+
+/**
+ * What `foldText` does, in SQL: `lower` alone keeps accented capitals
+ * under the C locale, so both cases are mapped.
+ */
+const ACCENTED = 'áàâãäåéèêëíìîïóòôõöúùûüçñÁÀÂÃÄÅÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ';
+const UNACCENTED = 'aaaaaaeeeeiiiiooooouuuucnaaaaaaeeeeiiiiooooouuuucn';
+
+/** A LIKE pattern matching `text` anywhere, its wildcards taken literally. */
+function containing(text: string): string {
+  return `%${text.replace(/[\\%_]/g, (character) => `\\${character}`)}%`;
+}
+
+/** The server's zone: "2026-10-13" means that day here, as everywhere else. */
+function localTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
 
 function toDomain(row: TransactionRow): Transaction {
   return new Transaction({
@@ -52,12 +84,15 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     return rows.map(toDomain);
   }
 
-  async findByUserId(
-    userId: string,
-    filters: TransactionFilters = {},
-  ): Promise<Transaction[]> {
+  private conditionsFor(userId: string, filters: TransactionFilters): SQL[] {
     const conditions = [eq(accounts.userId, userId)];
 
+    const search = filters.search ? foldText(filters.search).trim() : '';
+    if (search) {
+      conditions.push(
+        sql`translate(lower(${transactions.description}), ${ACCENTED}, ${UNACCENTED}) like ${containing(search)}`,
+      );
+    }
     if (filters.accountId)
       conditions.push(eq(transactions.accountId, filters.accountId));
     if (filters.categoryId)
@@ -73,6 +108,15 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     if (filters.from)
       conditions.push(gte(transactions.occurredAt, filters.from));
     if (filters.to) conditions.push(lte(transactions.occurredAt, filters.to));
+
+    return conditions;
+  }
+
+  async findByUserId(
+    userId: string,
+    filters: TransactionFilters = {},
+  ): Promise<Transaction[]> {
+    const conditions = this.conditionsFor(userId, filters);
 
     if (filters.cursor) {
       const { occurredAt, id } = filters.cursor;
@@ -106,6 +150,42 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     const rows = await query;
 
     return rows.map((row) => toDomain(row.transaction));
+  }
+
+  async totalsBy(
+    userId: string,
+    grouping: TransactionGrouping,
+    filters: TransactionFilters = {},
+  ): Promise<GroupTotal[]> {
+    const key =
+      grouping === 'category'
+        ? sql<string>`coalesce(${transactions.categoryId}::text, 'none')`
+        : sql<string>`to_char(${transactions.occurredAt} at time zone ${localTimeZone()}, ${grouping === 'day' ? 'YYYY-MM-DD' : 'YYYY-MM'})`;
+
+    const rows = await this.executor
+      .select({
+        key,
+        income: sql<string>`coalesce(sum(${transactions.amount}) filter (where ${transactions.type} = 'income'), 0)`,
+        expense: sql<string>`coalesce(sum(${transactions.amount}) filter (where ${transactions.type} = 'expense'), 0)`,
+      })
+      .from(transactions)
+      .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+      .where(
+        and(
+          ...this.conditionsFor(userId, filters),
+          ne(transactions.type, 'transfer'),
+          isNull(transactions.settlesAccountId),
+        ),
+      )
+      // By position: the key's parameters would differ between the select
+      // list and a repeated expression here, and Postgres would refuse it.
+      .groupBy(sql`1`);
+
+    return rows.map((row) => ({
+      key: row.key,
+      income: Number(row.income),
+      expense: Number(row.expense),
+    }));
   }
 
   async findByInstallmentPlanId(

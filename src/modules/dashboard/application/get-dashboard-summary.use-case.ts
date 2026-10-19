@@ -17,7 +17,10 @@ import {
 } from '@/modules/capture/domain/merchant-memory';
 import type { QuickEntryAccount } from '@/modules/capture/domain/parse-quick-entry';
 import { quickEntryAccounts } from '@/modules/capture/domain/quick-entry-accounts';
-import { createCategorySuggester } from '@/modules/categories/application/suggest-categories';
+import {
+  createCategorySuggester,
+  SUGGESTION_HISTORY_DAYS,
+} from '@/modules/categories/application/suggest-categories';
 import {
   calculateNetWorthByMonth,
   type NetWorthPoint,
@@ -80,7 +83,6 @@ export interface DashboardSummary {
 
 const TREND_MONTHS = 6;
 const REVIEW_DAYS = 30;
-const SUGGESTION_HISTORY_DAYS = 90;
 const RECENT_COUNT = 8;
 /** Suggestions are worked out for the queue's first rows only. */
 export const REVIEW_VISIBLE = 5;
@@ -229,12 +231,7 @@ export class GetDashboardSummaryUseCase {
       ...toReview.slice(0, REVIEW_VISIBLE),
       ...recent,
     ]) {
-      if (
-        transaction.categoryId ||
-        transaction.type === 'transfer' ||
-        transaction.isCardBillPayment
-      )
-        continue;
+      if (transaction.categoryId || !transaction.takesCategory) continue;
       categorySuggestions[transaction.id] = suggest(
         transaction.description,
         transaction.type,

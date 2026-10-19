@@ -104,6 +104,11 @@ export class Transaction {
     return this.type === type && !this.isCardBillPayment;
   }
 
+  /** Whether it can be filed under a category: money moving between the user's own accounts never is. */
+  get takesCategory() {
+    return this.countsAs('income') || this.countsAs('expense');
+  }
+
   /**
    * The signed effect this transaction has on its account's balance:
    * income increases it, expense and the "outgoing" leg of a transfer
