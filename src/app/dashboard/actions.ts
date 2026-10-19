@@ -2,10 +2,8 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
-import { ROUTES } from '@/config/routes';
 import { DomainError } from '@/core/errors/domain-error';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { withTransaction } from '@/infra/database/transaction';
@@ -19,6 +17,7 @@ import {
   recordQuickEntrySchema,
 } from '@/modules/capture/schemas/record-quick-entry.schema';
 import { CategorizeTransactionUseCase } from '@/modules/transactions/application/categorize-transaction.use-case';
+import { revalidateMoneyPages } from '@/shared/server/revalidate-money-pages';
 
 export interface CategorizeResult {
   success: boolean;
@@ -32,14 +31,6 @@ const categorizeSchema = z.object({
 
 const FAILED = 'Não foi possível salvar a categoria. Tente novamente.';
 const ARCHIVED = 'Essa categoria foi arquivada. Escolha outra.';
-
-function revalidateMoneyPages() {
-  revalidatePath(ROUTES.dashboard);
-  revalidatePath(ROUTES.transactions);
-  revalidatePath(ROUTES.accounts);
-  revalidatePath(ROUTES.budgets);
-  revalidatePath(ROUTES.reports);
-}
 
 /**
  * One tap in "Para revisar" (or on "Sem categoria" in the latest

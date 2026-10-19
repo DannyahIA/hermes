@@ -53,6 +53,30 @@ describe('CreateTransactionUseCase', () => {
     expect(account!.balance).toBe(150);
   });
 
+  it('records where it came from, typed by hand unless told otherwise', async () => {
+    const accountRepository = new FakeAccountRepository();
+    await accountRepository.save(makeAccount());
+    const transactions = new FakeTransactionRepository();
+    const useCase = new CreateTransactionUseCase(
+      transactions,
+      accountRepository,
+      new FakeCategoryRepository(),
+    );
+    const input = {
+      userId: USER_ID,
+      accountId: 'acc-1',
+      description: 'Padaria Real',
+      amount: 23.9,
+      type: 'expense' as const,
+    };
+
+    await useCase.execute({ ...input, id: 'typed' });
+    await useCase.execute({ ...input, id: 'tapped', source: 'wallet' });
+
+    expect((await transactions.findById('typed'))?.source).toBe('manual');
+    expect((await transactions.findById('tapped'))?.source).toBe('wallet');
+  });
+
   it('decreases the account balance for an expense', async () => {
     const accountRepository = new FakeAccountRepository();
     await accountRepository.save(makeAccount());

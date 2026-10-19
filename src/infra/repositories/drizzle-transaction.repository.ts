@@ -18,7 +18,11 @@ import type {
   TransactionGrouping,
   TransactionRepository,
 } from '@/core/contracts/transaction-repository';
-import { Transaction, type TransactionKind } from '@/core/entities/transaction';
+import {
+  Transaction,
+  type TransactionKind,
+  type TransactionSource,
+} from '@/core/entities/transaction';
 import type { Executor } from '@/infra/database/client';
 import { db } from '@/infra/database/client';
 import { accounts, transactions } from '@/infra/database/schema';
@@ -56,6 +60,7 @@ function toDomain(row: TransactionRow): Transaction {
     installmentNumber: row.installmentNumber ?? undefined,
     recurringRuleId: row.recurringRuleId ?? undefined,
     settlesAccountId: row.settlesAccountId ?? undefined,
+    source: row.source as TransactionSource,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -213,6 +218,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       installmentNumber: transaction.installmentNumber ?? null,
       recurringRuleId: transaction.recurringRuleId ?? null,
       settlesAccountId: transaction.settlesAccountId ?? null,
+      source: transaction.source,
       updatedAt: transaction.props.updatedAt,
     };
 

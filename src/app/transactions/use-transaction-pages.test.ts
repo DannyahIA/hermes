@@ -15,6 +15,7 @@ function row(id: string): ListedTransaction {
     settlesAccountId: null,
     installmentPlanId: null,
     recurringRuleId: null,
+    source: 'manual',
     day: '2026-10-19',
     time: null,
   };

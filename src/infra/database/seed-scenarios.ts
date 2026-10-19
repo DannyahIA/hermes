@@ -23,12 +23,15 @@ import { CreateTransactionUseCase } from '@/modules/transactions/application/cre
 import { db } from './client';
 import {
   accounts,
+  apiTokens,
   budgets,
+  captureEvents,
   categories,
   installmentPlans,
   recurringTransactions,
   user,
   userViewPreferences,
+  walletCards,
 } from './schema';
 
 /**
@@ -327,6 +330,10 @@ async function getOrCreateUser(email: string, name: string): Promise<string> {
 }
 
 async function wipeFinancialData(tx: Executor, userId: string) {
+  // What the Apple Pay capture left: payments, cards and shortcut tokens.
+  await tx.delete(captureEvents).where(eq(captureEvents.userId, userId));
+  await tx.delete(walletCards).where(eq(walletCards.userId, userId));
+  await tx.delete(apiTokens).where(eq(apiTokens.userId, userId));
   await tx.delete(budgets).where(eq(budgets.userId, userId));
   await tx
     .delete(recurringTransactions)

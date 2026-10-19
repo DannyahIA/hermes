@@ -138,6 +138,7 @@ export class CreateInstallmentPlanUseCase {
         occurredAt: addMonths(startDate, index),
         installmentPlanId: plan.id,
         installmentNumber,
+        source: 'installment',
         createdAt: now,
         updatedAt: now,
       });

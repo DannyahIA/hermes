@@ -21,6 +21,7 @@ function row(
     settlesAccountId: null,
     installmentPlanId: null,
     recurringRuleId: null,
+    source: 'manual',
     day,
     time: null,
     ...overrides,

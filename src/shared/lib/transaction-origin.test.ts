@@ -18,6 +18,12 @@ describe('splitOrigin', () => {
     ).toEqual({ description: 'Aluguel', origin: 'Recorrente' });
   });
 
+  it('marks what the iPhone reported from an Apple Pay payment', () => {
+    expect(
+      splitOrigin({ description: 'Padaria Real', source: 'wallet' }),
+    ).toEqual({ description: 'Padaria Real', origin: 'Apple Pay' });
+  });
+
   it('keeps a fraction someone typed, outside an installment plan', () => {
     expect(splitOrigin({ description: 'Rateio (1/3)' })).toEqual({
       description: 'Rateio (1/3)',

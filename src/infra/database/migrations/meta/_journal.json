@@ -57,6 +57,13 @@
       "when": 1792268496918,
       "tag": "0007_many_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792412269044,
+      "tag": "0008_bright_multiple_man",
+      "breakpoints": true
     }
   ]
 }

@@ -61,6 +61,7 @@ describe('CreateInstallmentPlanUseCase', () => {
     expect(installments.every((i) => i.installmentPlanId === 'plan-1')).toBe(
       true,
     );
+    expect(installments.every((i) => i.source === 'installment')).toBe(true);
 
     const account = await accountRepository.findById('acc-1');
     expect(account!.balance).toBe(700); // 1000 - 300

@@ -64,6 +64,12 @@ describe('GenerateDueOccurrencesUseCase', () => {
     const generated = await useCase.execute(USER_ID, new Date(2026, 2, 15)); // through mid-March
 
     expect(generated).toBe(3); // Jan, Feb, Mar
+    const written = await transactionRepository.findByUserId(USER_ID);
+    expect(written.map((t) => t.source)).toEqual([
+      'recurring',
+      'recurring',
+      'recurring',
+    ]);
     const account = await accountRepository.findById('acc-1');
     expect(account!.balance).toBe(700); // 1000 - 3*100
 

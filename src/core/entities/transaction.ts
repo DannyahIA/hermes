@@ -3,6 +3,14 @@ import { ValidationError } from '@/core/errors/validation-error';
 export type TransactionId = string;
 export type TransactionKind = 'income' | 'expense' | 'transfer';
 
+/**
+ * How a transaction came in: typed in the app (`manual`), a CSV `import`,
+ * a `recurring` rule, an `installment` plan, or a capture — `wallet` for an
+ * Apple Pay payment the iPhone reported, `telegram` for a chat message.
+ */
+export type TransactionSource =
+  'manual' | 'import' | 'recurring' | 'installment' | 'wallet' | 'telegram';
+
 export interface TransactionProps {
   id: TransactionId;
   accountId: string;
@@ -22,6 +30,8 @@ export interface TransactionProps {
    * whose debt it paid down (see PayCreditCardBillUseCase).
    */
   settlesAccountId?: string;
+  /** Defaults to `manual`. */
+  source?: TransactionSource;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -87,6 +97,10 @@ export class Transaction {
 
   get settlesAccountId() {
     return this.props.settlesAccountId;
+  }
+
+  get source(): TransactionSource {
+    return this.props.source ?? 'manual';
   }
 
   /**

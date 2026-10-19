@@ -242,6 +242,21 @@ Não é persistido.
 - "Este mês" vai do dia 1 ao último dia do mês, então o que está agendado no resto do mês aparece
   em "Agendadas"; "7 dias" são os sete dias até hoje, contando hoje.
 
+## Captura do Apple Pay
+
+- Um atalho do iPhone manda cada pagamento por aproximação ao Hermes (valor, estabelecimento,
+  cartão e hora), autenticado por um token pessoal. O Hermes guarda só o hash do token, que só
+  registra compras e não lê nada; a resposta nunca traz saldo nem conta.
+- Cada pagamento vira uma despesa na conta do cartão usado, com a hora do toque e a origem
+  "Apple Pay". O cartão é reconhecido pelo nome na Wallet, sem diferenciar maiúsculas nem acentos,
+  e associado a uma conta uma vez, em Configurações; um cartão novo fica esperando essa escolha, e
+  as compras dele são registradas quando ela é feita.
+- O estabelecimento é lido como no registro rápido: um já conhecido entra na categoria lembrada,
+  com o nome escolhido; um novo entra sem categoria e aparece em "Para revisar". Sem
+  estabelecimento, a descrição é "Compra no <cartão>".
+- O mesmo pagamento mandado de novo (mesmo cartão, valor e minuto) não é registrado duas vezes.
+  Um pagamento sem valor espera que o valor seja informado; ele pode ser descartado.
+
 ---
 
 # Patrimônio

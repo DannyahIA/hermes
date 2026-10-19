@@ -1,6 +1,9 @@
 import type { TransactionViewMode } from '@/config/constants';
 import type { TransactionGrouping } from '@/core/contracts/transaction-repository';
-import type { Transaction } from '@/core/entities/transaction';
+import type {
+  Transaction,
+  TransactionSource,
+} from '@/core/entities/transaction';
 import { formatTimeOfDay } from '@/shared/lib/format-date';
 import { toDateInput } from '@/shared/lib/local-day';
 
@@ -21,6 +24,8 @@ export interface ListedTransaction {
   settlesAccountId: string | null;
   installmentPlanId: string | null;
   recurringRuleId: string | null;
+  /** How it came in: see `TransactionSource`. */
+  source: TransactionSource;
   /** "2026-10-13". */
   day: string;
   /** "12:41", or null for an entry stored at midnight. */
@@ -75,6 +80,7 @@ export function toListedTransaction(
     settlesAccountId: transaction.settlesAccountId ?? null,
     installmentPlanId: transaction.installmentPlanId ?? null,
     recurringRuleId: transaction.recurringRuleId ?? null,
+    source: transaction.source,
     day: toDateInput(transaction.occurredAt),
     time: formatTimeOfDay(transaction.occurredAt),
   };

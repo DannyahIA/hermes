@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -272,6 +273,10 @@ export const transactions = pgTable(
     settlesAccountId: uuid('settles_account_id').references(() => accounts.id, {
       onDelete: 'set null',
     }),
+    // How it came in: typed (`manual`), a CSV `import`, a `recurring` rule,
+    // an `installment` plan, or a capture (`wallet` from the iPhone's
+    // Wallet, `telegram` from a chat message). See TransactionSource.
+    source: varchar('source', { length: 16 }).notNull().default('manual'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -380,5 +385,105 @@ export const merchantRules = pgTable(
       table.userId,
       table.merchantKey,
     ),
+  ],
+);
+
+/**
+ * A personal token for something that can't hold a browser session — the
+ * iPhone shortcut that reports Apple Pay payments. Only its SHA-256 is
+ * stored; the token itself is shown once, when it's made.
+ */
+export const apiTokens = pgTable(
+  'api_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .references(() => user.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 80 }).notNull(),
+    tokenHash: varchar('token_hash', { length: 64 }).notNull(),
+    /** The token's first characters, to tell tokens apart: "hm_3fa9c1". */
+    prefix: varchar('prefix', { length: 16 }).notNull(),
+    scope: varchar('scope', { length: 32 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (table) => [uniqueIndex('api_tokens_hash_idx').on(table.tokenHash)],
+);
+
+/**
+ * A card as the iPhone's Wallet names it ("Nubank", "Itaú Visa"), and the
+ * account its payments go to. A card first seen in a payment is kept with
+ * no account until the user picks one; `alternate_account_id` is for a
+ * single Wallet card that pays both as debit and as credit.
+ */
+export const walletCards = pgTable(
+  'wallet_cards',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .references(() => user.id, { onDelete: 'cascade' })
+      .notNull(),
+    walletName: varchar('wallet_name', { length: 120 }).notNull(),
+    /** The name without case, accents or extra spaces: one card, however it's spelled. */
+    nameKey: varchar('name_key', { length: 120 }).notNull(),
+    accountId: uuid('account_id').references(() => accounts.id, {
+      onDelete: 'set null',
+    }),
+    alternateAccountId: uuid('alternate_account_id').references(
+      () => accounts.id,
+      { onDelete: 'set null' },
+    ),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('wallet_cards_user_key_idx').on(table.userId, table.nameKey),
+  ],
+);
+
+/**
+ * Every payment a capture reported, recorded or not: a repeat is answered
+ * from here instead of recorded twice, and a payment still missing its
+ * account or amount waits here until the user supplies it.
+ */
+export const captureEvents = pgTable(
+  'capture_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .references(() => user.id, { onDelete: 'cascade' })
+      .notNull(),
+    source: varchar('source', { length: 16 }).notNull(),
+    idempotencyKey: varchar('idempotency_key', { length: 255 }).notNull(),
+    /** What was sent, trimmed to the fields a capture uses. */
+    payload: jsonb('payload').notNull(),
+    status: varchar('status', { length: 16 }).notNull(),
+    walletCardId: uuid('wallet_card_id').references(() => walletCards.id, {
+      onDelete: 'set null',
+    }),
+    transactionId: uuid('transaction_id').references(() => transactions.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('capture_events_user_key_idx').on(
+      table.userId,
+      table.idempotencyKey,
+    ),
+    index('capture_events_user_status_idx').on(table.userId, table.status),
   ],
 );

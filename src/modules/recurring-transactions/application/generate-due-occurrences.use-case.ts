@@ -47,6 +47,7 @@ export class GenerateDueOccurrencesUseCase {
           type: rule.type,
           occurredAt,
           recurringRuleId: rule.id,
+          source: 'recurring',
           createdAt: new Date(),
           updatedAt: new Date(),
         });

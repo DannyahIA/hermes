@@ -2,13 +2,10 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { revalidatePath } from 'next/cache';
-
 import {
   TRANSACTION_TYPE_LABELS,
   type TransactionType,
 } from '@/config/constants';
-import { ROUTES } from '@/config/routes';
 import { DomainError } from '@/core/errors/domain-error';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { withTransaction } from '@/infra/database/transaction';
@@ -30,6 +27,7 @@ import { createTransactionSchema } from '@/modules/transactions/schemas/create-t
 import { transferMoneySchema } from '@/modules/transactions/schemas/transfer-money.schema';
 import { updateTransactionSchema } from '@/modules/transactions/schemas/update-transaction.schema';
 import { parseCsv } from '@/shared/lib/csv';
+import { revalidateMoneyPages } from '@/shared/server/revalidate-money-pages';
 
 export interface ActionResult {
   success: boolean;
@@ -43,13 +41,6 @@ function toUserMessage(error: unknown): string {
     return error.message;
   }
   return 'Não foi possível concluir esta ação. Tente novamente.';
-}
-
-function revalidateMoneyPages() {
-  revalidatePath(ROUTES.transactions);
-  revalidatePath(ROUTES.accounts);
-  revalidatePath(ROUTES.dashboard);
-  revalidatePath(ROUTES.budgets);
 }
 
 export async function createTransactionAction(
@@ -562,6 +553,7 @@ export async function confirmImportAction(
             amount: row.amount,
             type: row.type,
             occurredAt: new Date(row.occurredAt),
+            source: 'import',
           });
         });
         imported += 1;

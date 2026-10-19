@@ -1,7 +1,10 @@
 import type { AccountRepository } from '@/core/contracts/account-repository';
 import type { CategoryRepository } from '@/core/contracts/category-repository';
 import type { TransactionRepository } from '@/core/contracts/transaction-repository';
-import { Transaction } from '@/core/entities/transaction';
+import {
+  Transaction,
+  type TransactionSource,
+} from '@/core/entities/transaction';
 import { DomainError } from '@/core/errors/domain-error';
 import { NotFoundError } from '@/core/errors/not-found-error';
 
@@ -14,6 +17,8 @@ export interface CreateTransactionInput {
   amount: number;
   type: 'income' | 'expense';
   occurredAt?: Date;
+  /** Defaults to `manual`. */
+  source?: TransactionSource;
 }
 
 /**
@@ -56,6 +61,7 @@ export class CreateTransactionUseCase {
       amount: input.amount,
       type: input.type,
       occurredAt: input.occurredAt ?? new Date(),
+      source: input.source,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
