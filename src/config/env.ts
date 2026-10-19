@@ -34,6 +34,13 @@ const envSchema = z.object({
     .string()
     .url('NEXT_PUBLIC_APP_URL must be a valid URL.')
     .default('http://localhost:3000'),
+  // Optional: where the iPhone reaches Hermes from anywhere, e.g. the
+  // Tailscale address (https://hermes.tail1234.ts.net). The iPhone shortcut
+  // recipe in Configurações uses it; NEXT_PUBLIC_APP_URL when unset.
+  CAPTURE_BASE_URL: z
+    .string()
+    .url('CAPTURE_BASE_URL must be a valid URL.')
+    .optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),

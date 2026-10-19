@@ -431,6 +431,19 @@ cartão, que você associa a uma conta na primeira compra (§5.3, passo 4). Se a
 | **F3**            | Texto livre e comandos (`/livre`, `/fatura`, `/hoje`, `/desfazer`, `/ajuda`)                                                                                                                              | Tabela de §5.5 coberta por testes e conferida no chat.                                        |
 | **F4 (opcional)** | Foto de comprovante (OCR, como no doc do WhatsApp §4), lembrete de fechamento e vencimento da fatura, resumo diário. Os lembretes e o resumo exigem um agendador; em modo polling, o próprio worker serve | Decidir depois de usar F1–F3 por algumas semanas.                                             |
 
+**F1 — como ficou:**
+
+- `POST /api/capture/wallet` com `Authorization: Bearer hm_…`; responde `{ "status": "ok" }`
+  (com o estado da captura), 401 sem token válido, 429 acima de 30 por minuto e 400 quando nada
+  do que chegou é usável (atalho mal configurado), para o passo 4 da receita avisar no iPhone.
+- Sem Telegram, o que falta numa captura se resolve em Configurações › "Esperando você": um
+  cartão novo espera a conta (escolhida em "Cartões da Wallet", que registra as compras que
+  esperavam) e uma compra sem valor espera o valor; as duas podem ser descartadas.
+- `merchant_rules` já existia (Início, F3). `transactions.source` marca a origem; as parcelas e
+  recorrências antigas foram marcadas pela migration, e as compras capturadas aparecem nas listas
+  com "Apple Pay".
+- Ficam para a F2: a lista editável de regras de estabelecimento e as preferências (§6).
+
 ---
 
 ## 12. Fora de escopo

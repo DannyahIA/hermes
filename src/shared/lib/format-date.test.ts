@@ -7,6 +7,7 @@ import {
   formatDayLabel,
   formatMonthHeading,
   formatOccurredAt,
+  formatSince,
   formatTimeOfDay,
 } from './format-date';
 
@@ -69,5 +70,21 @@ describe('formatMonthHeading', () => {
   it('names the month and its year', () => {
     expect(formatMonthHeading('2026-10')).toBe('Outubro de 2026');
     expect(formatMonthHeading('2027-03')).toBe('Março de 2027');
+  });
+});
+
+describe('formatSince', () => {
+  const now = new Date(2026, 9, 19, 15, 30);
+
+  it('says how long ago, in the words a person would use', () => {
+    expect(formatSince(new Date(2026, 9, 19, 15, 29, 40), now)).toBe('agora');
+    expect(formatSince(new Date(2026, 9, 19, 15, 28), now)).toBe(
+      'há 2 minutos',
+    );
+    expect(formatSince(new Date(2026, 9, 19, 12, 10), now)).toBe('há 3 horas');
+    expect(formatSince(new Date(2026, 9, 18, 9), now)).toBe('ontem');
+    expect(formatSince(new Date(2026, 9, 10, 9), now)).toBe(
+      `em ${formatDate(new Date(2026, 9, 10, 9))}`,
+    );
   });
 });

@@ -99,3 +99,17 @@ export function formatMonthHeading(month: string): string {
   const label = monthYear.format(new Date(year, index - 1, 1));
   return label.charAt(0).toLocaleUpperCase('pt-BR') + label.slice(1);
 }
+
+const relative = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto' });
+
+/** "agora", "há 2 minutos", "há 3 horas", "ontem", or the day: when something last happened. */
+export function formatSince(date: Date, now: Date): string {
+  const seconds = Math.round((now.getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return 'agora';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return relative.format(-minutes, 'minute');
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return relative.format(-hours, 'hour');
+  const label = formatDayLabel(date, now);
+  return label === 'Ontem' ? 'ontem' : `em ${formatDate(date)}`;
+}
