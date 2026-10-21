@@ -3,18 +3,26 @@
 import { randomUUID } from 'node:crypto';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 
 import { ROUTES } from '@/config/routes';
 import { DomainError } from '@/core/errors/domain-error';
 import { requireCurrentUserId } from '@/infra/auth/session';
+import { withTransaction } from '@/infra/database/transaction';
+import { DrizzleBudgetRepository } from '@/infra/repositories/drizzle-budget.repository';
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
+import { DrizzleInstallmentPlanRepository } from '@/infra/repositories/drizzle-installment-plan.repository';
+import { DrizzleMerchantRuleRepository } from '@/infra/repositories/drizzle-merchant-rule.repository';
+import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { ArchiveCategoryUseCase } from '@/modules/categories/application/archive-category.use-case';
 import { CreateCategoryUseCase } from '@/modules/categories/application/create-category.use-case';
 import { DeleteCategoryUseCase } from '@/modules/categories/application/delete-category.use-case';
+import { MergeCategoriesUseCase } from '@/modules/categories/application/merge-categories.use-case';
 import { UpdateCategoryUseCase } from '@/modules/categories/application/update-category.use-case';
 import { createCategorySchema } from '@/modules/categories/schemas/create-category.schema';
 import { updateCategorySchema } from '@/modules/categories/schemas/update-category.schema';
+import { revalidateMoneyPages } from '@/shared/server/revalidate-money-pages';
 
 export interface ActionResult {
   success: boolean;
@@ -130,6 +138,60 @@ export async function deleteCategoryAction(id: string): Promise<ActionResult> {
   } catch (error) {
     return { success: false, error: toUserMessage(error) };
   }
+}
+
+const mergeCategoriesSchema = z.object({
+  keepId: z.uuid(),
+  mergeId: z.uuid(),
+});
+
+/**
+ * Merges two categories that are the same: everything filed under the one
+ * that leaves moves to the one that stays, and the leaving one is archived,
+ * all in one transaction.
+ */
+export async function mergeCategoriesAction(input: {
+  keepId: string;
+  mergeId: string;
+}): Promise<ActionResult> {
+  const parsed = mergeCategoriesSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: 'Categorias inválidas.' };
+  }
+
+  try {
+    const userId = await requireCurrentUserId();
+    await withTransaction(async (tx) => {
+      await new MergeCategoriesUseCase(
+        new DrizzleCategoryRepository(tx),
+        new DrizzleTransactionRepository(tx),
+        new DrizzleBudgetRepository(tx),
+        new DrizzleMerchantRuleRepository(tx),
+        new DrizzleRecurringTransactionRepository(tx),
+        new DrizzleInstallmentPlanRepository(tx),
+      ).execute({ userId, ...parsed.data });
+    });
+
+    revalidatePath(ROUTES.categories);
+    revalidateMoneyPages();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: toMergeMessage(error) };
+  }
+}
+
+function toMergeMessage(error: unknown): string {
+  if (error instanceof DomainError) {
+    switch (error.code) {
+      case 'CATEGORY_ARCHIVED':
+        return 'A categoria que fica está arquivada. Escolha outra.';
+      case 'NOT_FOUND':
+        return 'Categoria não encontrada.';
+      case 'SAME_CATEGORY':
+        return 'Escolha duas categorias diferentes.';
+    }
+  }
+  return 'Não foi possível juntar as categorias. Tente novamente.';
 }
 
 /**
