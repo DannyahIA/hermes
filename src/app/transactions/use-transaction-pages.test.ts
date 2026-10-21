@@ -31,6 +31,7 @@ function page(
     nextCursor,
     totals,
     suggestions: {},
+    newCategories: {},
   };
 }
 

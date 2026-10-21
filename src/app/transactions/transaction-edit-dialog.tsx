@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 
+import { fileUnderNewCategoryAction } from '@/app/dashboard/actions';
+import { NEW_CATEGORY_OPTION } from '@/app/dashboard/category-picker';
 import {
   type ActionResult,
   updateInstallmentAction,
@@ -97,11 +99,50 @@ function EditForm({
   onCancel: () => void;
 }) {
   const [day, setDay] = useState(transaction.day);
+  const [categoryId, setCategoryId] = useState(transaction.categoryId ?? '');
+  const [naming, setNaming] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newError, setNewError] = useState<string | null>(null);
+  const [made, setMade] = useState<Array<{ id: string; name: string }>>([]);
+  const [creating, startTransition] = useTransition();
+  const trimmedName = newName.trim();
   // An archived category takes no new transactions, but the one this
   // transaction already has must stay selected.
-  const options = categories.filter(
-    (category) => !category.archived || category.id === transaction.categoryId,
-  );
+  const options = [
+    ...categories.filter(
+      (category) =>
+        !category.archived || category.id === transaction.categoryId,
+    ),
+    ...made.filter(
+      (category) => !categories.some((known) => known.id === category.id),
+    ),
+  ];
+
+  function backToSelect() {
+    setNaming(false);
+    setNewName('');
+    setNewError(null);
+  }
+
+  function createCategory() {
+    if (!trimmedName || creating) return;
+    startTransition(async () => {
+      const result = await fileUnderNewCategoryAction({
+        transactionIds: [transaction.id],
+        name: trimmedName,
+      });
+      if (!result.success) {
+        setNewError(result.error);
+        return;
+      }
+      setMade((current) => [
+        ...current,
+        { id: result.category.id, name: result.category.name },
+      ]);
+      setCategoryId(result.category.id);
+      backToSelect();
+    });
+  }
 
   return (
     <>
@@ -172,23 +213,71 @@ function EditForm({
             <label className="text-sm font-medium" htmlFor="edit-categoryId">
               Categoria
             </label>
-            <select
-              id="edit-categoryId"
-              name="categoryId"
-              defaultValue={transaction.categoryId ?? ''}
-              className={FIELD_BASE_CLASSES}
-            >
-              {/* Saving can't take a category away, so only an
+            {naming ? (
+              <>
+                {/* The form still sends the category it had. */}
+                <input type="hidden" name="categoryId" value={categoryId} />
+                <div className="flex items-center gap-2">
+                  <Input
+                    aria-label="Nome da categoria"
+                    autoFocus
+                    maxLength={60}
+                    value={newName}
+                    onChange={(event) => setNewName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        // Creates the category; the edit form must not submit.
+                        event.preventDefault();
+                        createCategory();
+                      } else if (event.key === 'Escape') {
+                        // Back to the select, and not out of the dialog.
+                        event.preventDefault();
+                        event.stopPropagation();
+                        backToSelect();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    disabled={!trimmedName || creating}
+                    onClick={createCategory}
+                  >
+                    Criar
+                  </Button>
+                </div>
+                {newError && (
+                  <Alert variant="error">
+                    <AlertDescription>{newError}</AlertDescription>
+                  </Alert>
+                )}
+              </>
+            ) : (
+              <select
+                id="edit-categoryId"
+                name="categoryId"
+                value={categoryId}
+                onChange={(event) => {
+                  if (event.target.value === NEW_CATEGORY_OPTION) {
+                    setNaming(true);
+                  } else {
+                    setCategoryId(event.target.value);
+                  }
+                }}
+                className={FIELD_BASE_CLASSES}
+              >
+                {/* Saving can't take a category away, so only an
                   uncategorized transaction offers "none". */}
-              {!transaction.categoryId && (
-                <option value="">Sem categoria</option>
-              )}
-              {options.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+                {!transaction.categoryId && (
+                  <option value="">Sem categoria</option>
+                )}
+                {options.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+                <option value={NEW_CATEGORY_OPTION}>＋ Nova categoria…</option>
+              </select>
+            )}
           </div>
         )}
 

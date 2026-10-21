@@ -2,11 +2,15 @@
 
 import { useOptimistic, useState, useTransition } from 'react';
 
+import type { NewCategoryHint } from '@/modules/categories/domain/category-catalog';
 import { toast } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/format-currency';
 
-import { categorizeTransactionAction } from './actions';
+import {
+  categorizeTransactionAction,
+  fileUnderNewCategoryAction,
+} from './actions';
 import {
   CategoryDot,
   type CategoryOption,
@@ -27,6 +31,8 @@ export interface RecentRow {
   /** The card a bill payment settles, by name; such a row takes no category. */
   settles?: string;
   suggestions: CategoryOption[];
+  /** A common category the user does not have yet, offered first. */
+  newCategory?: NewCategoryHint;
 }
 
 export interface RecentDayView {
@@ -68,7 +74,14 @@ export function RecentTransactions({
     }),
   );
   const [picking, setPicking] = useState<string | null>(null);
+  /** Categories made on the spot here, by id, until the page reloads. */
+  const [created, setCreated] = useState<Record<string, CategoryOption>>({});
+  /** The category a row was filed under on the spot, by row id. */
+  const [createdFor, setCreatedFor] = useState<Record<string, string>>({});
+  /** Rows whose new category is being saved: they take no second request. */
+  const [creating, setCreating] = useState<ReadonlySet<string>>(new Set());
   const [, startTransition] = useTransition();
+  const lookup = { ...categoriesById, ...created };
 
   function pick(row: RecentRow, category: CategoryOption) {
     setPicking(null);
@@ -81,6 +94,35 @@ export function RecentTransactions({
           variant: 'error',
         });
       }
+    });
+  }
+
+  function create(row: RecentRow, name: string, color?: string) {
+    setPicking(null);
+    setCreating((current) => new Set(current).add(row.id));
+    startTransition(async () => {
+      const result = await fileUnderNewCategoryAction({
+        transactionIds: [row.id],
+        name,
+        color,
+      });
+      setCreating((current) => {
+        const next = new Set(current);
+        next.delete(row.id);
+        return next;
+      });
+      if (!result.success) {
+        toast({ title: result.error, variant: 'error' });
+        return;
+      }
+      setCreated((current) => ({
+        ...current,
+        [result.category.id]: result.category,
+      }));
+      setCreatedFor((current) => ({
+        ...current,
+        [row.id]: result.category.id,
+      }));
     });
   }
 
@@ -103,10 +145,9 @@ export function RecentTransactions({
           </div>
           <ul>
             {day.rows.map((row) => {
-              const categoryId = filed[row.id] ?? row.categoryId;
-              const category = categoryId
-                ? categoriesById[categoryId]
-                : undefined;
+              const categoryId =
+                filed[row.id] ?? createdFor[row.id] ?? row.categoryId;
+              const category = categoryId ? lookup[categoryId] : undefined;
 
               return (
                 <li key={row.id} className="dimension-row block">
@@ -145,6 +186,7 @@ export function RecentTransactions({
                       <button
                         type="button"
                         aria-expanded={picking === row.id}
+                        disabled={creating.has(row.id)}
                         onClick={() =>
                           setPicking(picking === row.id ? null : row.id)
                         }
@@ -164,7 +206,9 @@ export function RecentTransactions({
                       subject={row.description}
                       suggestions={row.suggestions}
                       categories={categories}
+                      newCategory={row.newCategory}
                       onPick={(picked) => pick(row, picked)}
+                      onCreate={(name, color) => create(row, name, color)}
                     />
                   )}
                 </li>

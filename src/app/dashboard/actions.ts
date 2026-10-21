@@ -2,8 +2,10 @@
 
 import { randomUUID } from 'node:crypto';
 
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
+import { ROUTES } from '@/config/routes';
 import { DomainError } from '@/core/errors/domain-error';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { withTransaction } from '@/infra/database/transaction';
@@ -17,7 +19,10 @@ import {
   recordQuickEntrySchema,
 } from '@/modules/capture/schemas/record-quick-entry.schema';
 import { CategorizeTransactionUseCase } from '@/modules/transactions/application/categorize-transaction.use-case';
+import { FileUnderNewCategoryUseCase } from '@/modules/transactions/application/file-under-new-category.use-case';
 import { revalidateMoneyPages } from '@/shared/server/revalidate-money-pages';
+
+import type { CategoryOption } from './category-picker';
 
 export interface CategorizeResult {
   success: boolean;
@@ -106,4 +111,55 @@ export async function recordQuickEntryAction(
 
   revalidateMoneyPages();
   return { success: true, transactionId };
+}
+
+const fileUnderNewCategorySchema = z.object({
+  transactionIds: z.array(z.uuid()).min(1).max(1000),
+  name: z.string().trim().min(1).max(60),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
+});
+
+const NAME_INVALID = 'Informe um nome de até 60 caracteres.';
+const NOT_CREATED = 'Não foi possível criar a categoria. Tente novamente.';
+
+export type FileUnderNewCategoryResult =
+  | { success: true; category: CategoryOption }
+  | { success: false; error: string };
+
+/**
+ * "＋ Saúde (nova)" or "＋ Nova categoria…" on a purchase: finds or creates
+ * the category by name and files the purchases under it, remembering each
+ * merchant. Returns the category so the list can show it at once.
+ */
+export async function fileUnderNewCategoryAction(input: {
+  transactionIds: string[];
+  name: string;
+  color?: string;
+}): Promise<FileUnderNewCategoryResult> {
+  const parsed = fileUnderNewCategorySchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: NAME_INVALID };
+
+  try {
+    const userId = await requireCurrentUserId();
+    const { category } = await withTransaction((tx) =>
+      new FileUnderNewCategoryUseCase(
+        new DrizzleTransactionRepository(tx),
+        new DrizzleAccountRepository(tx),
+        new DrizzleCategoryRepository(tx),
+        new DrizzleMerchantRuleRepository(tx),
+      ).execute({ userId, ...parsed.data }),
+    );
+
+    revalidateMoneyPages();
+    revalidatePath(ROUTES.categories);
+    return {
+      success: true,
+      category: { id: category.id, name: category.name, color: category.color },
+    };
+  } catch {
+    return { success: false, error: NOT_CREATED };
+  }
 }

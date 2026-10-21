@@ -4,7 +4,10 @@ import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useId, useState, useTransition } from 'react';
 
-import { categorizeTransactionAction } from '@/app/dashboard/actions';
+import {
+  categorizeTransactionAction,
+  fileUnderNewCategoryAction,
+} from '@/app/dashboard/actions';
 import {
   CategoryDot,
   type CategoryOption,
@@ -106,11 +109,16 @@ export function TransactionList({
     transactions,
     totals,
     suggestions: pageSuggestions,
+    newCategories: pageNewCategories,
     status,
     loadMore,
     sentinelRef,
   } = useTransactionPages(initial, query, grouping);
   const [filed, setFiled] = useState<Record<string, string>>({});
+  /** Categories made here from the list, until the page reloads. */
+  const [made, setMade] = useState<ListCategory[]>([]);
+  /** Rows whose new category is being saved: they take no second request. */
+  const [creating, setCreating] = useState<ReadonlySet<string>>(new Set());
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
   const [picking, setPicking] = useState<string | null>(null);
   const [editing, setEditing] = useState<ListedTransaction | null>(null);
@@ -124,11 +132,18 @@ export function TransactionList({
   const accountsById = new Map(
     accounts.map((account) => [account.id, account]),
   );
+  const allCategories = [
+    ...categories,
+    ...made.filter(
+      (category) => !categories.some((known) => known.id === category.id),
+    ),
+  ];
   const categoriesById = new Map(
-    categories.map((category) => [category.id, category]),
+    allCategories.map((category) => [category.id, category]),
   );
-  const selectable = categories.filter((category) => !category.archived);
+  const selectable = allCategories.filter((category) => !category.archived);
   const suggestions = { ...scheduled.suggestions, ...pageSuggestions };
+  const newCategories = { ...scheduled.newCategories, ...pageNewCategories };
 
   const present = (rows: ListedTransaction[]) =>
     rows
@@ -162,6 +177,33 @@ export function TransactionList({
           variant: 'error',
         });
       }
+    });
+  }
+
+  function create(row: ListedTransaction, name: string, color?: string) {
+    setPicking(null);
+    setCreating((current) => new Set(current).add(row.id));
+    startTransition(async () => {
+      const result = await fileUnderNewCategoryAction({
+        transactionIds: [row.id],
+        name,
+        color,
+      });
+      setCreating((current) => {
+        const next = new Set(current);
+        next.delete(row.id);
+        return next;
+      });
+      if (!result.success) {
+        toast({ title: result.error, variant: 'error' });
+        return;
+      }
+      const category: ListCategory = { ...result.category, archived: false };
+      setMade((current) => [
+        ...current.filter((known) => known.id !== category.id),
+        category,
+      ]);
+      setFiled((current) => ({ ...current, [row.id]: category.id }));
     });
   }
 
@@ -202,11 +244,14 @@ export function TransactionList({
           .map((id) => categoriesById.get(id))
           .filter((category): category is ListCategory => !!category)}
         categories={selectable}
+        newCategory={newCategories[row.id]}
         picking={picking === row.id}
+        creating={creating.has(row.id)}
         onTogglePicking={() =>
           setPicking((current) => (current === row.id ? null : row.id))
         }
         onPick={(category) => categorize(row, category)}
+        onCreate={(name, color) => create(row, name, color)}
         onEdit={row.type === 'transfer' ? undefined : () => setEditing(row)}
         onDelete={() => setDeleting(row)}
       />
@@ -363,7 +408,7 @@ export function TransactionList({
             takesCategory: takesCategory(editing),
           }
         }
-        categories={categories}
+        categories={allCategories}
         onClose={() => setEditing(null)}
       />
       <ConfirmDialog

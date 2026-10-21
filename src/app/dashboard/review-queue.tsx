@@ -10,11 +10,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import type { NewCategoryHint } from '@/modules/categories/domain/category-catalog';
 import { toast } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/format-currency';
 
-import { categorizeTransactionAction } from './actions';
+import {
+  categorizeTransactionAction,
+  fileUnderNewCategoryAction,
+} from './actions';
 import { type CategoryOption, CategoryPicker } from './category-picker';
 
 export interface ReviewItem {
@@ -26,6 +30,8 @@ export interface ReviewItem {
   when: string;
   accountName: string;
   suggestions: CategoryOption[];
+  /** A common category the user does not have yet, offered first. */
+  newCategory?: NewCategoryHint;
 }
 
 interface ReviewQueueProps {
@@ -64,6 +70,20 @@ export function ReviewQueue({
           title: result.error ?? 'Não foi possível salvar a categoria.',
           variant: 'error',
         });
+      }
+    });
+  }
+
+  function create(item: ReviewItem, name: string, color?: string) {
+    startTransition(async () => {
+      markFiled(item.id);
+      const result = await fileUnderNewCategoryAction({
+        transactionIds: [item.id],
+        name,
+        color,
+      });
+      if (!result.success) {
+        toast({ title: result.error, variant: 'error' });
       }
     });
   }
@@ -120,7 +140,9 @@ export function ReviewQueue({
                   subject={item.description}
                   suggestions={item.suggestions}
                   categories={categories}
+                  newCategory={item.newCategory}
                   onPick={(category) => pick(item, category)}
+                  onCreate={(name, color) => create(item, name, color)}
                 />
               </li>
             ))}

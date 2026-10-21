@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { TransactionGrouping } from '@/core/contracts/transaction-repository';
+import type { NewCategoryHint } from '@/modules/categories/domain/category-catalog';
 import { scrollRootOf } from '@/shared/lib/scroll-root';
 import {
   type TransactionQuery,
@@ -19,6 +20,7 @@ interface Loaded {
   transactions: ListedTransaction[];
   totals: Record<string, number>;
   suggestions: Record<string, string[]>;
+  newCategories: Record<string, NewCategoryHint>;
   next: string | null;
 }
 
@@ -57,6 +59,7 @@ export function useTransactionPages(
     transactions: [],
     totals: {},
     suggestions: {},
+    newCategories: {},
     next: initial.nextCursor,
   });
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -88,6 +91,7 @@ export function useTransactionPages(
         transactions: [],
         totals: {},
         suggestions: {},
+        newCategories: {},
         next: initial.nextCursor,
       });
     }
@@ -110,6 +114,7 @@ export function useTransactionPages(
           transactions: page.transactions,
           totals: page.totals,
           suggestions: page.suggestions,
+          newCategories: page.newCategories,
           next: page.nextCursor,
         });
       })
@@ -143,6 +148,7 @@ export function useTransactionPages(
           ],
           totals: { ...previous.totals, ...page.totals },
           suggestions: { ...previous.suggestions, ...page.suggestions },
+          newCategories: { ...previous.newCategories, ...page.newCategories },
           next: page.nextCursor,
         };
       });
@@ -181,6 +187,7 @@ export function useTransactionPages(
     transactions,
     totals: { ...loaded.totals, ...initial.totals },
     suggestions: { ...loaded.suggestions, ...initial.suggestions },
+    newCategories: { ...loaded.newCategories, ...initial.newCategories },
     hasMore: loaded.next !== null,
     status,
     loadMore,

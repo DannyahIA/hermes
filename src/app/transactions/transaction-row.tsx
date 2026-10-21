@@ -15,6 +15,7 @@ import {
   CategoryPicker,
 } from '@/app/dashboard/category-picker';
 import { Menu, MenuItem } from '@/components/ui/menu';
+import type { NewCategoryHint } from '@/modules/categories/domain/category-catalog';
 import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/format-currency';
 import { splitOrigin } from '@/shared/lib/transaction-origin';
@@ -59,11 +60,16 @@ interface TransactionRowProps {
   /** The time within a day's group; the date in a month's or category's. */
   lead: { text: string; isTime: boolean } | null;
   suggestions: CategoryOption[];
+  /** A common category the user does not have yet, offered first. */
+  newCategory?: NewCategoryHint;
   /** The categories it can be filed under now. */
   categories: CategoryOption[];
   picking: boolean;
+  /** A new category for it is being saved: "Sem categoria" waits. */
+  creating: boolean;
   onTogglePicking: () => void;
   onPick: (category: CategoryOption) => void;
+  onCreate: (name: string, color?: string) => void;
   /** Absent for a transfer, which is deleted and made again instead. */
   onEdit?: () => void;
   onDelete: () => void;
@@ -76,10 +82,13 @@ export function TransactionRow({
   settledCard,
   lead,
   suggestions,
+  newCategory,
   categories,
   picking,
+  creating,
   onTogglePicking,
   onPick,
+  onCreate,
   onEdit,
   onDelete,
 }: TransactionRowProps) {
@@ -148,6 +157,7 @@ export function TransactionRow({
               <button
                 type="button"
                 aria-expanded={picking}
+                disabled={creating}
                 onClick={onTogglePicking}
                 className="border-muted-foreground/50 hover:border-foreground hover:text-foreground focus-visible:ring-ring shrink-0 rounded border border-dashed px-1.5 py-0.5 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
               >
@@ -203,8 +213,10 @@ export function TransactionRow({
           className="px-4 pb-3 @3xl:pl-[calc(var(--lead)+2rem)]"
           subject={description}
           suggestions={suggestions}
+          newCategory={newCategory}
           categories={categories}
           onPick={onPick}
+          onCreate={onCreate}
         />
       )}
     </li>

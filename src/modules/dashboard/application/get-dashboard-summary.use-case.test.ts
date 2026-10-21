@@ -358,6 +358,49 @@ describe('GetDashboardSummaryUseCase', () => {
     expect(summary.categorySuggestions.bill).toBeUndefined();
   });
 
+  it('suggests a common category the user does not have yet for a row in the review queue', async () => {
+    const accountRepository = new FakeAccountRepository();
+    const transactionRepository = new FakeTransactionRepository();
+    const now = new Date();
+    const daysAgo = (days: number) =>
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() - days, 0, 1);
+    await accountRepository.save(
+      new Account({
+        id: 'card-1',
+        userId: 'user-1',
+        name: 'card-1',
+        type: 'credit',
+        balance: 0,
+        currency: 'BRL',
+        archived: false,
+        hidden: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+    await transactionRepository.save(
+      new Transaction({
+        id: 'farmacia',
+        accountId: 'card-1',
+        description: 'Farmácia São João',
+        amount: 30,
+        type: 'expense',
+        occurredAt: daysAgo(0),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+
+    const summary = await summarize(accountRepository, transactionRepository);
+
+    expect(summary.toReview.map((t) => t.id)).toEqual(['farmacia']);
+    expect(summary.newCategorySuggestions.farmacia).toEqual({
+      key: 'saude',
+      name: 'Saúde',
+      color: '#ef4444',
+    });
+  });
+
   it('prepares the quick entry: accounts by how much they are used, and what each merchant was', async () => {
     const accountRepository = new FakeAccountRepository();
     const transactionRepository = new FakeTransactionRepository();

@@ -21,6 +21,8 @@ import {
   createCategorySuggester,
   SUGGESTION_HISTORY_DAYS,
 } from '@/modules/categories/application/suggest-categories';
+import { suggestNewCategories } from '@/modules/categories/application/suggest-new-categories';
+import type { NewCategoryHint } from '@/modules/categories/domain/category-catalog';
 import {
   calculateNetWorthByMonth,
   type NetWorthPoint,
@@ -66,6 +68,8 @@ export interface DashboardSummary {
   toReview: Transaction[];
   /** Up to three category ids per uncategorized transaction shown. */
   categorySuggestions: Record<string, string[]>;
+  /** A common category the user does not have yet, per uncategorized transaction shown. */
+  newCategorySuggestions: Record<string, NewCategoryHint>;
   /** Budgets running today, blown and ahead-of-pace first. */
   budgetPace: BudgetPace[];
   recentDays: RecentDay[];
@@ -226,11 +230,9 @@ export class GetDashboardSummaryUseCase {
       history: history.filter((transaction) => transaction.categoryId),
     });
     const entryAccounts = quickEntryAccounts(accounts, history);
+    const shown = [...toReview.slice(0, REVIEW_VISIBLE), ...recent];
     const categorySuggestions: Record<string, string[]> = {};
-    for (const transaction of [
-      ...toReview.slice(0, REVIEW_VISIBLE),
-      ...recent,
-    ]) {
+    for (const transaction of shown) {
       if (transaction.categoryId || !transaction.takesCategory) continue;
       categorySuggestions[transaction.id] = suggest(
         transaction.description,
@@ -254,6 +256,11 @@ export class GetDashboardSummaryUseCase {
       categories,
       toReview,
       categorySuggestions,
+      newCategorySuggestions: suggestNewCategories({
+        transactions: shown,
+        categories,
+        rules: merchantRules,
+      }),
       budgetPace: calculateBudgetPace(budgetProgress, now),
       recentDays: groupRecentByDay(
         recent,

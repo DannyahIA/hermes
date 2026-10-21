@@ -4,6 +4,7 @@ import type {
   Transaction,
   TransactionSource,
 } from '@/core/entities/transaction';
+import type { NewCategoryHint } from '@/modules/categories/domain/category-catalog';
 import { formatTimeOfDay } from '@/shared/lib/format-date';
 import { toDateInput } from '@/shared/lib/local-day';
 
@@ -40,6 +41,8 @@ export interface ListedPage {
   totals: Record<string, number>;
   /** Category ids to offer beside "Sem categoria", by transaction id. */
   suggestions: Record<string, string[]>;
+  /** A common category the user does not have yet, by transaction id. */
+  newCategories: Record<string, NewCategoryHint>;
 }
 
 export interface ListedScheduled {
@@ -47,6 +50,7 @@ export interface ListedScheduled {
   transactions: ListedTransaction[];
   net: number;
   suggestions: Record<string, string[]>;
+  newCategories: Record<string, NewCategoryHint>;
 }
 
 export const GROUPING_BY_VIEW_MODE: Record<

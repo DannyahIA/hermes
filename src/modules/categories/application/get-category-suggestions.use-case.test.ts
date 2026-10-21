@@ -81,7 +81,7 @@ describe('GetCategorySuggestionsUseCase', () => {
       }),
     ];
 
-    const suggestions = await new GetCategorySuggestionsUseCase(
+    const { categories: suggestions } = await new GetCategorySuggestionsUseCase(
       transactions,
       categories,
       rules,
@@ -91,6 +91,46 @@ describe('GetCategorySuggestionsUseCase', () => {
       padaria: ['restaurantes'],
       uber: ['transporte', 'restaurantes'],
     });
+  });
+
+  it('suggests a common category the user does not have yet, beside the existing suggestions', async () => {
+    const transactions = new FakeTransactionRepository();
+    const categories = new FakeCategoryRepository();
+    const rules = new FakeMerchantRuleRepository();
+    await categories.save(
+      new Category({
+        id: 'restaurantes',
+        userId: USER_ID,
+        name: 'Restaurantes',
+        archived: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+    await transactions.save(
+      transaction('filed', 'Padaria Real', 3, { categoryId: 'restaurantes' }),
+    );
+
+    const result = await new GetCategorySuggestionsUseCase(
+      transactions,
+      categories,
+      rules,
+    ).execute({
+      userId: USER_ID,
+      transactions: [
+        transaction('padaria', 'PADARIA REAL *12', 0),
+        transaction('farmacia', 'Farmácia São João', 0),
+      ],
+      now: NOW,
+    });
+
+    expect(result.categories.padaria).toEqual(['restaurantes']);
+    expect(result.newCategories.farmacia).toEqual({
+      key: 'saude',
+      name: 'Saúde',
+      color: '#ef4444',
+    });
+    expect(result.newCategories.padaria).toBeUndefined();
   });
 
   it('reads nothing when every row already has a category or takes none', async () => {
@@ -113,7 +153,7 @@ describe('GetCategorySuggestionsUseCase', () => {
       now: NOW,
     });
 
-    expect(suggestions).toEqual({});
+    expect(suggestions).toEqual({ categories: {}, newCategories: {} });
     expect(reads).toBe(0);
   });
 });

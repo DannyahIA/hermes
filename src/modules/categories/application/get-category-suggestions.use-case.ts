@@ -3,16 +3,26 @@ import type { MerchantRuleRepository } from '@/core/contracts/merchant-rule-repo
 import type { TransactionRepository } from '@/core/contracts/transaction-repository';
 import type { Transaction } from '@/core/entities/transaction';
 
+import type { NewCategoryHint } from '../domain/category-catalog';
 import {
   createCategorySuggester,
   SUGGESTION_HISTORY_DAYS,
 } from './suggest-categories';
+import { suggestNewCategories } from './suggest-new-categories';
+
+export interface CategorySuggestions {
+  /** Up to three existing categories per open transaction, by transaction id. */
+  categories: Record<string, string[]>;
+  /** A common category the user does not have yet, by transaction id. */
+  newCategories: Record<string, NewCategoryHint>;
+}
 
 /**
  * Up to three categories for each transaction in `transactions` that
  * still needs one — the one-tap choices beside "Sem categoria" in a list
- * (spec 2026-10-17-inicio-hub-design.md §4.2 and §5). Reads nothing when
- * none of them does.
+ * (spec 2026-10-17-inicio-hub-design.md §4.2 and §5) — and the common
+ * category a purchase may need that the user does not have yet. Reads
+ * nothing when none of them does.
  */
 export class GetCategorySuggestionsUseCase {
   constructor(
@@ -25,11 +35,11 @@ export class GetCategorySuggestionsUseCase {
     userId: string;
     transactions: Transaction[];
     now?: Date;
-  }): Promise<Record<string, string[]>> {
+  }): Promise<CategorySuggestions> {
     const open = input.transactions.filter(
       (transaction) => !transaction.categoryId && transaction.takesCategory,
     );
-    if (open.length === 0) return {};
+    if (open.length === 0) return { categories: {}, newCategories: {} };
 
     const now = input.now ?? new Date();
     const [categories, rules, history] = await Promise.all([
@@ -53,11 +63,18 @@ export class GetCategorySuggestionsUseCase {
       history: history.filter((transaction) => transaction.categoryId),
     });
 
-    return Object.fromEntries(
-      open.map((transaction) => [
-        transaction.id,
-        suggest(transaction.description, transaction.type),
-      ]),
-    );
+    return {
+      categories: Object.fromEntries(
+        open.map((transaction) => [
+          transaction.id,
+          suggest(transaction.description, transaction.type),
+        ]),
+      ),
+      newCategories: suggestNewCategories({
+        transactions: open,
+        categories,
+        rules,
+      }),
+    };
   }
 }

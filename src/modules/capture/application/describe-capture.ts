@@ -103,7 +103,7 @@ export async function recordedView(
           deps.categories,
           deps.merchantRules,
         ).execute({ userId: event.userId, transactions: [transaction], now })
-      )[transaction.id] ?? [];
+      ).categories[transaction.id] ?? [];
     const found = await Promise.all(
       ids.map((id) => deps.categories.findById(id)),
     );

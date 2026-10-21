@@ -2,7 +2,10 @@ import type { TransactionGrouping } from '@/core/contracts/transaction-repositor
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
 import { DrizzleMerchantRuleRepository } from '@/infra/repositories/drizzle-merchant-rule.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
-import { GetCategorySuggestionsUseCase } from '@/modules/categories/application/get-category-suggestions.use-case';
+import {
+  type CategorySuggestions,
+  GetCategorySuggestionsUseCase,
+} from '@/modules/categories/application/get-category-suggestions.use-case';
 import { GetScheduledTransactionsUseCase } from '@/modules/transactions/application/get-scheduled-transactions.use-case';
 import { GetTransactionPageUseCase } from '@/modules/transactions/application/get-transaction-page.use-case';
 import {
@@ -28,7 +31,7 @@ function suggestionsFor(
     GetCategorySuggestionsUseCase['execute']
   >[0]['transactions'],
   now: Date,
-) {
+): Promise<CategorySuggestions> {
   return new GetCategorySuggestionsUseCase(
     new DrizzleTransactionRepository(),
     new DrizzleCategoryRepository(),
@@ -59,11 +62,13 @@ export async function loadTransactionPage(
     now,
   });
 
+  const suggestions = await suggestionsFor(userId, page.transactions, now);
   return {
     transactions: page.transactions.map(toListedTransaction),
     nextCursor: page.next ? encodeTransactionCursor(page.next) : null,
     totals: page.totals,
-    suggestions: await suggestionsFor(userId, page.transactions, now),
+    suggestions: suggestions.categories,
+    newCategories: suggestions.newCategories,
   };
 }
 
@@ -77,9 +82,11 @@ export async function loadScheduled(
     new DrizzleTransactionRepository(),
   ).execute({ userId, filters: toTransactionFilters(query), now });
 
+  const suggestions = await suggestionsFor(userId, scheduled.transactions, now);
   return {
     transactions: scheduled.transactions.map(toListedTransaction),
     net: scheduled.net,
-    suggestions: await suggestionsFor(userId, scheduled.transactions, now),
+    suggestions: suggestions.categories,
+    newCategories: suggestions.newCategories,
   };
 }

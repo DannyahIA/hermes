@@ -132,6 +132,7 @@ async function DashboardContent() {
         when: `${formatDayLabel(transaction.occurredAt, today)}${time ? ` às ${time}` : ''}`,
         accountName: accountNames.get(transaction.accountId) ?? '',
         suggestions: suggestionsFor(transaction),
+        newCategory: summary.newCategorySuggestions[transaction.id],
       };
     });
   const reviewFrom = new Date(
@@ -156,6 +157,7 @@ async function DashboardContent() {
         ? (accountNames.get(transaction.settlesAccountId) ?? 'do cartão')
         : undefined,
       suggestions: suggestionsFor(transaction),
+      newCategory: summary.newCategorySuggestions[transaction.id],
     })),
   }));
 
