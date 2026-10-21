@@ -13,6 +13,8 @@ export type ChatAction =
   | { kind: 'installments'; captureId: string; count: number }
   | { kind: 'undo'; captureId: string }
   | { kind: 'card-account'; captureId: string; accountId: string }
+  /** Creates a common category from the catalog, and files the purchase under it. */
+  | { kind: 'new-category'; captureId: string; key: string }
   | { kind: 'discard'; captureId: string }
   /** Saves an entry from the chat that waited for a yes. */
   | { kind: 'confirm'; captureId: string }
@@ -30,6 +32,7 @@ const CODES: Record<ChatAction['kind'], string> = {
   installments: 's',
   undo: 'u',
   'card-account': 'w',
+  'new-category': 'n',
   discard: 'x',
   confirm: 'c',
   keep: 'm',
@@ -39,6 +42,8 @@ const KINDS = Object.fromEntries(
 ) as Record<string, ChatAction['kind']>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+/** A catalog key ("saude", "pets"): short and plain, so it fits a button. */
+const CATEGORY_KEY = /^[a-z-]{1,20}$/;
 
 /** A UUID in 22 characters instead of 36: two of them fit in a button. */
 function pack(uuid: string): string {
@@ -56,6 +61,7 @@ export function encodeChatAction(action: ChatAction): string {
   const parts = [CODES[action.kind], pack(action.captureId)];
   if (action.kind === 'category') parts.push(pack(action.categoryId));
   if (action.kind === 'card-account') parts.push(pack(action.accountId));
+  if (action.kind === 'new-category') parts.push(action.key);
   if (action.kind === 'pick-category') parts.push(String(action.page));
   if (action.kind === 'installments') parts.push(String(action.count));
   return parts.join(':');
@@ -76,6 +82,10 @@ export function decodeChatAction(data: string): ChatAction | null {
       const accountId = unpack(extra);
       return accountId ? { kind, captureId, accountId } : null;
     }
+    case 'new-category':
+      return extra && CATEGORY_KEY.test(extra)
+        ? { kind, captureId, key: extra }
+        : null;
     case 'pick-category': {
       const page = Number(extra);
       return Number.isInteger(page) && page >= 0 && page < 50

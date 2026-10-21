@@ -214,6 +214,38 @@ describe('talking with Hermes in the chat', () => {
       ]);
     });
 
+    it('creates the missing category from the chat and files the purchase', async () => {
+      const { captureId, messageId } = await announced({
+        merchant: 'DROGASIL 24H',
+      });
+      expect(labels(channel.latest(messageId))?.[0]).toBe('＋ Saúde');
+
+      await tap({ kind: 'new-category', captureId, key: 'saude' }, messageId);
+
+      const saude = (await world.deps.categories.findByUserId(USER_ID)).find(
+        (c) => c.name === 'Saúde',
+      );
+      expect((await transactionOf(captureId))?.categoryId).toBe(saude?.id);
+      expect(channel.latest(messageId)?.text).toContain(
+        'Da próxima vez, Drogasil 24h já entra em Saúde.',
+      );
+    });
+
+    it('files nothing under a key the catalog does not have', async () => {
+      const { captureId, messageId } = await announced({
+        merchant: 'DROGASIL 24H',
+      });
+
+      await tap({ kind: 'new-category', captureId, key: 'nada' }, messageId);
+
+      expect(await world.deps.categories.findByUserId(USER_ID)).toHaveLength(2);
+      expect((await transactionOf(captureId))?.categoryId).toBeUndefined();
+      expect(labels(channel.latest(messageId))?.[0]).toBe('＋ Saúde');
+      expect(channel.answered.at(-1)?.notice).toBe(
+        'Esta compra mudou. Veja como ela está agora.',
+      );
+    });
+
     it('pages through every category on "Outra…"', async () => {
       const { captureId, messageId } = await announced();
 

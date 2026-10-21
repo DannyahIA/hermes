@@ -2,10 +2,12 @@ import { randomUUID } from 'node:crypto';
 
 import type { ChatMessage } from '@/core/contracts/chat-channel';
 import type { CaptureEvent } from '@/core/entities/capture-event';
+import { catalogCategoryByKey } from '@/modules/categories/domain/category-catalog';
 import { CreateInstallmentPlanUseCase } from '@/modules/installments/application/create-installment-plan.use-case';
 import { DeleteInstallmentPlanUseCase } from '@/modules/installments/application/delete-installment-plan.use-case';
 import { CategorizeTransactionUseCase } from '@/modules/transactions/application/categorize-transaction.use-case';
 import { DeleteTransactionUseCase } from '@/modules/transactions/application/delete-transaction.use-case';
+import { FileUnderNewCategoryUseCase } from '@/modules/transactions/application/file-under-new-category.use-case';
 import { MoveTransactionToAccountUseCase } from '@/modules/transactions/application/move-transaction-to-account.use-case';
 
 import {
@@ -138,6 +140,27 @@ export async function pressChatButton(
         message: storyMessage(
           await describeCapture(deps, event, now, rule !== null),
         ),
+      };
+    }
+
+    case 'new-category': {
+      if (plan) return current(CHANGED);
+      const entry = catalogCategoryByKey(action.key);
+      if (!entry) return current(CHANGED);
+      await new FileUnderNewCategoryUseCase(
+        deps.transactions,
+        deps.accounts,
+        deps.categories,
+        deps.merchantRules,
+      ).execute({
+        userId,
+        name: entry.name,
+        color: entry.color,
+        transactionIds: [transaction.id],
+      });
+      // A catalog match always has a merchant key, so its rule is always written.
+      return {
+        message: storyMessage(await describeCapture(deps, event, now, true)),
       };
     }
 

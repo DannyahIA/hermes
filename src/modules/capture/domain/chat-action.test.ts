@@ -4,8 +4,24 @@ import { decodeChatAction, encodeChatAction } from './chat-action';
 
 const CAPTURE = '9295c43b-103b-447c-8e8b-ba077b4111d7';
 const CATEGORY = '3067a014-dd3f-467c-973c-9f7e1a7e8915';
+/** The capture's id as a button carries it: 22 characters. */
+const packed = encodeChatAction({ kind: 'show', captureId: CAPTURE }).split(
+  ':',
+)[1];
 
 describe('chat button data', () => {
+  it('carries the key of a category to create', () => {
+    expect(
+      decodeChatAction(
+        encodeChatAction({
+          kind: 'new-category',
+          captureId: CAPTURE,
+          key: 'saude',
+        }),
+      ),
+    ).toEqual({ kind: 'new-category', captureId: CAPTURE, key: 'saude' });
+  });
+
   it('round-trips every action within the 64 bytes a button carries', () => {
     const actions = [
       { kind: 'category', captureId: CAPTURE, categoryId: CATEGORY },
@@ -32,5 +48,8 @@ describe('chat button data', () => {
     expect(decodeChatAction('k:abc')).toBeNull();
     expect(decodeChatAction('z:' + 'A'.repeat(22))).toBeNull();
     expect(decodeChatAction('s:' + 'A'.repeat(22) + ':99')).toBeNull();
+    expect(decodeChatAction(`n:${packed}:Saude!`)).toBeNull();
+    expect(decodeChatAction(`n:${packed}`)).toBeNull();
+    expect(decodeChatAction(`n:${packed}:${'a'.repeat(21)}`)).toBeNull();
   });
 });

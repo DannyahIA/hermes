@@ -60,6 +60,25 @@ describe('the message about a payment', () => {
     });
   });
 
+  it('offers the missing category before the suggestions', () => {
+    const message = captureMessage({
+      ...recorded,
+      newCategory: { key: 'saude', name: 'Saúde' },
+    });
+
+    expect(labels(message)).toEqual([
+      ['＋ Saúde', 'Restaurantes'],
+      ['Mercado', 'Lazer'],
+      ['Outra…'],
+      ['Parcelar', 'Desfazer'],
+    ]);
+    expect(decodeChatAction(message.buttons![0][0].data)).toEqual({
+      kind: 'new-category',
+      captureId: CAPTURE,
+      key: 'saude',
+    });
+  });
+
   it('offers no installments for a purchase paid from a checking account', () => {
     const message = captureMessage({
       ...recorded,

@@ -27,6 +27,8 @@ export interface RecordedView {
   /** "Foi no débito": for a Wallet card that pays both ways. */
   switchLabel?: string;
   suggestions: Named[];
+  /** A common category the merchant is missing: offered first, made on tap. */
+  newCategory?: { key: string; name: string };
   /** "Livre até 05/11: R$ 1.818,20 (R$ 101 por dia)" */
   free?: string;
   /** "Mercado: 84% do orçamento, acima do ritmo" */
@@ -109,29 +111,36 @@ function recordedMessage(view: RecordedView): ChatMessage {
   const { captureId } = view;
   const buttons: ChatButton[][] = [];
   if (!view.category && !view.installments) {
-    buttons.push(
-      ...rows(
-        [
-          ...view.suggestions.map((category) => ({
-            text: category.name,
-            data: encodeChatAction({
-              kind: 'category',
-              captureId,
-              categoryId: category.id,
-            }),
-          })),
-          {
-            text: 'Outra…',
-            data: encodeChatAction({
-              kind: 'pick-category',
-              captureId,
-              page: 0,
-            }),
-          },
-        ],
-        2,
-      ),
+    const choices: ChatButton[] = [];
+    if (view.newCategory) {
+      choices.push({
+        text: `＋ ${view.newCategory.name}`,
+        data: encodeChatAction({
+          kind: 'new-category',
+          captureId,
+          key: view.newCategory.key,
+        }),
+      });
+    }
+    choices.push(
+      ...view.suggestions.map((category) => ({
+        text: category.name,
+        data: encodeChatAction({
+          kind: 'category',
+          captureId,
+          categoryId: category.id,
+        }),
+      })),
+      {
+        text: 'Outra…',
+        data: encodeChatAction({
+          kind: 'pick-category',
+          captureId,
+          page: 0,
+        }),
+      },
     );
+    buttons.push(...rows(choices, 2));
   }
   const actions: ChatButton[] = [];
   if (!view.installments) {

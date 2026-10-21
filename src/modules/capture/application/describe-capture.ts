@@ -4,6 +4,7 @@ import type { CaptureEvent } from '@/core/entities/capture-event';
 import type { Transaction } from '@/core/entities/transaction';
 import type { WalletCard } from '@/core/entities/wallet-card';
 import { GetCategorySuggestionsUseCase } from '@/modules/categories/application/get-category-suggestions.use-case';
+import type { NewCategoryHint } from '@/modules/categories/domain/category-catalog';
 import { GetSpendingSnapshotUseCase } from '@/modules/dashboard/application/get-spending-snapshot.use-case';
 
 import {
@@ -95,19 +96,19 @@ export async function recordedView(
   ]);
 
   let suggestions: Named[] = [];
+  let hint: NewCategoryHint | undefined;
   if (!category && !plan) {
-    const ids =
-      (
-        await new GetCategorySuggestionsUseCase(
-          deps.transactions,
-          deps.categories,
-          deps.merchantRules,
-        ).execute({ userId: event.userId, transactions: [transaction], now })
-      ).categories[transaction.id] ?? [];
+    const result = await new GetCategorySuggestionsUseCase(
+      deps.transactions,
+      deps.categories,
+      deps.merchantRules,
+    ).execute({ userId: event.userId, transactions: [transaction], now });
+    const ids = result.categories[transaction.id] ?? [];
     const found = await Promise.all(
       ids.map((id) => deps.categories.findById(id)),
     );
     suggestions = found.filter((item) => item !== null).map(named);
+    hint = result.newCategories[transaction.id];
   }
 
   const target = plan ? undefined : switchTarget(card, transaction);
@@ -147,6 +148,7 @@ export async function recordedView(
         : 'Foi no débito'
       : undefined,
     suggestions,
+    newCategory: hint ? { key: hint.key, name: hint.name } : undefined,
     free: showFree ? freeLine(snapshot.available) : undefined,
     alerts: alert ? [alert] : [],
   };
