@@ -210,7 +210,7 @@ describe('capturing an Apple Pay payment', () => {
       now: NOW,
     });
 
-    expect(recorded).toBe(1);
+    expect(recorded).toEqual([waiting.captureId]);
     expect((await events.findById(waiting.captureId))?.status).toBe('recorded');
     expect(await transactions.findByUserId(USER_ID)).toHaveLength(1);
   });

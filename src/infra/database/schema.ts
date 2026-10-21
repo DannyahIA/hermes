@@ -472,6 +472,10 @@ export const captureEvents = pgTable(
     transactionId: uuid('transaction_id').references(() => transactions.id, {
       onDelete: 'set null',
     }),
+    /** The chat message that tells about this payment, with its buttons. */
+    chatMessageId: varchar('chat_message_id', { length: 32 }),
+    /** A question about it awaiting a reply (its amount), when there is one. */
+    chatPromptId: varchar('chat_prompt_id', { length: 32 }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -487,3 +491,44 @@ export const captureEvents = pgTable(
     index('capture_events_user_status_idx').on(table.userId, table.status),
   ],
 );
+
+/**
+ * A chat (Telegram) the user connected to Hermes: where payments are
+ * announced, and whose messages and buttons are accepted as the user's.
+ * One active link per user and per chat; disconnecting keeps the row,
+ * revoked.
+ */
+export const chatLinks = pgTable(
+  'chat_links',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .references(() => user.id, { onDelete: 'cascade' })
+      .notNull(),
+    channel: varchar('channel', { length: 16 }).notNull(),
+    externalChatId: varchar('external_chat_id', { length: 64 }).notNull(),
+    username: varchar('username', { length: 64 }),
+    linkedAt: timestamp('linked_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('chat_links_user_idx').on(table.userId),
+    index('chat_links_chat_idx').on(table.channel, table.externalChatId),
+  ],
+);
+
+/**
+ * Proof that whoever starts the bot is the user signed in to Hermes: a
+ * one-time code, good for ten minutes, carried by the "Abrir no Telegram"
+ * link.
+ */
+export const chatLinkCodes = pgTable('chat_link_codes', {
+  code: varchar('code', { length: 32 }).primaryKey(),
+  userId: text('user_id')
+    .references(() => user.id, { onDelete: 'cascade' })
+    .notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+});

@@ -23,6 +23,8 @@ function toDomain(row: CaptureEventRow): CaptureEvent {
     status: row.status as CaptureStatus,
     walletCardId: row.walletCardId ?? undefined,
     transactionId: row.transactionId ?? undefined,
+    chatMessageId: row.chatMessageId ?? undefined,
+    chatPromptId: row.chatPromptId ?? undefined,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -59,11 +61,18 @@ export class DrizzleCaptureEventRepository implements CaptureEventRepository {
 
   async findByUserId(
     userId: string,
-    options: { statuses?: CaptureStatus[]; limit?: number } = {},
+    options: {
+      statuses?: CaptureStatus[];
+      sources?: CaptureSource[];
+      limit?: number;
+    } = {},
   ): Promise<CaptureEvent[]> {
     const conditions = [eq(captureEvents.userId, userId)];
     if (options.statuses) {
       conditions.push(inArray(captureEvents.status, options.statuses));
+    }
+    if (options.sources) {
+      conditions.push(inArray(captureEvents.source, options.sources));
     }
     const rows = await this.executor
       .select()
@@ -72,6 +81,23 @@ export class DrizzleCaptureEventRepository implements CaptureEventRepository {
       .orderBy(desc(captureEvents.createdAt))
       .limit(options.limit ?? 200);
     return rows.map(toDomain);
+  }
+
+  async findByChatPrompt(
+    userId: string,
+    chatPromptId: string,
+  ): Promise<CaptureEvent | null> {
+    const [row] = await this.executor
+      .select()
+      .from(captureEvents)
+      .where(
+        and(
+          eq(captureEvents.userId, userId),
+          eq(captureEvents.chatPromptId, chatPromptId),
+        ),
+      )
+      .limit(1);
+    return row ? toDomain(row) : null;
   }
 
   async findWaitingForCard(walletCardId: string): Promise<CaptureEvent[]> {
@@ -94,6 +120,8 @@ export class DrizzleCaptureEventRepository implements CaptureEventRepository {
       status: event.status,
       walletCardId: event.walletCardId ?? null,
       transactionId: event.transactionId ?? null,
+      chatMessageId: event.chatMessageId ?? null,
+      chatPromptId: event.chatPromptId ?? null,
       updatedAt: event.props.updatedAt,
     };
     await this.executor

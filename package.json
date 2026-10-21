@@ -15,6 +15,7 @@
     "db:seed": "tsx src/infra/database/seed.ts",
     "db:seed:scenarios": "tsx src/infra/database/seed-scenarios.ts",
     "db:studio": "drizzle-kit studio",
+    "telegram:poll": "tsx scripts/telegram-poll.ts",
     "prepare": "husky"
   },
   "dependencies": {

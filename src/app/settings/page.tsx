@@ -1,12 +1,17 @@
 import { AppShell } from '@/components/layout/app-shell';
-import { env } from '@/config/env';
+import { env, getTelegramBot } from '@/config/env';
 import type { CaptureEvent } from '@/core/entities/capture-event';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleApiTokenRepository } from '@/infra/repositories/drizzle-api-token.repository';
 import { DrizzleCaptureEventRepository } from '@/infra/repositories/drizzle-capture-event.repository';
+import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
+import { DrizzleChatLinkRepository } from '@/infra/repositories/drizzle-chat-link.repository';
+import { DrizzleMerchantRuleRepository } from '@/infra/repositories/drizzle-merchant-rule.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
+import { DrizzleViewPreferenceRepository } from '@/infra/repositories/drizzle-view-preference.repository';
 import { DrizzleWalletCardRepository } from '@/infra/repositories/drizzle-wallet-card.repository';
+import { GetChatPrivacyUseCase } from '@/modules/capture/application/chat-privacy.use-case';
 import { normalizeMerchant } from '@/modules/capture/domain/normalize-merchant';
 import { parseAmount } from '@/modules/capture/domain/parse-amount';
 import { formatCurrency } from '@/shared/lib/format-currency';
@@ -18,11 +23,18 @@ import {
 } from '@/shared/lib/format-date';
 
 import { CaptureTokens, type TokenView } from './capture-tokens';
+import { MerchantRules, type MerchantRuleView } from './merchant-rules';
 import { PendingCaptures, type PendingCaptureView } from './pending-captures';
 import { ShortcutRecipe } from './shortcut-recipe';
+import { TelegramConnection } from './telegram-connection';
 import { WalletCards, type WalletCardView } from './wallet-cards';
 
 const KIND_ORDER = { credit: 0, checking: 1, savings: 2 } as const;
+
+const dayMonth = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+});
 
 function describeCapture(event: CaptureEvent, cardName: string): string {
   const { displayName } = normalizeMerchant(event.payload.merchant ?? '');
@@ -60,22 +72,40 @@ function Section({
 
 /**
  * Configurações › Integrações (spec 2026-10-17-telegram-apple-pay-design.md
- * §6): the iPhone shortcut that reports Apple Pay payments, the Wallet's
- * cards and the payments still waiting for something.
+ * §6): the iPhone shortcut that reports Apple Pay payments, the Telegram
+ * chat that tells about them, the Wallet's cards, the merchants it
+ * remembers and the payments still waiting for something.
  */
 export default async function SettingsPage() {
   const userId = await requireCurrentUserId();
   const now = new Date();
   const events = new DrizzleCaptureEventRepository();
 
-  const [tokens, cards, accounts, pending, [latest]] = await Promise.all([
+  const [
+    tokens,
+    cards,
+    accounts,
+    pending,
+    [latest],
+    chatLink,
+    chatPrivacy,
+    rules,
+    categories,
+  ] = await Promise.all([
     new DrizzleApiTokenRepository().findByUserId(userId),
     new DrizzleWalletCardRepository().findByUserId(userId),
     new DrizzleAccountRepository().findByUserId(userId),
     events.findByUserId(userId, {
       statuses: ['needs_account', 'needs_amount'],
     }),
-    events.findByUserId(userId, { limit: 1 }),
+    // The shortcut's last payment: lines written in the chat aren't it.
+    events.findByUserId(userId, { sources: ['wallet'], limit: 1 }),
+    new DrizzleChatLinkRepository().findActiveByUserId(userId),
+    new GetChatPrivacyUseCase(new DrizzleViewPreferenceRepository()).execute(
+      userId,
+    ),
+    new DrizzleMerchantRuleRepository().findByUserId(userId),
+    new DrizzleCategoryRepository().findByUserId(userId),
   ]);
   const latestTransaction = latest?.transactionId
     ? await new DrizzleTransactionRepository().findById(latest.transactionId)
@@ -143,6 +173,26 @@ export default async function SettingsPage() {
         : `Última compra recebida ${since}: ${describeCapture(latest, cardOf(latest))}.`;
   }
 
+  const categoryOptions = categories
+    .filter((category) => !category.archived)
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+    .map((category) => ({ id: category.id, name: category.name }));
+  const ruleViews: MerchantRuleView[] = rules
+    .sort((a, b) => a.displayName.localeCompare(b.displayName, 'pt-BR'))
+    .map((rule) => ({
+      id: rule.id,
+      name: rule.displayName,
+      categoryId: rule.categoryId,
+      usage:
+        rule.hits === 1
+          ? 'Escolhida uma vez'
+          : `Escolhida ${rule.hits} vezes seguidas`,
+    }));
+
+  const telegramStatus = chatLink
+    ? `Conectado${chatLink.username ? ` como @${chatLink.username}` : ''} desde ${dayMonth.format(chatLink.linkedAt)}.`
+    : null;
+
   const captureUrl = `${(env.CAPTURE_BASE_URL ?? env.NEXT_PUBLIC_APP_URL).replace(/\/$/, '')}/api/capture/wallet`;
 
   return (
@@ -177,11 +227,31 @@ export default async function SettingsPage() {
         </Section>
 
         <Section
+          id="telegram-heading"
+          title="Telegram"
+          description="O Hermes avisa cada pagamento no Telegram, e você resolve ali mesmo."
+        >
+          <TelegramConnection
+            botUsername={getTelegramBot()?.username ?? null}
+            connected={telegramStatus}
+            showFree={chatPrivacy.showFree}
+          />
+        </Section>
+
+        <Section
           id="cards-heading"
           title="Cartões da Wallet"
           description="Para qual conta vai cada cartão. Débito vai para a conta corrente; crédito, para o cartão de crédito."
         >
           <WalletCards cards={cardViews} accounts={usable} />
+        </Section>
+
+        <Section
+          id="merchants-heading"
+          title="Estabelecimentos"
+          description="A categoria que o Hermes lembra de cada lugar. A próxima compra lá já entra nela."
+        >
+          <MerchantRules rules={ruleViews} categories={categoryOptions} />
         </Section>
       </div>
     </AppShell>

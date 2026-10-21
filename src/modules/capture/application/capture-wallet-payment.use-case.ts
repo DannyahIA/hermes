@@ -189,7 +189,7 @@ export class CaptureWalletPaymentUseCase {
 /**
  * Says which account a Wallet card's payments go to — and, for one card
  * that pays both ways, which other one — then records the payments that
- * were waiting for it. Returns how many were recorded.
+ * were waiting for it. Returns the captures it recorded.
  */
 export class ResolveWalletCardUseCase {
   constructor(private readonly deps: CaptureDependencies) {}
@@ -200,7 +200,7 @@ export class ResolveWalletCardUseCase {
     accountId: string;
     alternateAccountId?: string;
     now?: Date;
-  }): Promise<number> {
+  }): Promise<string[]> {
     const now = input.now ?? new Date();
     const card = await this.deps.walletCards.findById(input.walletCardId);
     if (!card || card.userId !== input.userId) {
@@ -227,13 +227,13 @@ export class ResolveWalletCardUseCase {
     );
     await this.deps.walletCards.save(assigned);
 
-    let recorded = 0;
+    const recorded: string[] = [];
     for (const waiting of await this.deps.captureEvents.findWaitingForCard(
       card.id,
     )) {
       const event = await complete(this.deps, waiting, assigned, now);
       await this.deps.captureEvents.save(event);
-      if (event.status === 'recorded') recorded += 1;
+      if (event.status === 'recorded') recorded.push(event.id);
     }
     return recorded;
   }

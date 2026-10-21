@@ -1,13 +1,19 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { z } from 'zod';
 
+import { getTelegramBot } from '@/config/env';
 import { ROUTES } from '@/config/routes';
 import { DomainError } from '@/core/errors/domain-error';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { withTransaction } from '@/infra/database/transaction';
 import { DrizzleApiTokenRepository } from '@/infra/repositories/drizzle-api-token.repository';
+import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
+import { DrizzleChatLinkRepository } from '@/infra/repositories/drizzle-chat-link.repository';
+import { DrizzleMerchantRuleRepository } from '@/infra/repositories/drizzle-merchant-rule.repository';
+import { DrizzleViewPreferenceRepository } from '@/infra/repositories/drizzle-view-preference.repository';
 import {
   CreateCaptureTokenUseCase,
   RevokeCaptureTokenUseCase,
@@ -17,7 +23,17 @@ import {
   ProvideCaptureAmountUseCase,
   ResolveWalletCardUseCase,
 } from '@/modules/capture/application/capture-wallet-payment.use-case';
+import {
+  CreateChatLinkCodeUseCase,
+  UnlinkChatUseCase,
+} from '@/modules/capture/application/chat-links.use-case';
+import { SetChatPrivacyUseCase } from '@/modules/capture/application/chat-privacy.use-case';
+import {
+  ChangeMerchantRuleCategoryUseCase,
+  ForgetMerchantRuleUseCase,
+} from '@/modules/categories/application/merchant-rules.use-case';
 import { captureDependencies } from '@/shared/server/capture-dependencies';
+import { announceCaptures } from '@/shared/server/chat';
 import { revalidateMoneyPages } from '@/shared/server/revalidate-money-pages';
 
 export type SettingsResult<T = object> =
@@ -30,6 +46,12 @@ function failure(error: unknown): { success: false; error: string } {
     return {
       success: false,
       error: 'Essa conta foi arquivada. Escolha outra.',
+    };
+  }
+  if (error instanceof DomainError && error.code === 'CATEGORY_ARCHIVED') {
+    return {
+      success: false,
+      error: 'Essa categoria foi arquivada. Escolha outra.',
     };
   }
   return { success: false, error: FAILED };
@@ -95,8 +117,9 @@ export async function assignWalletCardAction(
       }),
     );
     revalidatePath(ROUTES.settings);
-    if (recorded > 0) revalidateMoneyPages();
-    return { success: true, recorded };
+    if (recorded.length > 0) revalidateMoneyPages();
+    after(() => announceCaptures(userId, recorded));
+    return { success: true, recorded: recorded.length };
   } catch (error) {
     return failure(error);
   }
@@ -132,6 +155,7 @@ export async function provideCaptureAmountAction(
     );
     revalidatePath(ROUTES.settings);
     if (result.status === 'recorded') revalidateMoneyPages();
+    after(() => announceCaptures(userId, [result.captureId]));
     return { success: true, recorded: result.status === 'recorded' };
   } catch (error) {
     return failure(error);
@@ -151,6 +175,102 @@ export async function discardCaptureAction(
         captureId: parsed.data,
       }),
     );
+    revalidatePath(ROUTES.settings);
+    after(() => announceCaptures(userId, [parsed.data]));
+    return { success: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/**
+ * The "Abrir no Telegram" link: starts the bot with a one-time code that
+ * connects whoever taps "Começar" to this account (spec 2026-10-17-
+ * telegram-apple-pay-design.md §5.1).
+ */
+export async function connectTelegramAction(): Promise<
+  SettingsResult<{ url: string; expiresAt: string }>
+> {
+  const bot = getTelegramBot();
+  if (!bot)
+    return { success: false, error: 'O bot do Telegram não está configurado.' };
+  try {
+    const userId = await requireCurrentUserId();
+    const { code, expiresAt } = await new CreateChatLinkCodeUseCase(
+      new DrizzleChatLinkRepository(),
+    ).execute({ userId });
+    return {
+      success: true,
+      url: `https://t.me/${bot.username}?start=${code}`,
+      expiresAt: expiresAt.toISOString(),
+    };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function disconnectTelegramAction(): Promise<SettingsResult> {
+  try {
+    const userId = await requireCurrentUserId();
+    await new UnlinkChatUseCase(new DrizzleChatLinkRepository()).execute({
+      userId,
+    });
+    revalidatePath(ROUTES.settings);
+    return { success: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/** Whether payment messages in Telegram say what is still free to spend. */
+export async function setTelegramPrivacyAction(
+  showFree: boolean,
+): Promise<SettingsResult> {
+  const parsed = z.boolean().safeParse(showFree);
+  if (!parsed.success) return { success: false, error: FAILED };
+  try {
+    const userId = await requireCurrentUserId();
+    await new SetChatPrivacyUseCase(
+      new DrizzleViewPreferenceRepository(),
+    ).execute({ userId, showFree: parsed.data });
+    revalidatePath(ROUTES.settings);
+    return { success: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+const ruleCategorySchema = z.object({ ruleId: z.uuid(), categoryId: z.uuid() });
+
+/** The category a remembered merchant's next payments go to. */
+export async function changeMerchantRuleCategoryAction(
+  input: z.input<typeof ruleCategorySchema>,
+): Promise<SettingsResult> {
+  const parsed = ruleCategorySchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: FAILED };
+  try {
+    const userId = await requireCurrentUserId();
+    await new ChangeMerchantRuleCategoryUseCase(
+      new DrizzleMerchantRuleRepository(),
+      new DrizzleCategoryRepository(),
+    ).execute({ userId, ...parsed.data });
+    revalidatePath(ROUTES.settings);
+    return { success: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function forgetMerchantRuleAction(
+  ruleId: string,
+): Promise<SettingsResult> {
+  const parsed = z.uuid().safeParse(ruleId);
+  if (!parsed.success) return { success: false, error: FAILED };
+  try {
+    const userId = await requireCurrentUserId();
+    await new ForgetMerchantRuleUseCase(
+      new DrizzleMerchantRuleRepository(),
+    ).execute({ userId, ruleId: parsed.data });
     revalidatePath(ROUTES.settings);
     return { success: true };
   } catch (error) {

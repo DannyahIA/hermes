@@ -292,7 +292,7 @@ O `parseQuickEntry` é o mesmo do registro rápido do Início:
 - **Resposta:** sempre ecoa o que foi entendido, com [Trocar categoria] [Desfazer].
 - **Confirmação antes de salvar:** só acima de R$ 500 (configurável) ou quando o parser tiver
   dúvida, como dois números na mensagem:
-  > Entendi R$ 870,00 em Mercado, no Nubank Crédito. Salvo?
+  > Entendi R$ 870,00 em Mercado (Nubank Crédito). Salvo?
   > [Salvar] [Corrigir]
 
 ### 5.6 Comandos (só leitura)
@@ -443,6 +443,69 @@ cartão, que você associa a uma conta na primeira compra (§5.3, passo 4). Se a
   recorrências antigas foram marcadas pela migration, e as compras capturadas aparecem nas listas
   com "Apple Pay".
 - Ficam para a F2: a lista editável de regras de estabelecimento e as preferências (§6).
+
+**F2 — como ficou:**
+
+- **Conectar:** Configurações › Telegram › **Conectar Telegram** gera o link
+  `t.me/<bot>?start=<código>` (10 minutos, uso único), com o botão **Abrir no Telegram** e o link
+  para copiar. A página se atualiza sozinha quando o chat conecta. Sem QR code, para não trazer
+  dependência nova: no computador, copie o link e abra no celular. Um chat por usuário e um usuário
+  por chat; **Desconectar** guarda o vínculo como revogado.
+- **Anúncio:** cada captura nova é contada no chat logo depois da resposta ao atalho (`after()`),
+  fora da transação: o Telegram fora do ar nunca derruba uma captura, que continua esperando em
+  Configurações. O que se resolve em Configurações (cartão associado, valor informado, compra
+  descartada) também atualiza a mensagem no chat; uma compra descartada pelo app só atualiza uma
+  mensagem que já existia, sem puxar conversa.
+- **Botões (§5.4):** categoria sugerida e **Outra…** (todas as categorias, 8 por página), **Trocar
+  categoria**, **Foi no débito/crédito** (só com conta alternativa no cartão), **Parcelar** (só
+  compra no cartão de crédito; 2 a 12 vezes, mesmo total, primeira parcela na data da compra) e
+  **Desfazer** (a compra ou o parcelamento inteiro, devolvendo o saldo). Cartão novo: até 10
+  contas de crédito e corrente como botões, mais **Descartar**; as demais ficam em Configurações.
+  Valor ausente: a pergunta vai como resposta (`force_reply`) e uma resposta que não é valor, ou
+  passa do que a coluna guarda, pergunta de novo.
+- **Segurança:** a cada toque, o chat precisa estar vinculado ao dono da captura; os botões valem 7
+  dias. Uma regra que diz não (categoria ou conta arquivada) responde "Não deu para fazer isso.
+  Edite pelo app." e nada muda, porque a unidade de trabalho é desfeita.
+- **"Livre" e alertas** saem por evento na própria mensagem (§5.3, passo 9). Em Configurações ›
+  Telegram dá para não mandar o "Livre" (D5), guardado como preferência de visualização da tela
+  `telegram`; os alertas de orçamento continuam.
+- **Configurações › Estabelecimentos:** a lista de `merchant_rules`, com a categoria editável,
+  **Esquecer** e busca a partir de 8 estabelecimentos.
+- **Rodar o bot:** crie no @BotFather (`/newbot`, e `/setjoingroups` › Disable), ponha
+  `TELEGRAM_BOT_TOKEN` e `TELEGRAM_BOT_USERNAME` (sem "@") no `.env.local` e rode
+  `pnpm telegram:poll` ao lado do `next start` (ele chama `deleteWebhook` ao iniciar e para com
+  Ctrl+C ou SIGTERM). O webhook (`/api/telegram/webhook`) só liga com `TELEGRAM_WEBHOOK_SECRET` e
+  uma URL pública:
+  `curl -d url=https://SEU-HERMES/api/telegram/webhook -d secret_token=$TELEGRAM_WEBHOOK_SECRET https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook`.
+- **Acesso (D1), 19/10/2026:** Tailscale com `tailscale serve --bg 3000`. O nome `*.ts.net` não
+  resolveu no iPhone (nenhuma conexão chegou na porta 443, mesmo com MagicDNS e "Use Tailscale
+  DNS"), então o atalho usa o IP da Tailscale da máquina, `http://<ip-tailscale>:3000`, que é
+  fixo e continua criptografado pelo túnel. Fica para rever quando o app for publicado.
+- Falta o critério de pronto da F2: o fluxo de §1 de ponta a ponta no iPhone, com um bot real.
+
+**F3 — como ficou:**
+
+- **Texto livre (§5.5):** qualquer linha que não seja comando nem resposta a uma pergunta é lida
+  pelo mesmo `parseQuickEntry` do registro rápido do Início (conta pelo nome ou por "crédito",
+  "débito", "pix"; datas; "+" ou "recebi" para entrada; categoria lembrada do estabelecimento ou
+  pelo nome) e registrada como captura `telegram_text`, com a transação marcada `source:
+'telegram'`. A resposta é a mesma mensagem dos pagamentos (categoria, Trocar categoria,
+  Parcelar no crédito, Desfazer). A chave de idempotência é a mensagem do chat: a mesma mensagem
+  entregue duas vezes registra uma vez.
+- **Confirmação:** acima de R$ 500 ou quando outro número poderia ser o valor, a linha espera
+  ("Entendi R$ 870,00 em Mercado (Nubank Crédito). Salvo?" [Salvar] [Corrigir]). O nome da conta
+  vai entre parênteses porque "no"/"na" não serve para todo nome. **Corrigir** descarta e pede
+  para mandar de novo. Linha sem valor, sem descrição ou sem conta recebe uma resposta dizendo o
+  que faltou.
+- **Comandos (§5.6):** `/livre` (livre, por dia, conta corrente, cartões e agendado), `/fatura`
+  (aberta, fechamento e vencimento; o que resta da fechada), `/hoje` (gastos de hoje e total),
+  `/desfazer` (o último registro dos últimos 7 dias, com [Desfazer] [Manter]; desfazer também
+  atualiza a mensagem original) e `/ajuda`. Comando desconhecido recebe a ajuda. O worker
+  registra o menu de comandos no Telegram (`setMyCommands`) ao iniciar. Com o "Livre" desligado em
+  Configurações › Telegram, `/livre` e `/fatura` não mandam saldos.
+- Em Configurações, "Última compra recebida" do atalho só considera capturas da Wallet.
+- **Ficam para depois:** as preferências de limiar de confirmação e de conta padrão do texto
+  (hoje, R$ 500 fixo, e a conta mais usada para aquele tipo de lançamento, como no Início).
 
 ---
 

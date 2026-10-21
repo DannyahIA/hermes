@@ -24,6 +24,16 @@ function toDomain(row: MerchantRuleRow): MerchantRule {
 export class DrizzleMerchantRuleRepository implements MerchantRuleRepository {
   constructor(private readonly executor: Executor = db) {}
 
+  async findById(id: string): Promise<MerchantRule | null> {
+    const [row] = await this.executor
+      .select()
+      .from(merchantRules)
+      .where(eq(merchantRules.id, id))
+      .limit(1);
+
+    return row ? toDomain(row) : null;
+  }
+
   async findByUserId(userId: string): Promise<MerchantRule[]> {
     const rows = await this.executor
       .select()
@@ -68,5 +78,9 @@ export class DrizzleMerchantRuleRepository implements MerchantRuleRepository {
         target: [merchantRules.userId, merchantRules.merchantKey],
         set: values,
       });
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.executor.delete(merchantRules).where(eq(merchantRules.id, id));
   }
 }

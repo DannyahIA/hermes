@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** The most `numeric(12, 2)` holds. */
-const MAX_AMOUNT = 9_999_999_999.99;
+export const MAX_AMOUNT = 9_999_999_999.99;
 
 /**
  * What the quick entry sends once the person presses Enter: the entry as

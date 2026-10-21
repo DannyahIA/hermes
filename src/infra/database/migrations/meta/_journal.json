@@ -64,6 +64,13 @@
       "when": 1792412269044,
       "tag": "0008_bright_multiple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792429503422,
+      "tag": "0009_sour_thunderbolt_ross",
+      "breakpoints": true
     }
   ]
 }

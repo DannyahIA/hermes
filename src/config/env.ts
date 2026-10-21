@@ -41,6 +41,16 @@ const envSchema = z.object({
     .string()
     .url('CAPTURE_BASE_URL must be a valid URL.')
     .optional(),
+  // Optional: the Telegram bot that announces captured payments (spec
+  // 2026-10-17-telegram-apple-pay-design.md §9). Create it with @BotFather;
+  // the username goes without the "@". Without both, Hermes says nothing
+  // in Telegram and the captures still land.
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_BOT_USERNAME: z.string().optional(),
+  // Optional, webhook mode only: the secret Telegram repeats in
+  // X-Telegram-Bot-Api-Secret-Token. Without it, /api/telegram/webhook is
+  // off and `pnpm telegram:poll` is the way updates come in.
+  TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
@@ -83,6 +93,13 @@ export function isGithubAuthConfigured(): boolean {
 
 export function isGoogleAuthConfigured(): boolean {
   return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+}
+
+/** The bot's token and username ("hermes_dan_bot"), or null without both. */
+export function getTelegramBot(): { token: string; username: string } | null {
+  const token = env.TELEGRAM_BOT_TOKEN?.trim();
+  const username = env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, '');
+  return token && username ? { token, username } : null;
 }
 
 export function isEmailSendingConfigured(): boolean {

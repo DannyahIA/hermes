@@ -1,5 +1,6 @@
 import type {
   CaptureEvent,
+  CaptureSource,
   CaptureStatus,
 } from '@/core/entities/capture-event';
 
@@ -12,8 +13,17 @@ export interface CaptureEventRepository {
   /** Newest first. */
   findByUserId(
     userId: string,
-    options?: { statuses?: CaptureStatus[]; limit?: number },
+    options?: {
+      statuses?: CaptureStatus[];
+      sources?: CaptureSource[];
+      limit?: number;
+    },
   ): Promise<CaptureEvent[]>;
+  /** The capture a chat question (its amount) was asked about. */
+  findByChatPrompt(
+    userId: string,
+    chatPromptId: string,
+  ): Promise<CaptureEvent | null>;
   /** The ones still waiting for this card to get an account, oldest first. */
   findWaitingForCard(walletCardId: string): Promise<CaptureEvent[]>;
   save(event: CaptureEvent): Promise<void>;

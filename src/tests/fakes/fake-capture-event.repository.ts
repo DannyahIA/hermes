@@ -1,6 +1,7 @@
 import type { CaptureEventRepository } from '@/core/contracts/capture-event-repository';
 import type {
   CaptureEvent,
+  CaptureSource,
   CaptureStatus,
 } from '@/core/entities/capture-event';
 
@@ -26,16 +27,33 @@ export class FakeCaptureEventRepository implements CaptureEventRepository {
 
   async findByUserId(
     userId: string,
-    options: { statuses?: CaptureStatus[]; limit?: number } = {},
+    options: {
+      statuses?: CaptureStatus[];
+      sources?: CaptureSource[];
+      limit?: number;
+    } = {},
   ): Promise<CaptureEvent[]> {
     return [...this.events.values()]
       .filter(
         (event) =>
           event.userId === userId &&
-          (!options.statuses || options.statuses.includes(event.status)),
+          (!options.statuses || options.statuses.includes(event.status)) &&
+          (!options.sources || options.sources.includes(event.source)),
       )
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, options.limit ?? Number.POSITIVE_INFINITY);
+  }
+
+  async findByChatPrompt(
+    userId: string,
+    chatPromptId: string,
+  ): Promise<CaptureEvent | null> {
+    return (
+      [...this.events.values()].find(
+        (event) =>
+          event.userId === userId && event.chatPromptId === chatPromptId,
+      ) ?? null
+    );
   }
 
   async findWaitingForCard(walletCardId: string): Promise<CaptureEvent[]> {

@@ -1,4 +1,4 @@
-import type { NextRequest } from 'next/server';
+import { after, type NextRequest } from 'next/server';
 
 import { withTransaction } from '@/infra/database/transaction';
 import { DrizzleApiTokenRepository } from '@/infra/repositories/drizzle-api-token.repository';
@@ -6,6 +6,7 @@ import { AuthenticateCaptureTokenUseCase } from '@/modules/capture/application/c
 import { CaptureWalletPaymentUseCase } from '@/modules/capture/application/capture-wallet-payment.use-case';
 import { readWalletPayload } from '@/modules/capture/domain/wallet-payload';
 import { captureDependencies } from '@/shared/server/capture-dependencies';
+import { announceCaptures } from '@/shared/server/chat';
 import { createRateLimiter } from '@/shared/server/rate-limit';
 import { revalidateMoneyPages } from '@/shared/server/revalidate-money-pages';
 
@@ -75,6 +76,11 @@ export async function POST(request: NextRequest) {
     }
     if (result.status === 'recorded' && !result.repeated) {
       revalidateMoneyPages();
+    }
+    // Told in the chat once the shortcut has its answer, so a slow
+    // Telegram never makes the iPhone wait.
+    if (!result.repeated) {
+      after(() => announceCaptures(apiToken.userId, [result.captureId]));
     }
     console.info(
       `capture ${result.captureId}: ${result.status}${result.repeated ? ', repeated' : ''}`,
