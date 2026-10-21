@@ -3,7 +3,7 @@
 import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { signOutAction } from '@/app/(auth)/actions';
 import { CreateTransactionDialog } from '@/app/transactions/create-transaction-dialog';
@@ -36,6 +36,7 @@ export function AppShellChrome({
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const scrollRootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Same rationale as ThemeToggle: syncing from localStorage (a system
@@ -45,6 +46,12 @@ export function AppShellChrome({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
   }, []);
+
+  // Switching pages must open the new one at the top of the content, which is
+  // now the scroll container, not the window.
+  useEffect(() => {
+    if (scrollRootRef.current) scrollRootRef.current.scrollTop = 0;
+  }, [pathname]);
 
   function toggleCollapsed() {
     const next = !collapsed;
@@ -82,15 +89,16 @@ export function AppShellChrome({
     });
 
   return (
-    <div className="text-foreground min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(232,162,61,0.08),_transparent_40%)]">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 lg:px-6 lg:py-6">
-        {/* `overflow-clip`, not `hidden`: it trims the rounded corners just
-            the same, but isn't a scroll container, so a `sticky` bar inside
-            (the transaction list's toolbar on a phone) sticks to the window. */}
-        <div className="border-border/70 bg-background/80 flex flex-1 overflow-clip rounded-[1.25rem] border shadow-[var(--shadow-elevation)] backdrop-blur-xl">
+    <div className="text-foreground h-dvh overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(232,162,61,0.08),_transparent_40%)]">
+      <div className="mx-auto flex h-full max-w-7xl flex-col px-4 py-4 lg:px-6 lg:py-6">
+        {/* `overflow-clip` only trims the rounded corners; the frame isn't a
+            scroll container. The element that scrolls is the `data-scroll-root`
+            below, and the transaction list's `sticky` toolbar (on a phone)
+            sticks to it. */}
+        <div className="border-border/70 bg-background/80 flex min-h-0 flex-1 overflow-clip rounded-[1.25rem] border shadow-[var(--shadow-elevation)] backdrop-blur-xl">
           <aside
             className={cn(
-              'border-border/70 bg-sidebar hidden shrink-0 flex-col border-r py-6 transition-[width] duration-200 lg:flex',
+              'border-border/70 bg-sidebar hidden shrink-0 flex-col overflow-y-auto border-r py-6 transition-[width] duration-200 lg:flex',
               collapsed ? 'w-[4.5rem]' : 'w-72',
             )}
           >
@@ -137,7 +145,7 @@ export function AppShellChrome({
             </div>
           )}
 
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <header className="border-border/70 flex items-center justify-between gap-2 border-b px-3 py-3 sm:px-6 sm:py-4 lg:px-6">
               <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                 <Button
@@ -197,11 +205,19 @@ export function AppShellChrome({
               </div>
             </header>
 
-            <main className="flex-1 p-4 sm:p-6 lg:p-6">{children}</main>
+            <div
+              ref={scrollRootRef}
+              data-scroll-root
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+            >
+              <div className="flex min-h-full flex-col">
+                <main className="flex-1 p-4 sm:p-6 lg:p-6">{children}</main>
 
-            <footer className="border-border/70 text-muted-foreground border-t px-4 py-4 text-sm sm:px-6">
-              {APP_NAME} © 2026
-            </footer>
+                <footer className="border-border/70 text-muted-foreground border-t px-4 py-4 text-sm sm:px-6">
+                  {APP_NAME} © 2026
+                </footer>
+              </div>
+            </div>
           </div>
         </div>
       </div>
