@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { TransactionGrouping } from '@/core/contracts/transaction-repository';
+import { scrollRootOf } from '@/shared/lib/scroll-root';
 import {
   type TransactionQuery,
   transactionSearch,
@@ -161,7 +162,8 @@ export function useTransactionPages(
         if (entries[0]?.isIntersecting) void loadMore();
       },
       // Start before the end is on screen.
-      { rootMargin: '600px' },
+      // Without `root` the margin counts from the window, but the frame clips first.
+      { root: scrollRootOf(node), rootMargin: '600px' },
     );
     observer.observe(node);
     return () => observer.disconnect();
