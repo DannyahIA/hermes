@@ -104,7 +104,8 @@ export function CategoryPicker({
         <div className="flex items-center gap-2">
           <input
             aria-label="Nome da categoria"
-            autoFocus
+            // Focus only when asked for: not when it shows for lack of categories.
+            autoFocus={naming}
             maxLength={60}
             value={name}
             onChange={(event) => setName(event.target.value)}

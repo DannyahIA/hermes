@@ -92,4 +92,37 @@ describe('CategoryPicker', () => {
     expect(screen.getByRole('combobox')).toBeInTheDocument();
     expect(onCreate).not.toHaveBeenCalled();
   });
+
+  it('does not take focus when the field shows only because there are no categories', () => {
+    render(
+      <CategoryPicker
+        subject="Petz"
+        suggestions={[]}
+        categories={[]}
+        onPick={onPick}
+        onCreate={onCreate}
+      />,
+    );
+    expect(
+      screen.getByRole('textbox', { name: 'Nome da categoria' }),
+    ).not.toHaveFocus();
+  });
+
+  it('focuses the new category field once "＋ Nova categoria…" is chosen', () => {
+    render(
+      <CategoryPicker
+        subject="Petz"
+        suggestions={[]}
+        categories={[essenciais]}
+        onPick={onPick}
+        onCreate={onCreate}
+      />,
+    );
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: '__new__' },
+    });
+    expect(
+      screen.getByRole('textbox', { name: 'Nome da categoria' }),
+    ).toHaveFocus();
+  });
 });
