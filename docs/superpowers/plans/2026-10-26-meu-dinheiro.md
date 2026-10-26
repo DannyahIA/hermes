@@ -1,0 +1,784 @@
+# Meu Dinheiro: contas, orçamentos que avisam e empréstimos numa página. Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Juntar Contas, Orçamentos e Empréstimos na página "Meu Dinheiro". Os orçamentos passam a ser mensais ou por prazo e a avisar por etapa e por ritmo, para compras de qualquer origem.
+
+**Architecture:**
+
+- **Orçamento.** O `Budget` ganha `kind` (`monthly` | `fixed`) e o histórico de limites. O progresso passa a ser calculado para um dia (`periodFor`, `amountFor`).
+- **Aviso.** A decisão de avisar é uma função pura (`budgetAlertFor`). As etapas já avisadas ficam em `budget_alerts`, gravadas com `insert … on conflict do nothing`: assim nenhum aviso sai duas vezes, nem com duas compras ao mesmo tempo.
+- **Por onde sai.** `CheckBudgetAlertsUseCase` devolve as frases. O chat as manda numa mensagem própria; as ações do app as devolvem para um toast e as mandam ao Telegram em `after()`.
+- **Página.** `/accounts` vira Meu Dinheiro: resumo, contas em linhas e as abas `?aba=orcamentos` e `?aba=emprestimos`. A aba Simulador e a amortização de um empréstimo contratado (§6.4, primeiro item) entram na Parte 4, junto com o resto do simulador (§7).
+
+**Tech Stack:** Next.js 16 (App Router), React 19, Drizzle + Postgres, Vitest + Testing Library, Tailwind 4.
+
+**Spec:** `docs/superpowers/specs/2026-10-19-contas-planejamento-categorias-design.md` §6, §8, §10.1 (Parte 3).
+
+## Diagnóstico: por que o aviso de hoje "não funciona" (26/10/2026, banco lido só para leitura)
+
+1. **O único orçamento venceu.** É Transporte, R$ 500, de 02/09 a 30/09/2026. Como um orçamento não se renova, desde 01/10 nenhum está valendo e `calculateBudgetPace` não devolve nada. Além disso, em setembro não houve nenhum gasto em Transporte: em 30 dias o orçamento nunca passou de 0%.
+2. **O aviso só sai pelo Telegram.** `budgetAlert` (`modules/capture/domain/spending-lines.ts`) só é chamado em `recordedView`, ou seja, só para compras que passam pelo chat. Das 89 transações não geradas automaticamente, 76 foram registradas no app (`source = manual`) e só 3 vieram do Telegram ou da Wallet.
+3. **Quando sai, sai demais.** O aviso começa em 80% e entra em toda nova renderização da mensagem da compra (cada botão tocado reedita a mensagem). É o "aviso que vira barulho" (§2, antiobjetivos).
+
+As tarefas 1 a 3 resolvem o item 1; as tarefas 4 a 7 resolvem os itens 2 e 3.
+
+## Global Constraints
+
+- Regra de negócio em `modules/` e `core/`, telas em `app/`, testes com fakes (`src/tests/fakes`), TDD, textos em pt-BR (`docs/architecture.md`, `docs/conventions.md`).
+- Saldos, gastos e progresso são sempre calculados das transações, nunca gravados.
+- Etapas: **75%, 90%, 95% e 100%**, e um aviso a cada compra **depois de passar do limite**.
+- Cada etapa e o aviso de ritmo avisam **uma única vez por período**. Uma compra que pula etapas avisa só a mais alta.
+- Ritmo: avisa uma vez por período, quando **metade do limite foi gasta antes da metade do período**. Os avisos de etapa trazem a linha do ritmo quando o gasto está à frente do calendário (`status === 'ahead'`, tolerância de 10 pontos, `calculateBudgetPace`).
+- Mensal é o padrão ao criar. Mudar o limite de um mensal vale do mês corrente em diante.
+- Sem chat conectado, o aviso aparece só no app.
+- Nenhuma função que existe hoje se perde: criar, editar, arquivar e excluir conta; pagar fatura; criar e excluir orçamento; criar e excluir empréstimo.
+- Nenhuma dependência nova. Funciona no Safari do iPhone e no tema escuro. Visual conforme `docs/ui-ux.md` ("Prancheta" a tinta).
+- Migrações com `pnpm db:generate` (Drizzle) e `pnpm db:migrate`; nunca editar uma migração existente.
+
+## Review Focus
+
+- **Compra que pula etapas** (de 70% para 100%): um único aviso, o de 100%, e 75%, 90% e 95% ficam como já avisados. Teste na Task 4.
+- **A mesma compra reprocessada** (reclassificada para outra categoria e de volta, ou a mensagem do Telegram reeditada): nenhuma etapa avisa de novo. Testes nas Tasks 5 e 6.
+- **Virada do mês:** no dia 1 o mensal recomeça do zero, e as etapas avisadas no mês anterior não bloqueiam as do novo. Teste na Task 5.
+- **Compra com data num período que já acabou** (registrada hoje com data do mês passado), receita, transferência ou pagamento de fatura: nenhum aviso. Teste na Task 5.
+- **Orçamento por prazo encerrado:** continua listado na aba como "Encerrado", fora do resumo e dos avisos. Testes nas Tasks 2 e 10.
+
+---
+
+### Task 1: Orçamento mensal e por prazo, no domínio e no banco
+
+**Files:**
+
+- Modify: `src/core/entities/budget.ts`, `src/core/value-objects/date-range.ts`
+- Modify: `src/infra/database/schema.ts:300-330` (budgets), `src/infra/repositories/drizzle-budget.repository.ts`, `src/tests/fakes/fake-budget.repository.ts`
+- Create: migration generated by `pnpm db:generate`
+- Test: `src/core/entities/budget.test.ts` (new), `src/core/value-objects/date-range.test.ts` (new or existing)
+
+**Interfaces:**
+
+- Produces, in `core/entities/budget.ts`:
+  - `type BudgetKind = 'monthly' | 'fixed'`
+  - `interface BudgetLimit { startsOn: Date; amount: number }`
+  - `BudgetProps` gains `kind: BudgetKind` and `limits: BudgetLimit[]`; `periodEnd` becomes `Date | null` (null only for `monthly`).
+  - Methods:
+    - `runsOn(date: Date): boolean`
+    - `periodFor(date: Date): DateRange`
+    - `amountFor(date: Date): number`
+    - `withLimit(amount: number, from: Date): Budget`
+  - Getter: `kind`.
+- Produces, in `date-range.ts`: `static monthOf(date: Date): DateRange`. It spans day 1 at 00:00 to the last day at 23:59:59.999, in local time, like `calculate-budget-pace.ts`.
+- Database:
+  - `budgets.kind varchar(8) not null default 'fixed'`. Existing budgets stay "por prazo" (§10.1).
+  - `budgets.period_end` becomes nullable.
+  - New table `budget_limits (budget_id uuid fk→budgets on delete cascade, starts_on timestamptz, amount numeric(12,2), primary key (budget_id, starts_on))`.
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+// budget.test.ts — monthly budget created 2026-10-01, amount 500
+it('runs every month from its first one, each month a period of its own', () => {
+  expect(monthly.runsOn(new Date(2026, 8, 30))).toBe(false);
+  expect(monthly.runsOn(new Date(2026, 10, 3))).toBe(true);
+  expect(monthly.periodFor(new Date(2026, 10, 3))).toEqual(
+    DateRange.monthOf(new Date(2026, 10, 1)),
+  );
+});
+it('runs a fixed budget only inside its dates and keeps them as its period', () => {
+  expect(fixed.runsOn(new Date(2026, 9, 1))).toBe(false); // ended 30/09
+  expect(fixed.periodFor(new Date(2026, 9, 1))).toEqual(fixed.period);
+});
+it('keeps the old limit for past months when a monthly limit changes', () => {
+  const changed = monthly.withLimit(700, new Date(2026, 10, 15));
+  expect(changed.amountFor(new Date(2026, 9, 20))).toBe(500);
+  expect(changed.amountFor(new Date(2026, 10, 2))).toBe(700);
+  expect(changed.amount).toBe(700);
+});
+it('replaces the limit of a fixed budget outright', () => {
+  expect(fixed.withLimit(800, new Date()).amountFor(fixed.periodStart)).toBe(
+    800,
+  );
+});
+it('rejects a fixed budget without an end', () => {
+  expect(() => new Budget({ ...fixedProps, periodEnd: null })).toThrow(
+    ValidationError,
+  );
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `pnpm vitest run src/core/entities/budget.test.ts src/core/value-objects/date-range.test.ts`
+Expected: FAIL (`runsOn` is not a function).
+
+- [ ] **Step 3: Implement the entity, `DateRange.monthOf`, the schema and the migration**
+
+- `withLimit` on a `monthly` budget appends `{ startsOn: monthOf(from).start, amount }`. When `limits` is empty, it first seeds `{ startsOn: periodStart, amount: <old amount> }`.
+- `amountFor(date)` returns the last limit whose `startsOn` is on or before `date`, else `props.amount`.
+- The `period` getter stays as it is for `fixed`. For `monthly` it is `monthOf(periodStart)`, so old callers keep compiling until Task 2.
+- The repository reads limits with one extra query per `findByUserId` (`inArray` over the ids) and saves them by deleting and inserting inside `save`.
+
+Run: `pnpm db:generate && pnpm db:migrate`
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm vitest run src/core src/modules/budgets && pnpm typecheck`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core src/infra/database src/infra/repositories/drizzle-budget.repository.ts src/tests/fakes/fake-budget.repository.ts
+git commit -m "feat(budgets): a budget that starts over every month, next to the one with dates"
+```
+
+---
+
+### Task 2: O progresso de um orçamento num dia
+
+**Files:**
+
+- Modify: `src/modules/budgets/application/get-budget-progress.use-case.ts` (+ `.test.ts`)
+- Modify: `src/modules/dashboard/application/metrics/calculate-budget-pace.ts` (+ test)
+- Modify: `src/modules/categories/application/get-categories-overview.use-case.ts:155-170,260-270`, `src/modules/reports/application/get-financial-report.use-case.ts:125-135`, `src/app/budgets/budget-progress-card.tsx:46`
+
+**Interfaces:**
+
+- Consumes: `Budget.runsOn`, `periodFor` and `amountFor` (Task 1).
+- Produces: `GetBudgetProgressUseCase.execute(userId: string, at: Date = new Date()): Promise<BudgetProgress[]>`. The result is `BudgetProgress { budget; period: DateRange; amount: number; running: boolean; spent; remaining; percentage }`, where `period = budget.periodFor(at)`, `amount = budget.amountFor(at)` and `running = budget.runsOn(at)`.
+- `calculateBudgetPace` keeps its signature. It now filters on `running` and uses `period` and `amount` instead of `budget.periodStart`, `budget.periodEnd` and `budget.amount`.
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+it('counts a monthly budget from the 1st of the month asked for', async () => {
+  // monthly Mercado 500; expenses 30/09 R$ 200, 02/10 R$ 120, 20/10 R$ 80
+  const [october] = await useCase.execute(USER, new Date(2026, 9, 26));
+  expect(october.spent).toBe(200);
+  expect(october.period.start).toEqual(new Date(2026, 9, 1));
+});
+it('lists a fixed budget that ended, not running, over its own dates', async () => {
+  const [ended] = await useCase.execute(USER, new Date(2026, 9, 26));
+  expect(ended.running).toBe(false);
+});
+it('paces only the budgets running today', () => {
+  expect(
+    calculateBudgetPace([endedProgress, octoberProgress], today),
+  ).toHaveLength(1);
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `pnpm vitest run src/modules/budgets src/modules/dashboard/application/metrics`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement**
+
+Query the transactions over `periodFor(at)`. Then switch every consumer listed in Files from `budget.periodStart`/`periodEnd`/`amount` to `period`/`amount`/`running`:
+
+- **Categories:** the overview passes the first day of the month it shows as `at`.
+- **Reports:** the report passes the end of its range.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm test && pnpm typecheck`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/modules src/app/budgets
+git commit -m "feat(budgets): measure a budget on the month it is asked about"
+```
+
+---
+
+### Task 3: Criar escolhendo o tipo, e alterar o limite
+
+**Files:**
+
+- Modify: `src/modules/budgets/schemas/create-budget.schema.ts` (+ test), `src/modules/budgets/application/create-budget.use-case.ts`
+- Create: `src/modules/budgets/application/change-budget-limit.use-case.ts` (+ `.test.ts`)
+- Modify: `src/app/budgets/actions.ts`, `src/app/budgets/budget-form.tsx`, `src/app/budgets/create-budget-dialog.tsx` (+ test)
+
+**Interfaces:**
+
+- Produces:
+  - `createBudgetSchema` gains `kind: z.enum(['monthly', 'fixed']).default('monthly')`. `periodStart` and `periodEnd` are required only for `fixed`. For `monthly`, the use case sets `periodStart = DateRange.monthOf(now).start` and `periodEnd = null`.
+  - `ChangeBudgetLimitUseCase(budgets).execute({ userId, budgetId, amount, now }): Promise<void>` throws `NotFoundError` for someone else's budget.
+  - `changeBudgetLimitAction(budgetId: string, amount: number): Promise<ActionResult>`, consumed by Task 10.
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+it('creates a monthly budget by default, starting this month', () => {
+  /* schema: no kind → 'monthly', no dates needed */
+});
+it('still requires both dates for a budget with dates', () => {
+  /* kind 'fixed' without periodEnd → error on periodEnd */
+});
+it('changes a monthly limit from this month on', async () => {
+  await useCase.execute({
+    userId: USER,
+    budgetId,
+    amount: 700,
+    now: new Date(2026, 10, 15),
+  });
+  const saved = await budgets.findById(budgetId);
+  expect(saved?.amountFor(new Date(2026, 9, 10))).toBe(500);
+  expect(saved?.amountFor(new Date(2026, 10, 10))).toBe(700);
+});
+// create-budget-dialog.test.tsx
+it('asks for dates only when "Por prazo" is chosen', () => {
+  /* "Todo mês" checked by default; De/Até appear after choosing "Por prazo" */
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `pnpm vitest run src/modules/budgets src/app/budgets`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement the schema, the use case, the action and the form**
+
+The form puts the choice in a radio group, "Todo mês" (default) or "Por prazo". The "De" and "Até" fields appear only for "Por prazo".
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm vitest run src/modules/budgets src/app/budgets`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/modules/budgets src/app/budgets
+git commit -m "feat(budgets): choose every month or set dates, and change a limit from this month on"
+```
+
+---
+
+### Task 4: A regra do aviso
+
+**Files:**
+
+- Create: `src/modules/budgets/domain/budget-alerts.ts` (+ `.test.ts`)
+
+**Interfaces:**
+
+- Produces:
+
+```ts
+export type BudgetAlertStage = '75' | '90' | '95' | '100' | 'pace';
+export interface BudgetAlertInput {
+  categoryName: string;
+  amount: number; // the period's limit
+  spent: number; // in the period, this purchase included
+  period: DateRange;
+  today: Date;
+  warned: ReadonlySet<BudgetAlertStage>;
+}
+export interface BudgetAlert {
+  text: string;
+  /** Stages this alert uses up; empty for "over", which tells every purchase. */
+  claims: BudgetAlertStage[];
+}
+export function budgetAlertFor(input: BudgetAlertInput): BudgetAlert | null;
+/** The day spending reaches the limit at today's daily rate, or null if not within the period. */
+export function projectedLimitDay(
+  amount: number,
+  spent: number,
+  period: DateRange,
+  today: Date,
+): Date | null;
+```
+
+Rules, in priority order (one alert per budget per purchase):
+
+1. **Over the limit** (`spent > amount`): the text is `"{cat}: {formatCurrency(spent - amount)} acima do orçamento de {formatCurrency(amount)}."` and the alert claims every stage not yet warned.
+2. **A stage reached:** take the highest stage with `spent/amount ≥ stage` that is not in `warned`.
+   - For 100% the text is `"{cat}: chegou no limite do orçamento ({formatCurrency(amount)})."`.
+   - For the other stages it is `"{cat}: {stage}% do orçamento ({formatCurrency(spent)} de {formatCurrency(amount)})."`.
+   - When ahead of pace, add `" No ritmo de hoje, passa do limite dia {d}."` (or `"no fim do período"` when the projected day is the last day).
+   - The alert claims that stage, every lower one, and `pace`, leaving out any already in `warned`.
+3. **Pace:** applies when `spent/amount ≥ 0.5` and the elapsed share is `< 0.5`, and `pace` is not yet warned. The text is `"{cat}: metade do orçamento em {n} dias. No ritmo de hoje, passa do limite dia {d}. Hora de segurar um pouco."` and the alert claims `pace`.
+4. Otherwise `null`.
+
+The daily rate is `spent / days gone` (days counted as in `elapsedShareOf`, today included). The projected day is `period.start + ceil(amount / rate) - 1` days.
+
+- [ ] **Step 1: Write the failing tests** (`it.each` table; Mercado, limit R$ 500, October)
+
+| spent | today | warned                  | expected text starts with                                                            | claims            |
+| ----- | ----- | ----------------------- | ------------------------------------------------------------------------------------ | ----------------- |
+| 370   | 20/10 | ∅                       | — (`null`)                                                                           | —                 |
+| 375   | 20/10 | ∅                       | `Mercado: 75% do orçamento (R$ 375,00 de R$ 500,00).`                                | 75, pace          |
+| 500   | 20/10 | {75}                    | `Mercado: chegou no limite`                                                          | 90, 95, 100, pace |
+| 480   | 25/10 | {75, 90, pace}          | `Mercado: 95% do orçamento`                                                          | 95                |
+| 542   | 28/10 | {75, 90, 95, 100, pace} | `Mercado: R$ 42,00 acima do orçamento de R$ 500,00.`                                 | (none)            |
+| 250   | 10/10 | ∅                       | `Mercado: metade do orçamento em 10 dias. No ritmo de hoje, passa do limite dia 20.` | pace              |
+| 250   | 10/10 | {pace}                  | — (`null`)                                                                           | —                 |
+| 400   | 10/10 | ∅                       | `…75%…` plus ` No ritmo de hoje, passa do limite dia 13.`                            | 75, pace          |
+
+Plus `projectedLimitDay(500, 100, october, 28/10)` is `null`, because at that rate the limit falls after 31/10.
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `pnpm vitest run src/modules/budgets/domain`
+Expected: FAIL (module not found).
+
+- [ ] **Step 3: Implement `budgetAlertFor` and `projectedLimitDay`**
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm vitest run src/modules/budgets/domain`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/modules/budgets/domain
+git commit -m "feat(budgets): decide when a budget warns, stage by stage and by pace"
+```
+
+---
+
+### Task 5: Etapas já avisadas, e os avisos de uma compra
+
+**Files:**
+
+- Modify: `src/infra/database/schema.ts` (new table), migration via `pnpm db:generate`
+- Create: `src/core/contracts/budget-alert-log.ts`, `src/infra/repositories/drizzle-budget-alert-log.repository.ts`, `src/tests/fakes/fake-budget-alert-log.ts`
+- Create: `src/modules/budgets/application/check-budget-alerts.use-case.ts` (+ `.test.ts`)
+
+**Interfaces:**
+
+- Consumes: `budgetAlertFor` (Task 4) and `GetBudgetProgressUseCase.execute(userId, at)` (Task 2).
+- Produces:
+  - `budget_alerts (budget_id uuid fk→budgets on delete cascade, period_start timestamptz, stage varchar(8), created_at timestamptz default now(), primary key (budget_id, period_start, stage))`.
+  - The `BudgetAlertLog` contract:
+    - `warned(budgetId: string, periodStart: Date): Promise<Set<BudgetAlertStage>>`
+    - `claim(budgetId: string, periodStart: Date, stages: BudgetAlertStage[]): Promise<BudgetAlertStage[]>` returns the ones this call inserted, via `insert … on conflict do nothing returning stage`.
+  - `CheckBudgetAlertsUseCase(transactions, budgets, categories, alertLog).execute({ userId, transactionIds, now }): Promise<string[]>`.
+
+Behavior:
+
+- Only transactions with `countsAs('expense')` and a category count, and only when their `occurredAt` falls in `periodFor(now)` of a budget that `runsOn(now)` for that category.
+- Each budget yields at most one alert.
+- An alert with claims is kept only if `claim` inserted at least one of them. This holds even when two calls race.
+- An "over" alert is always kept.
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+it('warns once when a purchase takes Mercado to 75%', async () => {
+  expect(await check([purchase375])).toEqual([
+    'Mercado: 75% do orçamento (R$ 375,00 de R$ 500,00).',
+  ]);
+  expect(await check([purchase375])).toEqual([]); // the same purchase again: nothing
+});
+it('starts the stages over in a new month', async () => {
+  /* 75% warned in October; 75% in November warns again */
+});
+it('says nothing for income, a transfer, a bill payment, or a purchase dated in a period that is over', async () => {});
+it('says nothing for a category without a running budget', async () => {});
+it('tells every purchase how much it is over once past the limit', async () => {});
+it('keeps one alert when two calls claim the same stage', async () => {
+  const [a, b] = await Promise.all([check([p]), check([p])]);
+  expect([...a, ...b]).toHaveLength(1);
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `pnpm vitest run src/modules/budgets/application/check-budget-alerts.use-case.test.ts`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement the table, the repository, the fake and the use case**
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm vitest run src/modules/budgets && pnpm typecheck`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/contracts src/infra src/tests/fakes src/modules/budgets
+git commit -m "feat(budgets): remember which stages already warned in each period"
+```
+
+---
+
+### Task 6: Os avisos no Telegram, numa mensagem própria
+
+**Files:**
+
+- Create: `src/modules/capture/application/announce-budget-alerts.use-case.ts` (+ `.test.ts`)
+- Modify: `src/modules/capture/application/chat-dependencies.ts` (add `budgetAlerts: BudgetAlertLog`), `src/shared/server/chat.ts`
+- Modify: `src/modules/capture/application/announce-captures.use-case.ts`, `src/modules/capture/application/handle-chat-update.use-case.ts`, `src/modules/capture/application/press-chat-button.ts`
+- Modify: `src/modules/capture/domain/spending-lines.ts` (+ test), `src/modules/capture/domain/capture-message.ts:35,104`, `src/modules/capture/application/describe-capture.ts:126,160`
+
+**Interfaces:**
+
+- Consumes: `CheckBudgetAlertsUseCase` (Task 5).
+- Produces: `AnnounceBudgetAlertsUseCase(channel: ChatChannel, run: ChatUnitOfWork).execute({ userId, transactionIds, now }): Promise<string[]>`. It checks inside `run`, and then, outside the unit of work and only when there are lines and an active chat link, it sends `{ text: lines.join('\n') }`. It returns the lines.
+- `PressChatButton`'s outcome gains `touched?: string[]`: the ids of the transactions that a confirm, a category, a new category or a move to another account just wrote or reclassified.
+
+- [ ] **Step 1: Write the failing tests** (`FakeChatChannel`)
+
+```ts
+it('sends the stage as a second message after the purchase that reached it', async () => {
+  // a Wallet purchase taking Mercado to 75%: channel.sent has the capture message, then the alert text
+});
+it('does not repeat the alert when a button re-renders the purchase message', async () => {});
+it('alerts when a category button files a purchase that crosses a stage', async () => {});
+it('stays quiet without an active chat link but still returns the lines', async () => {});
+```
+
+Remove the `budgetAlert` cases from `spending-lines.test.ts` along with the function itself. The capture message no longer has `alerts`.
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `pnpm vitest run src/modules/capture`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement and wire**
+
+Call `AnnounceBudgetAlertsUseCase` in three places:
+
+- after `AnnounceCapturesUseCase` sends or edits the messages of recorded captures, with their `transactionId`s;
+- in `HandleChatUpdateUseCase`, after a button whose outcome has `touched`;
+- after a text entry is recorded.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm vitest run src/modules/capture && pnpm typecheck`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/modules/capture src/shared/server/chat.ts
+git commit -m "feat(capture): tell a budget stage once, in a message of its own"
+```
+
+---
+
+### Task 7: Avisos das compras registradas no app
+
+**Files:**
+
+- Create: `src/shared/server/budget-alerts.ts`, `src/shared/hooks/show-budget-alerts.ts`
+- Modify: `src/app/transactions/actions.ts` (`createTransactionAction`, `createInstallmentAction`, `updateTransactionAction`), `src/app/dashboard/actions.ts` (`categorizeTransactionAction`, `recordQuickEntryAction`, `fileUnderNewCategoryAction`)
+- Modify: the client callers of those actions (find with `trail callers <action>`). Test: `create-transaction-dialog.test.tsx`
+
+**Interfaces:**
+
+- Produces:
+  - `checkBudgetAlerts(userId: string, transactionIds: string[]): Promise<string[]>` runs `CheckBudgetAlertsUseCase` with Drizzle repositories once the action's own transaction has been committed. It logs and returns `[]` on failure: an alert never fails a purchase.
+  - `sendBudgetAlertsToChat(userId: string, lines: string[]): Promise<void>` sends to the active chat, if there is one.
+  - Each action listed above returns `alerts?: string[]` and calls `after(() => sendBudgetAlertsToChat(userId, alerts))`.
+  - `showBudgetAlerts(alerts?: string[]): void` shows one toast per line with `variant: 'default'`.
+- **[escolha do plano]** `confirmImportAction` does not warn: importing a statement would fire a burst of alerts about the past.
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+it('shows the budget alert the new purchase returned', async () => {
+  // createTransactionOrInstallmentAction mocked to resolve { success: true, alerts: ['Mercado: 75% do orçamento (R$ 375,00 de R$ 500,00).'] }
+  // submit → toast with that text is on screen
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pnpm vitest run src/app/transactions/create-transaction-dialog.test.tsx`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement the helpers, the action results and the toasts**
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm test && pnpm typecheck && pnpm lint`
+Expected: PASS.
+
+- [ ] **Step 5: Check it in the running app**
+
+1. Create a monthly budget of R$ 100 for a category of yours.
+2. In the Início's quick entry, enter "teste 80" in that category. R$ 80 is past 75% but below 90%, so the toast says **75%**. With a chat linked, the same text arrives in Telegram.
+3. Delete the purchase and the budget.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/shared src/app
+git commit -m "feat(budgets): warn about purchases made in the app too"
+```
+
+---
+
+### Task 8: A página Meu Dinheiro: resumo, contas e abas
+
+**Files:**
+
+- Create: `src/modules/accounts/application/get-money-overview.use-case.ts` (+ `.test.ts`)
+- Rewrite: `src/app/accounts/page.tsx`
+- Create: `src/app/accounts/money-summary.tsx`, `src/app/accounts/account-list.tsx`, `src/app/accounts/money-tabs.ts` (+ `.test.ts`)
+- Modify: `src/app/budgets/page.tsx` and `src/app/loans/page.tsx`, which become `redirect()` calls; `src/config/navigation.ts:26-33`; its tests
+
+**Interfaces:**
+
+- Produces:
+
+```ts
+export interface AccountLine {
+  id: string; name: string; type: AccountKind; balance: number; currency: string;
+  archived: boolean; hidden: boolean; closingDay?: number; dueDay?: number; nextDue?: Date;
+}
+export interface MoneyOverview {
+  checking: number;   // sum of checking balances
+  cards: number;      // what is owed on credit cards, as a positive number
+  savings: number;    // sum of savings balances
+  installmentsThisMonth: number; // expenses with an installment plan dated this month
+  groups: { kind: AccountKind; accounts: AccountLine[] }[]; // checking, credit, savings; active and visible only
+  tucked: AccountLine[]; // archived or hidden, at the end
+}
+GetMoneyOverviewUseCase(accounts, transactions).execute(userId: string, now: Date): Promise<MoneyOverview>
+type MoneyTab = 'orcamentos' | 'emprestimos';
+readMoneyTab(params: Record<string, string | string[] | undefined>): MoneyTab // default 'orcamentos'
+```
+
+- Routes: `/budgets` redirects to `/accounts?aba=orcamentos` and `/loans` to `/accounts?aba=emprestimos`.
+- Navigation: one item `{ href: ROUTES.accounts, label: 'Meu Dinheiro', icon: Wallet }` replaces Contas, Orçamentos and Empréstimos.
+- Page:
+  - Header: a `PageHeader` titled "Meu Dinheiro" with the "＋ Conta" action (`CreateAccountDialog`).
+  - Summary: the four figures in a `dimension-row`.
+  - Accounts: the list grouped as "Contas correntes", "Cartões" and "Reservas", with `tucked` collapsed under "Arquivadas e ocultas (n)".
+  - Tabs: a tab `nav` built with `tabLinkClasses` (`shared/constants/tab-styles.ts`). The content stays empty until Tasks 10 and 11.
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+it('sums checking, cards owed, savings and this month’s installments', async () => {});
+it('tucks archived and hidden accounts away at the end', async () => {});
+it('reads the tab from ?aba, defaulting to budgets', () => {
+  expect(readMoneyTab({})).toBe('orcamentos');
+  expect(readMoneyTab({ aba: 'emprestimos' })).toBe('emprestimos');
+  expect(readMoneyTab({ aba: 'x' })).toBe('orcamentos');
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `pnpm vitest run src/modules/accounts src/app/accounts`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement the use case, the page, the redirects and the navigation**
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm test && pnpm typecheck`
+Expected: PASS (including `app-shell-chrome.test.tsx`, whose nav must now list "Meu Dinheiro").
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/modules/accounts src/app/accounts src/app/budgets/page.tsx src/app/loans/page.tsx src/config/navigation.ts
+git commit -m "feat(accounts): Meu Dinheiro, one page for accounts, budgets and loans"
+```
+
+---
+
+### Task 9: O detalhe de uma conta
+
+**Files:**
+
+- Create: `src/app/accounts/account-row.tsx` (+ `.test.tsx`)
+- Modify: `src/app/accounts/account-list.tsx`, `src/app/accounts/page.tsx` (load the last 5 transactions per account, and the statements via `calculateCardStatements`)
+- Delete: `src/app/accounts/account-card.tsx`, once its actions live in the row
+
+**Interfaces:**
+
+- Consumes: `AccountLine` (Task 8), `AccountEditDialog`, `PayBillDialog`, `ConfirmDialog` and the archive and delete actions of `app/accounts/actions.ts`.
+- Produces: `AccountRow({ account: AccountLine, recent: RecentLine[], statement?: { open: number; closed: number; dueLabel: string }, payingAccounts })`. The row is a `button` with `aria-expanded`. It opens inline, the same way categories open (`category-table-row.tsx`).
+
+The opened row shows:
+
+- the balance; for cards, the open and the closed bill;
+- the last 5 transactions;
+- "Ver transações", linking to `ROUTES.transactions + transactionSearch({ accountId })`;
+- "Editar" and "Pagar fatura" (cards only) as visible buttons, with Arquivar and Excluir in the "⋯" menu, as `account-card.tsx` has them today.
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+it('opens the account in place with its last transactions and a link to all of them', () => {});
+it('offers "Pagar fatura" only on a card', () => {});
+it('asks before deleting', () => {});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `pnpm vitest run src/app/accounts`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement the row and remove the card**
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm vitest run src/app/accounts && pnpm typecheck`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/app/accounts
+git commit -m "feat(accounts): open an account in place, with its latest and its actions"
+```
+
+---
+
+### Task 10: A aba Orçamentos
+
+**Files:**
+
+- Create: `src/app/accounts/budgets-tab.tsx`, `src/app/budgets/budget-row.tsx` (+ `.test.tsx`)
+- Delete: `src/app/budgets/budget-progress-card.tsx`
+- Modify: `src/app/accounts/page.tsx`
+
+**Interfaces:**
+
+- Consumes:
+  - `GetBudgetProgressUseCase.execute(userId, now)` (Task 2);
+  - `calculateBudgetPace` and `projectedLimitDay` (Task 4);
+  - `changeBudgetLimitAction` (Task 3);
+  - `MoneyOverview.installmentsThisMonth` (Task 8).
+- Produces: `BudgetRow({ name, color, kindLabel, spent, amount, status: BudgetPaceStatus | 'ended', limitDay?: string, budgetId })`.
+
+Copy and colours:
+
+- **Above the list:** `"Parcelas de {mês}: {formatCurrency(x)}"`, only when the value is above 0.
+- **Each row:**
+  - the bar and `"{gasto} de {limite}"` with `formatPercent`;
+  - the stage reached (`"Passou de 75%"`, and so on);
+  - the pace: "No ritmo", "Acima do ritmo" or "Passou do limite", plus `"Estoura dia {d}"` when `limitDay` is set;
+  - the kind: "Todo mês", `"Até {dd/mm}"` or "Encerrado".
+- **Colour of the bar and the figure:**
+  - below 75%: `foreground`;
+  - from 75% to under 100%: `warning-strong`;
+  - from 100%: `destructive`.
+- **Menu "⋯":** "Alterar limite" (a dialog with the value field) and "Excluir" (the current `DeleteBudgetButton`).
+- **Order:** ended fixed budgets come last, collapsed under "Encerrados (n)".
+- **Header:** the "＋ Orçamento" action (`CreateBudgetDialog`) sits in the tab header.
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+it('shows how much went, the stage, the pace and the day it blows', () => {
+  // spent 400 of 500 on 10/10 → "R$ 400,00 de R$ 500,00", "Passou de 75%", "Acima do ritmo", "Estoura dia 13"
+});
+it('turns red past the limit and says by how much', () => {});
+it('keeps an ended budget at the end, collapsed', () => {});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `pnpm vitest run src/app/budgets src/app/accounts`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement the tab and the row**
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm vitest run src/app && pnpm typecheck`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/app/accounts src/app/budgets
+git commit -m "feat(budgets): each budget shows its stage, its pace and the day it blows"
+```
+
+---
+
+### Task 11: A aba Empréstimos
+
+**Files:**
+
+- Modify: `src/core/value-objects/loan-amortization.ts` (+ test)
+- Create: `src/app/accounts/loans-tab.tsx`
+- Modify: `src/app/loans/loan-card.tsx`, which becomes the loan's row; `src/app/accounts/page.tsx`
+
+**Interfaces:**
+
+- Produces:
+
+```ts
+export interface LoanSummary {
+  installment: number;
+  paid: number;
+  remaining: number;
+  remainingCount: number;
+  totalInterest: number;
+  totalCost: number;
+}
+export function summarizeLoan(input: {
+  principal: number;
+  monthlyInterestRate: number;
+  installmentCount: number;
+  paidCount: number;
+}): LoanSummary;
+```
+
+`paid` and `remaining` are sums over `calculatePriceInstallments`. `totalCost` is `installment × count`. `totalInterest` is `totalCost − principal`.
+
+- Each loan's row shows:
+  - the monthly rate;
+  - the installment;
+  - "Pago {x}" and "Falta {y}";
+  - `"{n} parcelas restantes"`;
+  - "Custo total {z} ({juros} de juros)".
+
+  The amortization schedule stays as it is, behind the toggle. Taxes are not shown, because they aren't stored (spec §2: never make them up). The "＋ Empréstimo" action (`CreateLoanDialog`) sits in the tab header.
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+it('summarizes R$ 25.000 at 2% a month over 16 installments, 3 paid', () => {
+  const summary = summarizeLoan({
+    principal: 25000,
+    monthlyInterestRate: 0.02,
+    installmentCount: 16,
+    paidCount: 3,
+  });
+  expect(summary.installment).toBeCloseTo(1841.25, 2);
+  expect(summary.remainingCount).toBe(13);
+  expect(summary.totalInterest).toBeCloseTo(4460, 0);
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pnpm vitest run src/core/value-objects/loan-amortization.test.ts`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement `summarizeLoan` and the tab**
+
+- [ ] **Step 4: Run tests to verify they pass, then the whole suite and the build**
+
+Run: `pnpm test && pnpm typecheck && pnpm lint`
+Expected: PASS.
+
+- [ ] **Step 5: Check the page in the running app**
+
+1. Open `/accounts`, `/budgets` and `/loans`. The last two must land on their tab.
+2. Repeat on desktop and at 390 px, in light and dark.
+3. Open an account, change a budget's limit, and toggle a loan's schedule.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/core/value-objects src/app/accounts src/app/loans
+git commit -m "feat(loans): what a loan costs, what is paid and what is left"
+```
