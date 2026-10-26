@@ -16,6 +16,16 @@ export class DateRange {
     }
   }
 
+  /** The calendar month containing `date`, in local time. */
+  static monthOf(date: Date): DateRange {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    return new DateRange(
+      new Date(year, month, 1),
+      new Date(year, month + 1, 0, 23, 59, 59, 999),
+    );
+  }
+
   contains(date: Date): boolean {
     return date >= this.start && date <= this.end;
   }

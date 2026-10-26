@@ -28,6 +28,8 @@ export class CreateBudgetUseCase {
 
     const budget = new Budget({
       ...input,
+      kind: 'fixed',
+      limits: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     });

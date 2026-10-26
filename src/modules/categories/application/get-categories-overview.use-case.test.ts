@@ -69,6 +69,8 @@ function makeBudget(
     categoryId,
     amount,
     currency: 'BRL',
+    kind: 'fixed',
+    limits: [],
     periodStart,
     periodEnd,
     createdAt: NOW,

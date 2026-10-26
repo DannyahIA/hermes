@@ -21,6 +21,8 @@ function progress(
     categoryId: `cat-${id}`,
     amount,
     currency: 'BRL',
+    kind: 'fixed',
+    limits: [],
     periodStart: period[0],
     periodEnd: period[1],
     createdAt: new Date(),

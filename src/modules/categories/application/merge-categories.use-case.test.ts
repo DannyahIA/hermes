@@ -90,6 +90,8 @@ describe('MergeCategoriesUseCase', () => {
       categoryId: supermercado.id,
       amount: 800,
       currency: 'BRL',
+      kind: 'fixed',
+      limits: [],
       periodStart: new Date('2026-10-01T00:00:00.000Z'),
       periodEnd: new Date('2026-10-31T23:59:59.999Z'),
       createdAt: NOW,

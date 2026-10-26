@@ -17,4 +17,11 @@ describe('DateRange', () => {
     expect(range.contains(new Date('2026-08-31'))).toBe(true);
     expect(range.contains(new Date('2026-09-01'))).toBe(false);
   });
+
+  it('monthOf() spans the whole month in local time', () => {
+    const range = DateRange.monthOf(new Date(2026, 1, 14, 10, 30));
+    expect(range.start).toEqual(new Date(2026, 1, 1));
+    expect(range.end).toEqual(new Date(2026, 1, 28, 23, 59, 59, 999));
+    expect(DateRange.monthOf(new Date(2028, 1, 3)).end.getDate()).toBe(29);
+  });
 });

@@ -1,20 +1,29 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import type { BudgetRepository } from '@/core/contracts/budget-repository';
-import { Budget } from '@/core/entities/budget';
+import {
+  Budget,
+  type BudgetKind,
+  type BudgetLimit,
+} from '@/core/entities/budget';
 import type { Executor } from '@/infra/database/client';
 import { db } from '@/infra/database/client';
-import { budgets } from '@/infra/database/schema';
+import { budgetLimits, budgets } from '@/infra/database/schema';
 
 type BudgetRow = typeof budgets.$inferSelect;
+type LimitRow = typeof budgetLimits.$inferSelect;
 
-function toDomain(row: BudgetRow): Budget {
+function toDomain(row: BudgetRow, limits: LimitRow[]): Budget {
   return new Budget({
     id: row.id,
     userId: row.userId,
     categoryId: row.categoryId,
     amount: Number(row.amount),
     currency: row.currency,
+    kind: row.kind as BudgetKind,
+    limits: limits
+      .map((l) => ({ startsOn: l.startsOn, amount: Number(l.amount) }))
+      .sort((a, b) => a.startsOn.getTime() - b.startsOn.getTime()),
     periodStart: row.periodStart,
     periodEnd: row.periodEnd,
     createdAt: row.createdAt,
@@ -31,8 +40,14 @@ export class DrizzleBudgetRepository implements BudgetRepository {
       .from(budgets)
       .where(eq(budgets.id, id))
       .limit(1);
+    if (!row) return null;
 
-    return row ? toDomain(row) : null;
+    const limits = await this.executor
+      .select()
+      .from(budgetLimits)
+      .where(eq(budgetLimits.budgetId, id));
+
+    return toDomain(row, limits);
   }
 
   async findByUserId(userId: string): Promise<Budget[]> {
@@ -40,8 +55,24 @@ export class DrizzleBudgetRepository implements BudgetRepository {
       .select()
       .from(budgets)
       .where(eq(budgets.userId, userId));
+    if (rows.length === 0) return [];
 
-    return rows.map(toDomain);
+    const limits = await this.executor
+      .select()
+      .from(budgetLimits)
+      .where(
+        inArray(
+          budgetLimits.budgetId,
+          rows.map((row) => row.id),
+        ),
+      );
+
+    return rows.map((row) =>
+      toDomain(
+        row,
+        limits.filter((l) => l.budgetId === row.id),
+      ),
+    );
   }
 
   async save(budget: Budget): Promise<void> {
@@ -51,8 +82,9 @@ export class DrizzleBudgetRepository implements BudgetRepository {
       categoryId: budget.categoryId,
       amount: budget.amount.toFixed(2),
       currency: budget.currency,
+      kind: budget.kind,
       periodStart: budget.periodStart,
-      periodEnd: budget.periodEnd,
+      periodEnd: budget.props.periodEnd,
       updatedAt: budget.props.updatedAt,
     };
 
@@ -60,6 +92,20 @@ export class DrizzleBudgetRepository implements BudgetRepository {
       .insert(budgets)
       .values({ ...values, createdAt: budget.props.createdAt })
       .onConflictDoUpdate({ target: budgets.id, set: values });
+
+    await this.executor
+      .delete(budgetLimits)
+      .where(eq(budgetLimits.budgetId, budget.id));
+    const limits: BudgetLimit[] = budget.props.limits;
+    if (limits.length > 0) {
+      await this.executor.insert(budgetLimits).values(
+        limits.map((limit) => ({
+          budgetId: budget.id,
+          startsOn: limit.startsOn,
+          amount: limit.amount.toFixed(2),
+        })),
+      );
+    }
   }
 
   async delete(id: string): Promise<void> {

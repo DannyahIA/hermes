@@ -6,6 +6,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -316,7 +317,10 @@ export const budgets = pgTable('budgets', {
   amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
   currency: varchar('currency', { length: 3 }).notNull().default('BRL'),
   periodStart: timestamp('period_start', { withTimezone: true }).notNull(),
-  periodEnd: timestamp('period_end', { withTimezone: true }).notNull(),
+  /** 'monthly' starts over every month; 'fixed' runs between two dates. */
+  kind: varchar('kind', { length: 8 }).notNull().default('fixed'),
+  /** Null only for a monthly budget, which has no end. */
+  periodEnd: timestamp('period_end', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -324,6 +328,22 @@ export const budgets = pgTable('budgets', {
     .defaultNow()
     .notNull(),
 });
+
+/**
+ * The limits a monthly budget has had, each in force from the month it
+ * starts on, so changing the limit leaves past months as they were.
+ */
+export const budgetLimits = pgTable(
+  'budget_limits',
+  {
+    budgetId: uuid('budget_id')
+      .references(() => budgets.id, { onDelete: 'cascade' })
+      .notNull(),
+    startsOn: timestamp('starts_on', { withTimezone: true }).notNull(),
+    amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.budgetId, table.startsOn] })],
+);
 
 /**
  * A user's chosen way to view a listing screen — deliberately generic
