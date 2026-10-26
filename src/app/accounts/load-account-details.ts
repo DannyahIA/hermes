@@ -47,6 +47,7 @@ export async function loadAccountDetails(
       amount: transaction.amount,
       type: transaction.type,
       occurredAt: transaction.occurredAt.toISOString(),
+      occurredLabel: formatDate(transaction.occurredAt),
     }));
   });
 

@@ -13,6 +13,11 @@ const GROUP_TITLES: Record<AccountKind, string> = {
   savings: 'Reservas',
 };
 
+const dayMonth = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+});
+
 interface AccountListProps {
   groups: MoneyOverview['groups'];
   tucked: MoneyOverview['tucked'];
@@ -35,6 +40,7 @@ export function AccountList({
     <AccountRow
       key={line.id}
       account={line}
+      nextDueLabel={line.nextDue && dayMonth.format(line.nextDue)}
       recent={recent[line.id] ?? []}
       statement={statements[line.id]}
       payingAccounts={payingAccounts}

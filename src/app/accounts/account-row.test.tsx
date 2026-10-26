@@ -2,8 +2,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AccountRow } from '@/app/accounts/account-row';
-import { deleteAccountAction } from '@/app/accounts/actions';
+import {
+  archiveAccountAction,
+  deleteAccountAction,
+} from '@/app/accounts/actions';
 import type { AccountLine } from '@/modules/accounts/application/get-money-overview.use-case';
+import { toast } from '@/shared/hooks/use-toast';
 
 vi.mock('@/app/accounts/actions', () => ({
   archiveAccountAction: vi.fn(async () => ({ success: true })),
@@ -11,6 +15,8 @@ vi.mock('@/app/accounts/actions', () => ({
   updateAccountAction: vi.fn(async () => ({ success: true })),
   payCreditCardBillAction: vi.fn(async () => ({ success: true })),
 }));
+
+vi.mock('@/shared/hooks/use-toast', () => ({ toast: vi.fn() }));
 
 const checking: AccountLine = {
   id: 'account-corrente',
@@ -41,6 +47,7 @@ const recent = [
     amount: 18.5,
     type: 'expense' as const,
     occurredAt: new Date(2026, 9, 24, 12).toISOString(),
+    occurredLabel: '24 de out. de 2026',
   },
   {
     id: 't2',
@@ -48,6 +55,7 @@ const recent = [
     amount: 8500,
     type: 'income' as const,
     occurredAt: new Date(2026, 9, 20, 12).toISOString(),
+    occurredLabel: '20 de out. de 2026',
   },
 ];
 
@@ -186,6 +194,109 @@ describe('AccountRow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Excluir' }));
     await waitFor(() =>
       expect(deleteAccountAction).toHaveBeenCalledWith('account-corrente'),
+    );
+  });
+
+  it('shows the next due day as the server formatted it, even while collapsed', () => {
+    render(
+      <ul>
+        <AccountRow
+          account={card}
+          recent={[]}
+          nextDueLabel="17/11"
+          payingAccounts={payingAccounts}
+        />
+      </ul>,
+    );
+    expect(screen.getByText(/próximo vencimento 17\/11/)).toBeInTheDocument();
+  });
+
+  it('archives an account and says so', async () => {
+    render(
+      <ul>
+        <AccountRow
+          account={checking}
+          recent={[]}
+          payingAccounts={payingAccounts}
+        />
+      </ul>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Itaú/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Itaú' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Arquivar' }));
+
+    await waitFor(() =>
+      expect(archiveAccountAction).toHaveBeenCalledWith(
+        'account-corrente',
+        true,
+      ),
+    );
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith({
+        title: 'Conta arquivada.',
+        variant: 'success',
+      }),
+    );
+  });
+
+  it('reports a failed archive', async () => {
+    vi.mocked(archiveAccountAction).mockResolvedValueOnce({
+      success: false,
+      error: 'Não deu.',
+    });
+    render(
+      <ul>
+        <AccountRow
+          account={checking}
+          recent={[]}
+          payingAccounts={payingAccounts}
+        />
+      </ul>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Itaú/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Itaú' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Arquivar' }));
+
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith({
+        title: 'Não deu.',
+        variant: 'error',
+      }),
+    );
+  });
+
+  it('offers to reactivate an archived card and does not offer to pay its bill', async () => {
+    render(
+      <ul>
+        <AccountRow
+          account={{ ...card, archived: true }}
+          recent={[]}
+          payingAccounts={payingAccounts}
+        />
+      </ul>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Nubank/ }));
+    expect(
+      screen.queryByRole('button', { name: 'Pagar fatura' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Nubank' }));
+    expect(
+      screen.queryByRole('menuitem', { name: 'Arquivar' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Reativar' }));
+
+    await waitFor(() =>
+      expect(archiveAccountAction).toHaveBeenCalledWith(
+        'account-cartao',
+        false,
+      ),
+    );
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith({
+        title: 'Conta reativada.',
+        variant: 'success',
+      }),
     );
   });
 });

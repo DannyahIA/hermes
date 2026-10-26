@@ -18,7 +18,6 @@ import type { AccountLine } from '@/modules/accounts/application/get-money-overv
 import { toast } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/format-currency';
-import { formatDate } from '@/shared/lib/format-date';
 import { transactionSearch } from '@/shared/lib/transaction-query';
 
 /** One of an account's latest transactions, as plain data a client component can take. */
@@ -29,6 +28,8 @@ export interface RecentLine {
   type: 'income' | 'expense' | 'transfer';
   /** ISO timestamp. */
   occurredAt: string;
+  /** The day, already formatted on the server: a client render in another timezone would show another day. */
+  occurredLabel: string;
 }
 
 /** A card's bills today: what is open, what closed and is still owed, and when the open one is due. */
@@ -38,18 +39,12 @@ export interface CardBills {
   dueLabel: string;
 }
 
-const dayMonth = new Intl.DateTimeFormat('pt-BR', {
-  day: '2-digit',
-  month: '2-digit',
-});
-
-function cardNote(line: AccountLine): string | null {
+function cardNote(line: AccountLine, nextDueLabel?: string): string | null {
   if (line.type !== 'credit') return null;
   const parts: string[] = [];
   if (line.closingDay) parts.push(`fecha dia ${line.closingDay}`);
   if (line.dueDay) parts.push(`vence dia ${line.dueDay}`);
-  if (line.nextDue)
-    parts.push(`próximo vencimento ${dayMonth.format(line.nextDue)}`);
+  if (nextDueLabel) parts.push(`próximo vencimento ${nextDueLabel}`);
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
@@ -64,6 +59,8 @@ interface AccountRowProps {
   account: AccountLine;
   /** The latest transactions of this account, newest first. */
   recent: RecentLine[];
+  /** The next due day as "dd/mm", formatted on the server (see RecentLine). */
+  nextDueLabel?: string;
   /** Only for a card with a closing and a due day. */
   statement?: CardBills;
   /** The user's non-credit accounts, to pay a bill from. */
@@ -78,6 +75,7 @@ interface AccountRowProps {
 export function AccountRow({
   account,
   recent,
+  nextDueLabel,
   statement,
   payingAccounts,
 }: AccountRowProps) {
@@ -86,7 +84,7 @@ export function AccountRow({
   const [deleting, setDeleting] = useState(false);
   const [isPending, startTransition] = useTransition();
   const isCredit = account.type === 'credit';
-  const note = cardNote(account);
+  const note = cardNote(account, nextDueLabel);
 
   function handleArchiveToggle() {
     startTransition(async () => {
@@ -197,7 +195,7 @@ export function AccountRow({
                   <span className="min-w-0 truncate">
                     {line.description}
                     <span className="text-muted-foreground ml-2 text-xs">
-                      {formatDate(new Date(line.occurredAt))}
+                      {line.occurredLabel}
                     </span>
                   </span>
                   <span
