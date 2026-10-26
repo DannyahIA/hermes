@@ -220,4 +220,46 @@ describe('CheckBudgetAlertsUseCase', () => {
       `Mercado: 75% do orçamento (${brl(375)} de ${brl(500)}).`,
     ]);
   });
+
+  it('does not let an undone purchase use up the stage', async () => {
+    const quick = await purchase('p1', 375, new Date(2026, 9, 20));
+    expect(await check([quick])).toHaveLength(1);
+
+    // The purchase is undone; a small one below 75% re-arms the stages.
+    await transactions.delete(quick);
+    const small = await purchase('p2', 50, new Date(2026, 9, 21));
+    expect(await check([small])).toEqual([]);
+    expect(await alertLog.warned('b-mercado', new Date(2026, 9, 1))).toEqual(
+      new Set(),
+    );
+
+    const real = await purchase('p3', 325, new Date(2026, 9, 22));
+    expect(await check([real])).toEqual([
+      `Mercado: 75% do orçamento (${brl(375)} de ${brl(500)}).`,
+    ]);
+  });
+
+  it('keeps a stage warned while spending still reaches it', async () => {
+    const first = await purchase('p1', 375, new Date(2026, 9, 20));
+    expect(await check([first])).toHaveLength(1);
+
+    const second = await purchase('p2', 10, new Date(2026, 9, 21));
+    expect(await check([second])).toEqual([]);
+    expect(await alertLog.warned('b-mercado', new Date(2026, 9, 1))).toEqual(
+      new Set(['75', 'pace']),
+    );
+  });
+
+  it('releases the pace warning when spending falls under half the limit', async () => {
+    const early = new Date(2026, 9, 5, 12);
+    const first = await purchase('p1', 300, new Date(2026, 9, 3));
+    expect(await check([first], early)).toHaveLength(1);
+
+    await transactions.delete(first);
+    const small = await purchase('p2', 100, new Date(2026, 9, 4));
+    expect(await check([small], early)).toEqual([]);
+    expect(await alertLog.warned('b-mercado', new Date(2026, 9, 1))).toEqual(
+      new Set(),
+    );
+  });
 });

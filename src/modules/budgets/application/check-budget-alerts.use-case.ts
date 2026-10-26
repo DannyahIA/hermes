@@ -4,7 +4,8 @@ import type { CategoryRepository } from '@/core/contracts/category-repository';
 import type { TransactionRepository } from '@/core/contracts/transaction-repository';
 import type { Transaction } from '@/core/entities/transaction';
 
-import { budgetAlertFor } from '../domain/budget-alerts';
+import { budgetAlertFor, staleStages } from '../domain/budget-alerts';
+import { limitState } from '../domain/limit-state';
 import {
   type BudgetProgress,
   GetBudgetProgressUseCase,
@@ -93,24 +94,34 @@ export class CheckBudgetAlertsUseCase {
     const category = await this.categoryRepository.findById(budget.categoryId);
     if (!category) return null;
 
+    // Stages spending no longer reaches start over, so they warn again when
+    // it gets back there.
+    const claimed = await this.alertLog.warned(budget.id, period.start);
+    const stale = staleStages(claimed, spent, amount);
+    await this.alertLog.release(budget.id, period.start, stale);
+    const warned = new Set(
+      [...claimed].filter((stage) => !stale.includes(stage)),
+    );
+
     const alert = budgetAlertFor({
       categoryName: category.name,
       amount,
       spent,
       period,
       today: now,
-      warned: await this.alertLog.warned(budget.id, period.start),
+      warned,
     });
     if (!alert) return null;
 
     // "Over the limit" claims nothing once told, and is still always sent.
-    if (alert.claims.length === 0 && spent > amount) return alert.text;
+    if (alert.claims.length === 0 && limitState(spent, amount) === 'over')
+      return alert.text;
 
-    const claimed = await this.alertLog.claim(
+    const won = await this.alertLog.claim(
       budget.id,
       period.start,
       alert.claims,
     );
-    return claimed.length > 0 ? alert.text : null;
+    return won.length > 0 ? alert.text : null;
   }
 }

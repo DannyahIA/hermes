@@ -42,4 +42,14 @@ export class FakeBudgetAlertLog implements BudgetAlertLog {
     }
     return claimed;
   }
+
+  async release(
+    budgetId: string,
+    periodStart: Date,
+    stages: BudgetAlertStage[],
+  ): Promise<void> {
+    for (const stage of stages) {
+      this.told.delete(keyOf(budgetId, periodStart, stage));
+    }
+  }
 }

@@ -2,6 +2,7 @@ import type { DateRange } from '@/core/value-objects/date-range';
 import { formatCurrency } from '@/shared/lib/format-currency';
 
 import { elapsedShareOf, isAheadOfPace } from './budget-pace';
+import { limitState } from './limit-state';
 
 export type BudgetAlertStage = '75' | '90' | '95' | '100' | 'pace';
 
@@ -73,6 +74,25 @@ function projectionPhrase(limitDay: Date, period: DateRange): string {
   }.`;
 }
 
+/**
+ * The claimed stages spending no longer reaches — a purchase that was undone,
+ * a limit that was raised — so they can warn again when it gets there:
+ * stages above the share spent, and the pace warning below half the limit.
+ */
+export function staleStages(
+  claimed: ReadonlySet<BudgetAlertStage>,
+  spent: number,
+  amount: number,
+): BudgetAlertStage[] {
+  if (amount <= 0) return [];
+  const spentShare = spent / amount;
+  const stale: BudgetAlertStage[] = STAGES.filter(
+    ([stage, share]) => claimed.has(stage) && spentShare < share,
+  ).map(([stage]) => stage);
+  if (claimed.has('pace') && spentShare < PACE_SPENT_SHARE) stale.push('pace');
+  return stale;
+}
+
 function notWarned(
   stages: BudgetAlertStage[],
   warned: ReadonlySet<BudgetAlertStage>,
@@ -91,7 +111,7 @@ export function budgetAlertFor(input: BudgetAlertInput): BudgetAlert | null {
 
   const allStages = STAGES.map(([stage]) => stage);
 
-  if (spent > amount) {
+  if (limitState(spent, amount) === 'over') {
     return {
       text: `${categoryName}: ${formatCurrency(spent - amount)} acima do orçamento de ${formatCurrency(amount)}.`,
       claims: notWarned([...allStages, 'pace'], warned),

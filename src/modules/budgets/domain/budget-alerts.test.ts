@@ -7,6 +7,7 @@ import {
   budgetAlertFor,
   type BudgetAlertStage,
   projectedLimitDay,
+  staleStages,
 } from './budget-alerts';
 
 const october = DateRange.monthOf(new Date(2026, 9, 1));
@@ -185,5 +186,33 @@ describe('projectedLimitDay', () => {
     expect(
       projectedLimitDay(500, 0, october, new Date(2026, 9, 10)),
     ).toBeNull();
+  });
+});
+
+describe('staleStages', () => {
+  const claimed = new Set<BudgetAlertStage>(['75', '90', 'pace']);
+
+  it('lets go of the stages spending no longer reaches', () => {
+    expect(staleStages(claimed, 400, 500)).toEqual(['90']);
+    expect(staleStages(claimed, 250, 500)).toEqual(['75', '90']);
+    expect(staleStages(claimed, 100, 500)).toEqual(['75', '90', 'pace']);
+  });
+
+  it('keeps the stages still reached, at the threshold included', () => {
+    expect(staleStages(claimed, 450, 500)).toEqual([]);
+    expect(staleStages(claimed, 375, 500)).toEqual(['90']);
+  });
+
+  it('keeps pace at exactly half the limit and drops it below', () => {
+    expect(staleStages(new Set<BudgetAlertStage>(['pace']), 250, 500)).toEqual(
+      [],
+    );
+    expect(staleStages(new Set<BudgetAlertStage>(['pace']), 249, 500)).toEqual([
+      'pace',
+    ]);
+  });
+
+  it('has nothing to release for a limit of zero', () => {
+    expect(staleStages(claimed, 0, 0)).toEqual([]);
   });
 });

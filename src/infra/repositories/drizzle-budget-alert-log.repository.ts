@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 
 import type { BudgetAlertLog } from '@/core/contracts/budget-alert-log';
 import type { Executor } from '@/infra/database/client';
@@ -42,5 +42,23 @@ export class DrizzleBudgetAlertLogRepository implements BudgetAlertLog {
       .returning({ stage: budgetAlerts.stage });
 
     return inserted.map((row) => row.stage as BudgetAlertStage);
+  }
+
+  async release(
+    budgetId: string,
+    periodStart: Date,
+    stages: BudgetAlertStage[],
+  ): Promise<void> {
+    if (stages.length === 0) return;
+
+    await this.executor
+      .delete(budgetAlerts)
+      .where(
+        and(
+          eq(budgetAlerts.budgetId, budgetId),
+          eq(budgetAlerts.periodStart, periodStart),
+          inArray(budgetAlerts.stage, stages),
+        ),
+      );
   }
 }

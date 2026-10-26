@@ -17,4 +17,13 @@ export interface BudgetAlertLog {
     periodStart: Date,
     stages: BudgetAlertStage[],
   ): Promise<BudgetAlertStage[]>;
+  /**
+   * Forgets `stages`, so they can be told again: spending fell back below
+   * them (a purchase undone, a limit raised).
+   */
+  release(
+    budgetId: string,
+    periodStart: Date,
+    stages: BudgetAlertStage[],
+  ): Promise<void>;
 }
