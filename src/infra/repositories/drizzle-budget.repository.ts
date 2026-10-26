@@ -88,24 +88,26 @@ export class DrizzleBudgetRepository implements BudgetRepository {
       updatedAt: budget.props.updatedAt,
     };
 
-    await this.executor
-      .insert(budgets)
-      .values({ ...values, createdAt: budget.props.createdAt })
-      .onConflictDoUpdate({ target: budgets.id, set: values });
+    // Atomic: a failed limit insert must not leave the history deleted. On an
+    // executor that is already a transaction, Drizzle uses a savepoint.
+    await this.executor.transaction(async (tx) => {
+      await tx
+        .insert(budgets)
+        .values({ ...values, createdAt: budget.props.createdAt })
+        .onConflictDoUpdate({ target: budgets.id, set: values });
 
-    await this.executor
-      .delete(budgetLimits)
-      .where(eq(budgetLimits.budgetId, budget.id));
-    const limits: BudgetLimit[] = budget.props.limits;
-    if (limits.length > 0) {
-      await this.executor.insert(budgetLimits).values(
-        limits.map((limit) => ({
-          budgetId: budget.id,
-          startsOn: limit.startsOn,
-          amount: limit.amount.toFixed(2),
-        })),
-      );
-    }
+      await tx.delete(budgetLimits).where(eq(budgetLimits.budgetId, budget.id));
+      const limits: BudgetLimit[] = budget.props.limits;
+      if (limits.length > 0) {
+        await tx.insert(budgetLimits).values(
+          limits.map((limit) => ({
+            budgetId: budget.id,
+            startsOn: limit.startsOn,
+            amount: limit.amount.toFixed(2),
+          })),
+        );
+      }
+    });
   }
 
   async delete(id: string): Promise<void> {

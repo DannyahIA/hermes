@@ -106,6 +106,20 @@ describe('Budget', () => {
       expect(changed.amount).toBe(900);
     });
 
+    it('applies a limit set in the month a mid-month budget started', () => {
+      const midMonth = new Budget({
+        ...monthlyProps,
+        periodStart: new Date(2026, 9, 15),
+      });
+      const sameMonth = midMonth.withLimit(700, new Date(2026, 9, 20));
+      expect(sameMonth.amount).toBe(700);
+      expect(sameMonth.amountFor(new Date(2026, 9, 20))).toBe(700);
+
+      const nextMonth = midMonth.withLimit(700, new Date(2026, 10, 3));
+      expect(nextMonth.amountFor(new Date(2026, 9, 20))).toBe(500);
+      expect(nextMonth.amountFor(new Date(2026, 10, 5))).toBe(700);
+    });
+
     it('falls back to the amount when there are no limits', () => {
       expect(monthly.amountFor(new Date(2026, 10, 2))).toBe(500);
     });

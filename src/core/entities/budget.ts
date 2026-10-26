@@ -136,7 +136,12 @@ export class Budget {
     const known =
       this.props.limits.length > 0
         ? this.props.limits
-        : [{ startsOn: this.props.periodStart, amount: this.props.amount }];
+        : [
+            {
+              startsOn: DateRange.monthOf(this.props.periodStart).start,
+              amount: this.props.amount,
+            },
+          ];
     const limits = [
       ...known.filter((l) => l.startsOn.getTime() !== startsOn.getTime()),
       { startsOn, amount },
