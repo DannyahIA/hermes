@@ -1,4 +1,8 @@
 import type { BudgetProgress } from '@/modules/budgets/application/get-budget-progress.use-case';
+import {
+  elapsedShareOf,
+  isAheadOfPace,
+} from '@/modules/budgets/domain/budget-pace';
 
 export type BudgetPaceStatus = 'on-pace' | 'ahead' | 'over';
 
@@ -15,26 +19,6 @@ export interface BudgetPace {
   status: BudgetPaceStatus;
   periodStart: Date;
   periodEnd: Date;
-}
-
-/** Spending this many points ahead of the calendar still counts as on pace. */
-const PACE_TOLERANCE = 0.1;
-
-const DAY = 24 * 60 * 60 * 1000;
-
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-/**
- * Whole days, so "today" counts as gone by: on 17 October a monthly budget
- * is 17/31 through.
- */
-function elapsedShareOf(start: Date, end: Date, today: Date): number {
-  const first = startOfDay(start).getTime();
-  const days = Math.round((startOfDay(end).getTime() - first) / DAY) + 1;
-  const gone = Math.round((startOfDay(today).getTime() - first) / DAY) + 1;
-  return Math.min(1, Math.max(0, gone / days));
 }
 
 const STATUS_ORDER: Record<BudgetPaceStatus, number> = {
@@ -58,11 +42,11 @@ export function calculateBudgetPace(
     .filter(({ running }) => running)
     .map(({ budget, period, amount, spent }) => {
       const spentShare = spent / amount;
-      const elapsedShare = elapsedShareOf(period.start, period.end, today);
+      const elapsedShare = elapsedShareOf(period, today);
       const status: BudgetPaceStatus =
         spentShare > 1
           ? 'over'
-          : spentShare > elapsedShare + PACE_TOLERANCE
+          : isAheadOfPace(spentShare, elapsedShare)
             ? 'ahead'
             : 'on-pace';
 

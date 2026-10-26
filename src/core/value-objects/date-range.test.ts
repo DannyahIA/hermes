@@ -24,4 +24,20 @@ describe('DateRange', () => {
     expect(range.end).toEqual(new Date(2026, 1, 28, 23, 59, 59, 999));
     expect(DateRange.monthOf(new Date(2028, 1, 3)).end.getDate()).toBe(29);
   });
+
+  it('counts whole days, first and last included', () => {
+    const october = DateRange.monthOf(new Date(2026, 9, 5));
+    expect(october.lengthInDays).toBe(31);
+    expect(
+      new DateRange(new Date(2026, 9, 10), new Date(2026, 9, 10)).lengthInDays,
+    ).toBe(1);
+  });
+
+  it('daysGoneBy() counts today and stays inside the range', () => {
+    const october = DateRange.monthOf(new Date(2026, 9, 5));
+    expect(october.daysGoneBy(new Date(2026, 9, 10, 23, 59))).toBe(10);
+    expect(october.daysGoneBy(new Date(2026, 9, 1, 0, 1))).toBe(1);
+    expect(october.daysGoneBy(new Date(2026, 8, 20))).toBe(0);
+    expect(october.daysGoneBy(new Date(2026, 10, 20))).toBe(31);
+  });
 });
