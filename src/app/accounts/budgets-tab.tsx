@@ -1,4 +1,5 @@
-import { BudgetProgressCard } from '@/app/budgets/budget-progress-card';
+import { BudgetList } from '@/app/accounts/budget-list';
+import { buildBudgetRows, installmentsLabel } from '@/app/accounts/budget-rows';
 import { CreateBudgetDialog } from '@/app/budgets/create-budget-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Section, SectionHeader } from '@/components/ui/section';
@@ -7,13 +8,16 @@ import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
 import { GetBudgetProgressUseCase } from '@/modules/budgets/application/get-budget-progress.use-case';
 
-/** The "Orçamentos" tab: the budgets list, moved here from /budgets. */
+/** The "Orçamentos" tab: each budget as a row, with its stage, its pace and the day it blows. */
 export async function BudgetsTab({
   userId,
   now,
+  installmentsThisMonth,
 }: {
   userId: string;
   now: Date;
+  /** What the card installments add up to this month. */
+  installmentsThisMonth: number;
 }) {
   const [categories, progressList] = await Promise.all([
     new DrizzleCategoryRepository().findByUserId(userId),
@@ -25,6 +29,7 @@ export async function BudgetsTab({
   const categoryById = new Map(
     categories.map((category) => [category.id, category]),
   );
+  const rows = buildBudgetRows(progressList, categoryById, now);
   const categoryOptions = categories.map((category) => ({
     id: category.id,
     name: category.name,
@@ -56,19 +61,11 @@ export async function BudgetsTab({
           }
         />
       ) : (
-        <ul className="sheet-surface divide-border divide-y">
-          {progressList.map((progress) => {
-            const category = categoryById.get(progress.budget.categoryId);
-            return (
-              <BudgetProgressCard
-                key={progress.budget.id}
-                progress={progress}
-                categoryName={category?.name ?? 'Categoria removida'}
-                categoryColor={category?.color}
-              />
-            );
-          })}
-        </ul>
+        <BudgetList
+          running={rows.running}
+          ended={rows.ended}
+          installmentsLabel={installmentsLabel(installmentsThisMonth, now)}
+        />
       )}
     </Section>
   );

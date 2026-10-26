@@ -108,7 +108,11 @@ export default async function AccountsPage({
             ))}
           </nav>
           {tab === 'orcamentos' ? (
-            <BudgetsTab userId={userId} now={now} />
+            <BudgetsTab
+              userId={userId}
+              now={now}
+              installmentsThisMonth={overview.installmentsThisMonth}
+            />
           ) : (
             <LoansTab userId={userId} now={now} />
           )}
