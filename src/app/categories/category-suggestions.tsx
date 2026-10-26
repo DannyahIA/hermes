@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactElement } from 'react';
 import { useState } from 'react';
 
 import {
@@ -24,29 +25,54 @@ interface CategorySuggestionsProps {
   suggestions: Suggestions;
 }
 
+/** Lines shown before the rest fold away: the box must not push the list out of view. */
+const SHOWN = 3;
+
 /**
  * The tidy-up suggestions for the month: new categories for purchases
- * that have none, categories gone unused, and look-alike pairs. Each line
+ * that have none, look-alike pairs, then categories gone unused. Each line
  * has one button; the merge asks first, since it moves transactions.
  */
 export function CategorySuggestions({ suggestions }: CategorySuggestionsProps) {
+  const [expanded, setExpanded] = useState(false);
+  const lines: ReactElement[] = [
+    ...suggestions.create.map((suggestion) => (
+      <CreateLine key={`create-${suggestion.key}`} suggestion={suggestion} />
+    )),
+    ...suggestions.merge.map((suggestion) => (
+      <MergeLine
+        key={`merge-${suggestion.keepId}-${suggestion.mergeId}`}
+        suggestion={suggestion}
+      />
+    )),
+    ...suggestions.archive.map((suggestion) => (
+      <ArchiveLine
+        key={`archive-${suggestion.categoryId}`}
+        suggestion={suggestion}
+      />
+    )),
+  ];
+
   return (
     <Card className="p-4">
       <h2 className="text-sm font-semibold">Sugestões</h2>
       <ul className="divide-border mt-2 divide-y">
-        {suggestions.create.map((suggestion) => (
-          <CreateLine key={suggestion.key} suggestion={suggestion} />
-        ))}
-        {suggestions.archive.map((suggestion) => (
-          <ArchiveLine key={suggestion.categoryId} suggestion={suggestion} />
-        ))}
-        {suggestions.merge.map((suggestion) => (
-          <MergeLine
-            key={`${suggestion.keepId}-${suggestion.mergeId}`}
-            suggestion={suggestion}
-          />
-        ))}
+        {expanded ? lines : lines.slice(0, SHOWN)}
       </ul>
+      {lines.length > SHOWN && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((current) => !current)}
+          className="mt-2"
+        >
+          {expanded
+            ? 'Mostrar menos'
+            : `Ver todas as sugestões (${lines.length})`}
+        </Button>
+      )}
     </Card>
   );
 }
