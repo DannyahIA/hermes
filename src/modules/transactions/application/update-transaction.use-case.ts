@@ -25,6 +25,13 @@ export class UpdateTransactionUseCase {
   ) {}
 
   async execute(input: UpdateTransactionInput): Promise<Transaction> {
+    return (await this.executeWithBefore(input)).after;
+  }
+
+  /** Like `execute`, but also hands back the transaction as it was. */
+  async executeWithBefore(
+    input: UpdateTransactionInput,
+  ): Promise<{ before: Transaction; after: Transaction }> {
     const transaction = await this.transactionRepository.findById(input.id);
     if (!transaction) {
       throw new NotFoundError('Transaction', input.id);
@@ -70,6 +77,6 @@ export class UpdateTransactionUseCase {
 
     await this.transactionRepository.save(updatedTransaction);
 
-    return updatedTransaction;
+    return { before: transaction, after: updatedTransaction };
   }
 }

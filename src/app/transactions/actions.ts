@@ -13,6 +13,7 @@ import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.r
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
 import { DrizzleInstallmentPlanRepository } from '@/infra/repositories/drizzle-installment-plan.repository';
 import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
+import { shouldCheckAlertsAfterEdit } from '@/modules/budgets/domain/should-check-alerts-after-edit';
 import { CreateInstallmentPlanUseCase } from '@/modules/installments/application/create-installment-plan.use-case';
 import { DeleteInstallmentPlanUseCase } from '@/modules/installments/application/delete-installment-plan.use-case';
 import { UpdateInstallmentUseCase } from '@/modules/installments/application/update-installment.use-case';
@@ -233,15 +234,19 @@ export async function updateTransactionAction(
   try {
     const userId = await requireCurrentUserId();
 
-    await withTransaction(async (tx) => {
+    const { before, after } = await withTransaction(async (tx) => {
       const useCase = new UpdateTransactionUseCase(
         new DrizzleTransactionRepository(tx),
         new DrizzleAccountRepository(tx),
       );
-      await useCase.execute({ userId, ...parsed.data });
+      return useCase.executeWithBefore({ userId, ...parsed.data });
     });
 
-    const alerts = await budgetAlertsFor(userId, [parsed.data.id]);
+    // Only an edit that can say something new tells: fixing a description in
+    // a blown category must not repeat the over-the-limit line.
+    const alerts = shouldCheckAlertsAfterEdit(before, after)
+      ? await budgetAlertsFor(userId, [after.id])
+      : [];
     revalidateMoneyPages();
     return { success: true, alerts };
   } catch (error) {

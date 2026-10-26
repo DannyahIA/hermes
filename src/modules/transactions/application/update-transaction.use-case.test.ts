@@ -85,4 +85,32 @@ describe('UpdateTransactionUseCase', () => {
     expect((await accountRepository.findById('checking-1'))!.balance).toBe(750);
     expect((await accountRepository.findById('card-1'))!.balance).toBe(250);
   });
+
+  it('hands back the transaction as it was and as it is now', async () => {
+    const { transactionRepository, useCase } = await setup();
+    await transactionRepository.save(
+      new Transaction({
+        id: 'tx-1',
+        accountId: 'checking-1',
+        description: 'Mercdo',
+        amount: 100,
+        type: 'expense',
+        occurredAt: new Date(2026, 9, 20),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+
+    const { before, after } = await useCase.executeWithBefore({
+      id: 'tx-1',
+      userId: USER_ID,
+      description: 'Mercado',
+      amount: 150,
+    });
+
+    expect(before.description).toBe('Mercdo');
+    expect(before.amount).toBe(100);
+    expect(after.description).toBe('Mercado');
+    expect(after.amount).toBe(150);
+  });
 });

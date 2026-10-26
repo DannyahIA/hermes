@@ -78,6 +78,17 @@ export async function budgetAlertsFor(
   transactionIds: string[],
 ): Promise<string[]> {
   const alerts = await checkBudgetAlerts(userId, transactionIds);
-  if (alerts.length > 0) after(() => sendBudgetAlertsToChat(userId, alerts));
+  if (alerts.length > 0) {
+    // The purchase is committed: failing to schedule the chat message must
+    // not turn it into a reported failure.
+    try {
+      after(() => sendBudgetAlertsToChat(userId, alerts));
+    } catch (error) {
+      console.error(
+        `scheduling the chat budget alert for user ${userId} failed:`,
+        error instanceof Error ? error.message : 'unknown error',
+      );
+    }
+  }
   return alerts;
 }
