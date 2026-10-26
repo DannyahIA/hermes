@@ -1,13 +1,11 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Home,
-  Landmark,
-  LayoutGrid,
-  PiggyBank,
   ReceiptText,
   Settings,
   Tags,
   TrendingUp,
+  Wallet,
 } from 'lucide-react';
 
 import { ROUTES } from '@/config/routes';
@@ -24,10 +22,8 @@ export interface NavigationItem {
  */
 export const PRIMARY_NAVIGATION: NavigationItem[] = [
   { href: ROUTES.dashboard, label: 'Início', icon: Home },
-  { href: ROUTES.accounts, label: 'Contas', icon: LayoutGrid },
+  { href: ROUTES.accounts, label: 'Meu Dinheiro', icon: Wallet },
   { href: ROUTES.transactions, label: 'Transações', icon: ReceiptText },
-  { href: ROUTES.budgets, label: 'Orçamentos', icon: PiggyBank },
-  { href: ROUTES.loans, label: 'Empréstimos', icon: Landmark },
   { href: ROUTES.categories, label: 'Categorias', icon: Tags },
   { href: ROUTES.reports, label: 'Relatórios', icon: TrendingUp },
   { href: ROUTES.settings, label: 'Configurações', icon: Settings },

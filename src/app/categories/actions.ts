@@ -60,6 +60,7 @@ export async function createCategoryAction(
     revalidatePath(ROUTES.categories);
     revalidatePath(ROUTES.transactions);
     revalidatePath(ROUTES.budgets);
+    revalidatePath(ROUTES.accounts);
     return { success: true };
   } catch (error) {
     return { success: false, error: toUserMessage(error) };
@@ -94,6 +95,7 @@ export async function updateCategoryAction(
     revalidatePath(ROUTES.categories);
     revalidatePath(ROUTES.transactions);
     revalidatePath(ROUTES.budgets);
+    revalidatePath(ROUTES.accounts);
     return { success: true };
   } catch (error) {
     return { success: false, error: toUserMessage(error) };
@@ -112,6 +114,7 @@ export async function archiveCategoryAction(
     revalidatePath(ROUTES.categories);
     revalidatePath(ROUTES.transactions);
     revalidatePath(ROUTES.budgets);
+    revalidatePath(ROUTES.accounts);
     return { success: true };
   } catch (error) {
     return { success: false, error: toUserMessage(error) };
@@ -136,6 +139,7 @@ export async function deleteCategoryAction(id: string): Promise<ActionResult> {
     revalidatePath(ROUTES.categories);
     revalidatePath(ROUTES.transactions);
     revalidatePath(ROUTES.budgets);
+    revalidatePath(ROUTES.accounts);
     return { success: true };
   } catch (error) {
     return { success: false, error: toUserMessage(error) };

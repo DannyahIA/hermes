@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShellChrome } from '@/components/layout/app-shell-chrome';
@@ -37,6 +37,22 @@ describe('AppShellChrome', () => {
     expect(scroller?.contains(screen.getByRole('banner'))).toBe(false);
     expect(scroller?.contains(screen.getByRole('navigation'))).toBe(false);
     expect(scroller?.contains(screen.getByRole('contentinfo'))).toBe(true);
+  });
+
+  it('lists Meu Dinheiro in place of Contas, Orçamentos and Empréstimos', () => {
+    renderShell();
+
+    const nav = screen.getByRole('navigation');
+    const labels = within(nav)
+      .getAllByRole('link')
+      .map((link) => link.textContent?.trim());
+    expect(labels).toContain('Meu Dinheiro');
+    expect(labels).not.toContain('Contas');
+    expect(labels).not.toContain('Orçamentos');
+    expect(labels).not.toContain('Empréstimos');
+    expect(
+      within(nav).getByRole('link', { name: 'Meu Dinheiro' }),
+    ).toHaveAttribute('href', '/accounts');
   });
 
   it('opens a newly visited page at the top of the content', () => {

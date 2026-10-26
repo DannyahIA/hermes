@@ -58,6 +58,7 @@ export async function createBudgetAction(
     await useCase.execute({ id: randomUUID(), userId, ...parsed.data });
 
     revalidatePath(ROUTES.budgets);
+    revalidatePath(ROUTES.accounts);
     revalidatePath(ROUTES.dashboard);
     return { success: true };
   } catch (error) {
@@ -90,6 +91,7 @@ export async function updateBudgetAction(
     await useCase.execute({ ...parsed.data, userId });
 
     revalidatePath(ROUTES.budgets);
+    revalidatePath(ROUTES.accounts);
     revalidatePath(ROUTES.dashboard);
     return { success: true };
   } catch (error) {
@@ -104,6 +106,7 @@ export async function deleteBudgetAction(id: string): Promise<ActionResult> {
     await useCase.execute({ id, userId });
 
     revalidatePath(ROUTES.budgets);
+    revalidatePath(ROUTES.accounts);
     revalidatePath(ROUTES.dashboard);
     return { success: true };
   } catch (error) {

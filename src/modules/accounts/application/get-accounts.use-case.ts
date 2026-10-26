@@ -9,8 +9,8 @@ export interface AccountWithBalances {
   projectedBalance: number;
 }
 
-function startOfTomorrow(): Date {
-  const date = new Date();
+function startOfTomorrow(now: Date): Date {
+  const date = new Date(now);
   date.setHours(0, 0, 0, 0);
   date.setDate(date.getDate() + 1);
   return date;
@@ -29,13 +29,16 @@ export class GetAccountsUseCase {
     private readonly transactionRepository: TransactionRepository,
   ) {}
 
-  async execute(userId: string): Promise<AccountWithBalances[]> {
+  async execute(
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<AccountWithBalances[]> {
     const accounts = await this.accountRepository.findByUserId(userId);
 
     const futureTransactions = await this.transactionRepository.findByUserId(
       userId,
       {
-        from: startOfTomorrow(),
+        from: startOfTomorrow(now),
         pageSize: 10_000,
       },
     );
