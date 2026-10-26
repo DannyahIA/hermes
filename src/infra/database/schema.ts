@@ -346,6 +346,28 @@ export const budgetLimits = pgTable(
 );
 
 /**
+ * The warning stages a budget has already told about in each period, so a
+ * stage is told once and starts over when the next period begins. The key is
+ * what lets two purchases recorded at once agree on who tells it.
+ */
+export const budgetAlerts = pgTable(
+  'budget_alerts',
+  {
+    budgetId: uuid('budget_id')
+      .references(() => budgets.id, { onDelete: 'cascade' })
+      .notNull(),
+    periodStart: timestamp('period_start', { withTimezone: true }).notNull(),
+    stage: varchar('stage', { length: 8 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.budgetId, table.periodStart, table.stage] }),
+  ],
+);
+
+/**
  * A user's chosen way to view a listing screen — deliberately generic
  * (`screenKey` + `viewMode` as free-form strings, not an enum tied to one
  * screen) so a future screen can reuse this table with its own key and
