@@ -159,25 +159,27 @@ export function AccountRow({
       {open && (
         <div id={detailId} className="pt-1 pb-4 pl-6">
           {isCredit && statement && (
-            <dl className="mb-3 space-y-1 text-sm">
-              <div className="flex items-baseline justify-between gap-3">
-                <dt className="text-muted-foreground">Fatura aberta</dt>
-                <dd className="dimension-figure">
-                  {formatCurrency(statement.open, account.currency)}
-                </dd>
-              </div>
-              {statement.closed >= 0.005 && (
+            <div className="mb-3">
+              <dl className="space-y-1 text-sm">
                 <div className="flex items-baseline justify-between gap-3">
-                  <dt className="text-muted-foreground">Fatura fechada</dt>
+                  <dt className="text-muted-foreground">Fatura aberta</dt>
                   <dd className="dimension-figure">
-                    {formatCurrency(statement.closed, account.currency)}
+                    {formatCurrency(statement.open, account.currency)}
                   </dd>
                 </div>
-              )}
-              <p className="text-muted-foreground text-xs">
+                {statement.closed >= 0.005 && (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-muted-foreground">Fatura fechada</dt>
+                    <dd className="dimension-figure">
+                      {formatCurrency(statement.closed, account.currency)}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              <p className="text-muted-foreground mt-1 text-xs">
                 vence {statement.dueLabel}
               </p>
-            </dl>
+            </div>
           )}
 
           <h3 className="text-sm font-medium">Últimas transações</h3>
