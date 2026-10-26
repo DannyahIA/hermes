@@ -139,6 +139,27 @@ describe('buildBudgetRows', () => {
   });
 });
 
+describe('buildBudgetRows at the limit', () => {
+  it('counts a budget at exactly 100% as over, sorted with the blown ones', () => {
+    const { running } = buildBudgetRows(
+      [
+        progress('mercado', 400, 500),
+        progress('lazer', 500, 500),
+        progress('viagem', 700, 600),
+      ],
+      categories,
+      TODAY,
+    );
+
+    expect(running.map((row) => [row.budgetId, row.status])).toEqual([
+      ['viagem', 'over'],
+      ['lazer', 'over'],
+      ['mercado', 'ahead'],
+    ]);
+    expect(running[1]?.limitDay).toBeUndefined();
+  });
+});
+
 describe('installmentsLabel', () => {
   it('names the month and the sum, only above zero', () => {
     expect(installmentsLabel(320, new Date(2026, 10, 3))).toBe(

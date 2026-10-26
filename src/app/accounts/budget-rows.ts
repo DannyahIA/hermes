@@ -1,8 +1,17 @@
 import type { BudgetRowProps } from '@/app/budgets/budget-row';
 import type { BudgetProgress } from '@/modules/budgets/application/get-budget-progress.use-case';
 import { projectedLimitDay } from '@/modules/budgets/domain/budget-alerts';
-import { calculateBudgetPace } from '@/modules/dashboard/application/metrics/calculate-budget-pace';
+import {
+  type BudgetPaceStatus,
+  calculateBudgetPace,
+} from '@/modules/dashboard/application/metrics/calculate-budget-pace';
 import { formatCurrency } from '@/shared/lib/format-currency';
+
+const STATUS_ORDER: Record<BudgetPaceStatus, number> = {
+  over: 0,
+  ahead: 1,
+  'on-pace': 2,
+};
 
 interface CategoryLook {
   name: string;
@@ -59,11 +68,24 @@ export function buildBudgetRows(
     };
   }
 
-  return {
-    running: calculateBudgetPace(progressList, today).flatMap((pace) => {
+  // Reaching the limit is "over" for the label and for the order alike,
+  // though the pace calculation only says so once spending passes it.
+  const running = calculateBudgetPace(progressList, today)
+    .flatMap((pace) => {
       const progress = progressById.get(pace.budgetId);
-      return progress ? [rowOf(progress, pace.status)] : [];
-    }),
+      if (!progress) return [];
+      const reached = progress.spent >= progress.amount;
+      return [rowOf(progress, reached ? 'over' : pace.status)];
+    })
+    .sort(
+      (a, b) =>
+        STATUS_ORDER[a.status as BudgetPaceStatus] -
+          STATUS_ORDER[b.status as BudgetPaceStatus] ||
+        b.spent / b.amount - a.spent / a.amount,
+    );
+
+  return {
+    running,
     ended: progressList
       .filter(({ running }) => !running)
       .map((progress) => rowOf(progress, 'ended')),

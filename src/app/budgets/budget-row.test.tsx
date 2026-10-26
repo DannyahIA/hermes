@@ -128,11 +128,36 @@ describe('BudgetRow', () => {
     );
   });
 
-  it('says "Passou do limite" at exactly the limit', () => {
-    renderRow({ spent: 500, status: 'ahead', limitDay: undefined });
+  it('says only "Passou do limite" at exactly the limit, with no stage or overage', () => {
+    renderRow({ spent: 500, status: 'over', limitDay: undefined });
 
     expect(screen.getByText('Passou do limite')).toBeInTheDocument();
-    expect(screen.queryByText('Acima do ritmo')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Passou de /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/acima$/)).not.toBeInTheDocument();
+    expect(screen.getByText('R$ 500,00 de R$ 500,00')).toHaveClass(
+      'text-destructive',
+    );
+  });
+
+  it('names the 75% stage and turns to warning at exactly 75%', () => {
+    renderRow({ spent: 375, status: 'ahead', limitDay: undefined });
+
+    expect(screen.getByText('Passou de 75%')).toBeInTheDocument();
+    expect(screen.getByText('R$ 375,00 de R$ 500,00')).toHaveClass(
+      'text-warning-strong',
+    );
+  });
+
+  it('gives the name its own line with the menu, so a phone does not crush it', () => {
+    renderRow({ name: 'Alimentação fora de casa' });
+
+    const name = screen.getByText('Alimentação fora de casa');
+    const menu = screen.getByRole('button', { name: /^Ações de / });
+    const figure = screen.getByText('R$ 400,00 de R$ 500,00');
+    expect(name).toHaveClass('truncate');
+    expect(figure.parentElement).toHaveClass('w-full', 'sm:w-auto');
+    expect(menu.parentElement).toHaveClass('order-2');
+    expect(figure.parentElement).toHaveClass('order-3');
   });
 
   it('gives an ended budget no pace', () => {

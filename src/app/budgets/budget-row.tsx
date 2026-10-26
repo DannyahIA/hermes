@@ -41,11 +41,6 @@ function stageReached(share: number): number | null {
   return STAGES.find((stage) => share >= stage / 100) ?? null;
 }
 
-function paceLabel(status: BudgetRowProps['status'], share: number) {
-  if (status === 'ended') return null;
-  return share >= 1 ? PACE_LABELS.over : PACE_LABELS[status];
-}
-
 /** Colour comes from the share spent, never from the pace. */
 function tone(share: number) {
   if (share >= 1) return { text: 'text-destructive', bar: 'bg-destructive' };
@@ -75,8 +70,9 @@ export function BudgetRow({
 
   const share = amount > 0 ? spent / amount : 0;
   const colours = tone(share);
-  const stage = stageReached(share);
-  const pace = paceLabel(status, share);
+  // Once the limit is reached the pace label says so; a stage would repeat it.
+  const stage = share < 1 ? stageReached(share) : null;
+  const pace = status === 'ended' ? null : PACE_LABELS[status];
   const filled = Math.min(Math.max(share, 0), 1) * 100;
 
   async function handleDelete() {
@@ -93,8 +89,8 @@ export function BudgetRow({
 
   return (
     <li className="border-border border-b px-4 py-3 last:border-b-0">
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="order-1 flex min-w-0 flex-1 items-center gap-2.5">
           <span
             className="size-2.5 shrink-0 rounded-full"
             style={{ backgroundColor: color ?? 'var(--faint-foreground)' }}
@@ -103,19 +99,16 @@ export function BudgetRow({
           <span className="truncate font-medium" title={name}>
             {name}
           </span>
+        </span>
+        <span className="order-3 flex w-full items-baseline justify-between gap-3 sm:order-2 sm:w-auto sm:justify-end">
           <span className="text-muted-foreground shrink-0 text-xs">
             {kindLabel}
           </span>
-        </span>
-        <span className="flex shrink-0 items-center gap-2">
-          <span
-            className={cn(
-              'dimension-figure text-sm whitespace-nowrap',
-              colours.text,
-            )}
-          >
+          <span className={cn('dimension-figure text-sm', colours.text)}>
             {`${formatCurrency(spent, currency)} de ${formatCurrency(amount, currency)}`}
           </span>
+        </span>
+        <span className="order-2 sm:order-3">
           <Menu
             label={`Ações de ${name}`}
             trigger={<Ellipsis aria-hidden className="size-4" />}
