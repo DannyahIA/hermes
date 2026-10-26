@@ -297,6 +297,31 @@ Decisão do usuário, nesta ordem, cada uma entregável sozinha:
 2. Categorias (§5).
 3. Página única com orçamentos que avisam (§6), começando pela investigação do aviso de hoje.
 4. Simulador e amortização (§7).
+5. Esqueceu sua senha (§9.1), pedido do usuário em 26/10/2026.
+
+### 9.1 Parte 5 — Esqueceu sua senha
+
+Hoje uma pessoa que esquece a senha não tem como voltar a entrar: aconteceu com uma conta de teste
+em 26/10/2026, e a senha teve de ser trocada direto no banco.
+
+O que já existe: o link "Esqueceu a senha?" no login, a página `/forgot-password` que pede o e-mail,
+`requestPasswordResetAction` e o envio do e-mail (`sendResetPassword` em `infra/auth/server.ts`,
+modelo em `infra/email/templates.ts`).
+
+O que falta:
+
+- **A página de nova senha.** O link do e-mail volta para `/login` (`redirectTo` em
+  `better-auth-provider.adapter.ts`), e nenhuma página lê o `token` nem chama
+  `auth.api.resetPassword`. Falta `/reset-password?token=…` com "Nova senha" e "Confirmar", e o
+  aviso de link vencido ou já usado, com um atalho para pedir outro.
+- **E-mail de verdade.** Sem `RESEND_API_KEY` o e-mail só aparece no log do servidor. Antes da
+  entrega, configurar o Resend com um domínio verificado (o `onboarding@resend.dev` só entrega para
+  o dono da conta do Resend).
+- **Depois de trocar:** encerrar as outras sessões da conta (`revokeSessionsOnPasswordReset`) e
+  entrar direto, ou levar ao login com o aviso "Senha alterada".
+- **Verificação de e-mail.** Está desligada desde 26/10/2026 (`REQUIRE_EMAIL_VERIFICATION`, padrão
+  `false`), porque sem e-mail de verdade ninguém conseguia concluir o cadastro. Religar junto com o
+  Resend.
 
 ---
 

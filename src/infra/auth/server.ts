@@ -4,6 +4,7 @@ import { nextCookies } from 'better-auth/next-js';
 
 import {
   env,
+  isEmailVerificationRequired,
   isGithubAuthConfigured,
   isGoogleAuthConfigured,
 } from '@/config/env';
@@ -66,17 +67,18 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
-    // A session before the email is confirmed would be misleading — the
-    // user lands on /verify-email instead (see app/(auth)/actions.ts).
-    autoSignIn: false,
-    requireEmailVerification: true,
+    // With verification on, a session before the email is confirmed would
+    // be misleading — the user lands on /verify-email instead (see
+    // app/(auth)/actions.ts). With it off, signing up signs you in.
+    autoSignIn: !isEmailVerificationRequired(),
+    requireEmailVerification: isEmailVerificationRequired(),
     sendResetPassword: async ({ user, url }) => {
       const { subject, html } = resetPasswordEmailTemplate(url);
       await emailSender.send({ to: user.email, subject, html });
     },
   },
   emailVerification: {
-    sendOnSignUp: true,
+    sendOnSignUp: isEmailVerificationRequired(),
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       const { subject, html } = verificationEmailTemplate(url);

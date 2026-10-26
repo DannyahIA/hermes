@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 
+import { isEmailVerificationRequired } from '@/config/env';
 import { ROUTES } from '@/config/routes';
 import { DomainError } from '@/core/errors/domain-error';
 import { BetterAuthProvider } from '@/infra/auth/better-auth-provider.adapter';
@@ -56,6 +57,9 @@ export async function signUpAction(
       values: { name: raw.name, email: raw.email },
     };
   }
+
+  // Without verification, sign-up already signed the user in.
+  if (!isEmailVerificationRequired()) redirect(ROUTES.dashboard);
 
   // No session is created yet — email verification is required before
   // sign-in (see infra/auth/server.ts). The confirmation link is what

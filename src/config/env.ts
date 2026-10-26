@@ -60,6 +60,13 @@ const envSchema = z.object({
   // failing — see infra/email/resend-email-sender.adapter.ts.
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default('Hermes <onboarding@resend.dev>'),
+  // Off for now: with no email provider set up, a confirmation link only
+  // ever reaches the server log, so nobody could finish signing up. Set to
+  // "true" once RESEND_API_KEY delivers real email.
+  REQUIRE_EMAIL_VERIFICATION: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
     .default('development'),
@@ -104,4 +111,8 @@ export function getTelegramBot(): { token: string; username: string } | null {
 
 export function isEmailSendingConfigured(): boolean {
   return Boolean(env.RESEND_API_KEY);
+}
+
+export function isEmailVerificationRequired(): boolean {
+  return env.REQUIRE_EMAIL_VERIFICATION;
 }
