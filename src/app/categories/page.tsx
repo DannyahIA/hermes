@@ -1,81 +1,146 @@
-import { CategoryCard } from '@/app/categories/category-card';
+import Link from 'next/link';
+
+import {
+  formatChange,
+  monthName,
+  monthNameFrom,
+  monthOf,
+  resolveMonth,
+  shiftMonth,
+} from '@/app/categories/category-display';
+import { CategoryList } from '@/app/categories/category-list';
+import { CategoryShareBar } from '@/app/categories/category-share-bar';
+import { CategorySuggestions } from '@/app/categories/category-suggestions';
 import { CreateCategoryDialog } from '@/app/categories/create-category-dialog';
 import { AppShell } from '@/components/layout/app-shell';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ROUTES } from '@/config/routes';
 import { requireCurrentUserId } from '@/infra/auth/session';
+import { DrizzleBudgetRepository } from '@/infra/repositories/drizzle-budget.repository';
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
-import { GetCategoriesUseCase } from '@/modules/categories/application/get-categories.use-case';
+import { DrizzleMerchantRuleRepository } from '@/infra/repositories/drizzle-merchant-rule.repository';
+import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-transaction.repository';
+import { GetCategoriesOverviewUseCase } from '@/modules/categories/application/get-categories-overview.use-case';
+import { cn } from '@/shared/lib/cn';
+import { formatCurrency } from '@/shared/lib/format-currency';
 
-export default async function CategoriesPage() {
+interface CategoriesPageProps {
+  searchParams: Promise<{ mes?: string }>;
+}
+
+export default async function CategoriesPage({
+  searchParams,
+}: CategoriesPageProps) {
   const userId = await requireCurrentUserId();
-  const useCase = new GetCategoriesUseCase(new DrizzleCategoryRepository());
-  const categories = await useCase.execute(userId);
+  const { mes } = await searchParams;
+  const now = new Date();
+  const month = resolveMonth(mes, now);
+  const overview = await new GetCategoriesOverviewUseCase(
+    new DrizzleTransactionRepository(),
+    new DrizzleCategoryRepository(),
+    new DrizzleMerchantRuleRepository(),
+    new DrizzleBudgetRepository(),
+  ).execute({ userId, month, now });
+
+  const hasCategories =
+    overview.rows.length +
+      overview.incomeRows.length +
+      overview.archived.length >
+    0;
+  const { create, archive, merge } = overview.suggestions;
+  const hasSuggestions = create.length + archive.length + merge.length > 0;
+  const change = formatChange(overview.deltaPercent);
+  const previousName = monthNameFrom(overview.previousMonth, month);
+  const nextMonth = shiftMonth(month, 1);
+  const canGoNext = nextMonth <= monthOf(now);
 
   return (
     <AppShell>
-      <div className="space-y-6">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight">
-              Categorias
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Organize suas transações em categorias personalizadas.
-            </p>
-          </div>
+      <div className="space-y-5">
+        <section className="flex items-center justify-between gap-3">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">
+            Categorias
+          </h1>
           <CreateCategoryDialog />
         </section>
 
-        <Card className="border-border/70 bg-card/80 p-6">
-          <CardHeader className="p-0">
-            <CardTitle>Resumo</CardTitle>
-            <CardDescription>Visão geral das suas categorias.</CardDescription>
-          </CardHeader>
-          <CardContent className="mt-4 flex flex-wrap gap-8 p-0">
-            <div>
-              <p className="text-muted-foreground text-sm">
-                Total de categorias
+        {hasCategories ? (
+          <>
+            <nav
+              aria-label="Mês"
+              className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-sm"
+            >
+              <Link
+                href={`${ROUTES.categories}?mes=${overview.previousMonth}`}
+                className="text-muted-foreground hover:text-foreground justify-self-start"
+              >
+                ‹ {previousName}
+              </Link>
+              <p className="font-display font-semibold">
+                {monthName(month, true)}
               </p>
-              <p className="dimension-figure mt-2 text-3xl font-semibold">
-                {categories.length}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-sm">Arquivadas</p>
-              <p className="dimension-figure mt-2 text-3xl font-semibold">
-                {categories.filter((category) => category.archived).length}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+              {canGoNext ? (
+                <Link
+                  href={`${ROUTES.categories}?mes=${nextMonth}`}
+                  className="text-muted-foreground hover:text-foreground justify-self-end"
+                >
+                  {monthNameFrom(nextMonth, month)} ›
+                </Link>
+              ) : (
+                <span />
+              )}
+            </nav>
 
-        <section className="grid gap-4">
-          {categories.length === 0 ? (
-            <EmptyState
-              title="Nenhuma categoria cadastrada."
-              description="Crie sua primeira categoria para começar a organizar suas transações."
-              action={<CreateCategoryDialog />}
-            />
-          ) : (
-            categories.map((category) => (
-              <CategoryCard
-                key={category.id}
-                id={category.id}
-                name={category.name}
-                description={category.description}
-                color={category.color}
-                archived={category.archived}
+            <Card className="space-y-4 p-5">
+              <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
+                <div>
+                  <p className="text-muted-foreground text-sm">Gasto no mês</p>
+                  <p className="dimension-figure mt-1 text-2xl font-semibold">
+                    {formatCurrency(overview.spent)}
+                  </p>
+                </div>
+                <p className="text-sm">
+                  <span
+                    className={cn(
+                      'dimension-figure font-medium',
+                      change.className,
+                    )}
+                  >
+                    {change.text}
+                  </span>{' '}
+                  <span className="text-muted-foreground">
+                    vs {previousName}
+                  </span>
+                </p>
+              </div>
+              <CategoryShareBar
+                rows={overview.rows}
+                spent={overview.spent}
+                uncategorized={overview.uncategorized}
               />
-            ))
-          )}
-        </section>
+            </Card>
+
+            {hasSuggestions && (
+              <CategorySuggestions suggestions={overview.suggestions} />
+            )}
+
+            <Card className="overflow-hidden p-0">
+              <CategoryList
+                rows={overview.rows}
+                incomeRows={overview.incomeRows}
+                archived={overview.archived}
+                month={month}
+              />
+            </Card>
+          </>
+        ) : (
+          <EmptyState
+            title="Nenhuma categoria cadastrada."
+            description="Crie sua primeira categoria para começar a organizar suas transações."
+            action={<CreateCategoryDialog />}
+          />
+        )}
       </div>
     </AppShell>
   );

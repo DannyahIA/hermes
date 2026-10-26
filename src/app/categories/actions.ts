@@ -70,11 +70,13 @@ export async function updateCategoryAction(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // A field left out of the form reads as null, which the schema refuses;
+  // undefined is what keeps the current value.
   const parsed = updateCategorySchema.safeParse({
     id: formData.get('id'),
-    name: formData.get('name'),
-    description: formData.get('description'),
-    color: formData.get('color'),
+    name: formData.get('name') ?? undefined,
+    description: formData.get('description') ?? undefined,
+    color: formData.get('color') ?? undefined,
   });
 
   if (!parsed.success) {
