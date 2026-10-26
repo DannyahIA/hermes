@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { AccountList } from '@/app/accounts/account-list';
 import { BudgetsTab } from '@/app/accounts/budgets-tab';
 import { CreateAccountDialog } from '@/app/accounts/create-account-dialog';
+import { loadAccountDetails } from '@/app/accounts/load-account-details';
 import { LoansTab } from '@/app/accounts/loans-tab';
 import { MoneySummary } from '@/app/accounts/money-summary';
 import { MONEY_TABS, readMoneyTab } from '@/app/accounts/money-tabs';
@@ -34,11 +35,28 @@ export default async function AccountsPage({
   const tab = readMoneyTab(await searchParams);
   const now = new Date();
 
+  const accountRepository = new DrizzleAccountRepository();
+  const transactionRepository = new DrizzleTransactionRepository();
+
   const overview = await new GetMoneyOverviewUseCase(
-    new DrizzleAccountRepository(),
-    new DrizzleTransactionRepository(),
+    accountRepository,
+    transactionRepository,
   ).execute(userId, now);
-  const hasAccounts = overview.groups.length > 0 || overview.tucked.length > 0;
+  const lines = [
+    ...overview.groups.flatMap((g) => g.accounts),
+    ...overview.tucked,
+  ];
+  const hasAccounts = lines.length > 0;
+  const { recent, statements } = await loadAccountDetails(
+    accountRepository,
+    transactionRepository,
+    userId,
+    lines.map((line) => line.id),
+    now,
+  );
+  const payingAccounts = lines
+    .filter((line) => line.type !== 'credit' && !line.archived)
+    .map((line) => ({ id: line.id, name: line.name }));
 
   return (
     <AppShell>
@@ -57,7 +75,13 @@ export default async function AccountsPage({
               savings={overview.savings}
               installmentsThisMonth={overview.installmentsThisMonth}
             />
-            <AccountList groups={overview.groups} tucked={overview.tucked} />
+            <AccountList
+              groups={overview.groups}
+              tucked={overview.tucked}
+              recent={recent}
+              statements={statements}
+              payingAccounts={payingAccounts}
+            />
           </>
         ) : (
           <EmptyState
