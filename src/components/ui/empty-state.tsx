@@ -16,10 +16,10 @@ interface EmptyStateProps {
  */
 export function EmptyState({ title, description, action }: EmptyStateProps) {
   return (
-    <div className="border-border/70 bg-card/80 flex flex-col items-center gap-3 rounded-xl border p-10 text-center">
-      <p className="text-lg font-semibold">{title}</p>
-      <p className="text-muted-foreground text-sm">{description}</p>
-      {action}
+    <div className="bg-subtle border-border flex flex-col items-center gap-1.5 rounded-lg border px-6 py-10 text-center">
+      <p className="font-display text-heading font-semibold">{title}</p>
+      <p className="text-muted-foreground max-w-sm text-sm">{description}</p>
+      {action && <div className="mt-3">{action}</div>}
     </div>
   );
 }

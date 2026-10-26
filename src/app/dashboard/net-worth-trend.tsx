@@ -1,12 +1,4 @@
-import Link from 'next/link';
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Section, SectionHeader, SectionLink } from '@/components/ui/section';
 import { ROUTES } from '@/config/routes';
 import type { NetWorthPoint } from '@/modules/reports/application/metrics/calculate-net-worth-by-month';
 import { cn } from '@/shared/lib/cn';
@@ -35,24 +27,15 @@ export function NetWorthTrend({ points }: { points: NetWorthPoint[] }) {
   }));
 
   return (
-    <Card className="p-6">
-      <CardHeader className="flex-row items-baseline justify-between gap-3 space-y-0 p-0">
-        <div className="space-y-1.5">
-          <CardTitle className="text-xl">Patrimônio</CardTitle>
-          <CardDescription>
-            O que você tem menos o que deve nos cartões, mês a mês.
-          </CardDescription>
-        </div>
-        <Link
-          href={ROUTES.reports}
-          className="text-muted-foreground hover:text-foreground shrink-0 text-sm underline-offset-4 hover:underline"
-        >
-          Relatórios
-        </Link>
-      </CardHeader>
-      <CardContent className="mt-4 grid gap-6 p-0 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] md:items-end">
+    <Section>
+      <SectionHeader
+        title="Patrimônio"
+        description="O que você tem menos o que deve nos cartões, mês a mês."
+        action={<SectionLink href={ROUTES.reports}>Relatórios</SectionLink>}
+      />
+      <div>
         <div>
-          <p className="dimension-figure text-3xl font-semibold whitespace-nowrap">
+          <p className="dimension-figure text-figure font-semibold whitespace-nowrap">
             {formatCurrency(current.netWorth)}
           </p>
           {change !== null && previous && (
@@ -83,7 +66,7 @@ export function NetWorthTrend({ points }: { points: NetWorthPoint[] }) {
                   {labeled.map((point, index) => (
                     <tr
                       key={point.month.toISOString()}
-                      className="border-border border-b border-dashed last:border-0"
+                      className="border-border border-b last:border-0"
                     >
                       <th
                         scope="row"
@@ -103,7 +86,7 @@ export function NetWorthTrend({ points }: { points: NetWorthPoint[] }) {
             </details>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }

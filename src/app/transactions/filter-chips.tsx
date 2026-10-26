@@ -70,7 +70,7 @@ export function FilterChips({
             type="button"
             onClick={() => onRemove({ [chip.key]: undefined })}
             aria-label={`Remover filtro ${chip.label}`}
-            className="border-border bg-background hover:bg-accent focus-visible:ring-ring inline-flex max-w-64 items-center gap-1.5 rounded-full border py-1 pr-2 pl-3 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="border-border bg-background hover:bg-accent focus-visible:ring-ring inline-flex max-w-64 items-center gap-1.5 rounded-md border py-1 pr-1.5 pl-2.5 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
           >
             <span className="truncate">{chip.label}</span>
             <X aria-hidden className="text-muted-foreground size-3 shrink-0" />

@@ -74,7 +74,7 @@ export function BudgetForm({
             id="categoryId"
             name="categoryId"
             defaultValue={categories[0]?.id}
-            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/20 flex h-11 w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-all duration-200 outline-none focus-visible:ring-2"
+            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/25 flex h-11 w-full rounded-md border px-3 py-2 text-base transition-[border-color,box-shadow] duration-[var(--duration-fast)] outline-none focus-visible:ring-[3px] sm:text-sm"
           >
             {categories.map((category) => (
               <option key={category.id} value={category.id}>

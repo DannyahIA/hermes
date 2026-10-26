@@ -36,9 +36,8 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         if (event.target === ref.current) onOpenChange(false);
       }}
       className={cn(
-        'bg-card text-card-foreground w-full max-w-md rounded-xl p-6 shadow-[var(--shadow-elevation)]',
-        'backdrop:bg-slate-950/50 backdrop:backdrop-blur-sm',
-        'm-auto',
+        'dialog-sheet bg-popover text-popover-foreground w-full max-w-md rounded-xl p-5 shadow-[var(--shadow-elevation)] sm:p-6',
+        'm-auto max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none',
       )}
     >
       {open && children}
@@ -50,7 +49,9 @@ export function DialogHeader({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('mb-4 space-y-1.5', className)} {...props} />;
+  return (
+    <div className={cn('mb-5 flex flex-col gap-1', className)} {...props} />
+  );
 }
 
 export function DialogTitle({
@@ -59,7 +60,7 @@ export function DialogTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn('font-display text-lg font-semibold', className)}
+      className={cn('font-display text-base font-semibold', className)}
       {...props}
     />
   );
@@ -79,6 +80,12 @@ export function DialogFooter({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('mt-6 flex justify-end gap-2', className)} {...props} />
+    <div
+      className={cn(
+        'mt-6 flex flex-wrap items-center justify-end gap-2',
+        className,
+      )}
+      {...props}
+    />
   );
 }

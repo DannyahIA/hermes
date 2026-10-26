@@ -55,9 +55,7 @@ export default function MarketingPage() {
       <div className="mx-auto flex max-w-6xl flex-col gap-16">
         <section className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
-            <p className="text-primary text-sm tracking-[0.3em] uppercase">
-              {APP_NAME}
-            </p>
+            <p className="text-primary text-sm font-semibold">{APP_NAME}</p>
             <h1 className="font-display text-4xl leading-[1.05] font-semibold tracking-tight sm:text-6xl">
               Suas finanças, escrituradas com precisão.
             </h1>
@@ -76,8 +74,8 @@ export default function MarketingPage() {
 
           {/* The thesis, made visible: every entry black or red ink, tabular
               figures — this is the product's whole idea in one glance. */}
-          <Card className="registration-frame p-6">
-            <p className="font-display text-muted-foreground mb-2 text-sm italic">
+          <Card>
+            <p className="font-display text-muted-foreground mb-2 text-sm">
               Hoje · Conta corrente
             </p>
             <div>

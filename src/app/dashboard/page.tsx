@@ -1,13 +1,10 @@
 import Link from 'next/link';
 
 import { AppShell } from '@/components/layout/app-shell';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { buttonVariants } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Section, SectionHeader, SectionLink } from '@/components/ui/section';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ROUTES } from '@/config/routes';
 import type { Transaction } from '@/core/entities/transaction';
@@ -67,33 +64,27 @@ async function DashboardContent() {
   if (summary.accounts.length === 0) {
     return (
       <div className="relative">
+        <h1 className="sr-only">Início</h1>
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 space-y-6 overflow-hidden opacity-20 blur-[1px]"
+          className="pointer-events-none absolute inset-0 overflow-hidden opacity-25"
         >
-          <div className="registration-frame rounded-xl border p-6 sm:p-8">
+          <div className="sheet-surface p-6">
             <Skeleton className="h-4 w-32" />
-            <Skeleton className="mt-3 h-12 w-64" />
-            <div className="mt-6 grid grid-cols-3 gap-4 border-t pt-6">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
+            <Skeleton className="mt-3 h-10 w-64" />
+            <Skeleton className="mt-8 h-2 w-full" />
           </div>
         </div>
         <div className="relative flex items-center justify-center py-12">
-          <Card className="flex flex-col items-center gap-3 p-12 text-center shadow-lg">
-            <CardTitle>Nenhuma conta cadastrada.</CardTitle>
-            <CardDescription>
-              Crie sua primeira conta para começar a acompanhar suas finanças.
-            </CardDescription>
-            <Link
-              href={ROUTES.accounts}
-              className="bg-primary text-primary-foreground mt-2 rounded-md px-4 py-2 text-sm font-medium"
-            >
-              Criar primeira conta
-            </Link>
-          </Card>
+          <EmptyState
+            title="Nenhuma conta cadastrada."
+            description="Crie sua primeira conta para começar a acompanhar suas finanças."
+            action={
+              <Link href={ROUTES.accounts} className={buttonVariants()}>
+                Criar primeira conta
+              </Link>
+            }
+          />
         </div>
       </div>
     );
@@ -167,16 +158,18 @@ async function DashboardContent() {
   const hasCards = summary.cardStatements.length > 0;
 
   return (
-    <div className="space-y-4 lg:space-y-6">
+    <div className="flex flex-col gap-6 lg:gap-8">
+      <h1 className="sr-only">Início</h1>
+
       <QuickEntry
         accounts={summary.quickEntry.accounts}
         categories={selectable}
         merchants={summary.quickEntry.merchants}
       />
 
-      {/* Hero — how much is still free to spend until the next income,
-            with the month so far and net worth beside it. */}
-      <Card className="registration-frame p-6 sm:p-8">
+      {/* The one card on this screen: how much is still free to spend until
+          the next income, with the month so far and net worth beside it. */}
+      <Card className="p-5 sm:p-6">
         <AvailableHero
           available={summary.availableToSpend}
           owedOnCards={summary.owedOnCards}
@@ -186,12 +179,44 @@ async function DashboardContent() {
         />
       </Card>
 
-      {/* Two independent columns on a wide screen, so a tall card on one
-            side never leaves a gap on the other. On a phone the columns
-            dissolve (display: contents) and `order` interleaves them in the
-            order of the questions: review, cards, budgets, what's next. */}
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start">
-        <div className="contents lg:flex lg:flex-col lg:gap-4">
+      {/* A main column (how it's going, what happened) and a narrower one
+          for what asks for attention, divided by hairlines instead of boxed.
+          On a phone both columns dissolve (display: contents) and `order`
+          interleaves them: what needs action first, then the record. */}
+      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-x-10 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="contents lg:flex lg:flex-col lg:gap-8">
+          <div className="order-3 lg:order-none">
+            <NetWorthTrend points={summary.netWorthTrend} />
+          </div>
+
+          <Section className="order-4 lg:order-none">
+            <SectionHeader
+              title="Últimas transações"
+              action={
+                <SectionLink href={ROUTES.transactions}>Ver todas</SectionLink>
+              }
+            />
+            {recentDays.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                Nenhuma transação registrada.{' '}
+                <Link
+                  href={ROUTES.transactions}
+                  className="text-foreground underline underline-offset-4"
+                >
+                  Registrar transação
+                </Link>
+              </p>
+            ) : (
+              <RecentTransactions
+                days={recentDays}
+                categoriesById={categoriesById}
+                categories={selectable}
+              />
+            )}
+          </Section>
+        </div>
+
+        <div className="lg:divide-border contents lg:flex lg:flex-col lg:divide-y lg:[&>*]:py-7 lg:[&>*:first-child]:pt-0 lg:[&>*:last-child]:pb-0">
           {summary.toReview.length > 0 && (
             <div className="order-1 lg:order-none">
               <ReviewQueue
@@ -202,14 +227,6 @@ async function DashboardContent() {
               />
             </div>
           )}
-          <div className="order-3 lg:order-none">
-            <BudgetPaceList
-              paces={summary.budgetPace}
-              categoryNames={categoryNames}
-            />
-          </div>
-        </div>
-        <div className="contents lg:flex lg:flex-col lg:gap-4">
           {hasCards && (
             <div className="order-2 lg:order-none">
               <CardStatements
@@ -223,44 +240,17 @@ async function DashboardContent() {
               />
             </div>
           )}
-          <div className="order-4 lg:order-none">
+          <div className="order-5 lg:order-none">
+            <BudgetPaceList
+              paces={summary.budgetPace}
+              categoryNames={categoryNames}
+            />
+          </div>
+          <div className="order-6 lg:order-none">
             <UpcomingList upcoming={summary.upcoming} today={today} />
           </div>
         </div>
       </div>
-
-      <Card className="p-6">
-        <CardHeader className="flex-row items-baseline justify-between gap-3 space-y-0 p-0">
-          <CardTitle className="text-xl">Últimas transações</CardTitle>
-          <Link
-            href={ROUTES.transactions}
-            className="text-muted-foreground hover:text-foreground shrink-0 text-sm underline-offset-4 hover:underline"
-          >
-            Ver todas
-          </Link>
-        </CardHeader>
-        <CardContent className="p-0">
-          {recentDays.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              Nenhuma transação registrada.{' '}
-              <Link
-                href={ROUTES.transactions}
-                className="text-foreground underline"
-              >
-                Registrar transação
-              </Link>
-            </p>
-          ) : (
-            <RecentTransactions
-              days={recentDays}
-              categoriesById={categoriesById}
-              categories={selectable}
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      <NetWorthTrend points={summary.netWorthTrend} />
     </div>
   );
 }

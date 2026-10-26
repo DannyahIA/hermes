@@ -1,7 +1,7 @@
 import { DeleteBudgetButton } from '@/app/budgets/delete-budget-button';
 import { formatCurrency } from '@/app/budgets/format-currency';
-import { Card } from '@/components/ui/card';
 import type { BudgetProgress } from '@/modules/budgets/application/get-budget-progress.use-case';
+import { formatPercent } from '@/shared/lib/format-percent';
 
 interface BudgetProgressCardProps {
   progress: BudgetProgress;
@@ -19,6 +19,7 @@ function progressBarColor(percentage: number): string {
   return 'bg-primary';
 }
 
+/** One budget as a row of the budgets list: whose, how far along, how much. */
 export function BudgetProgressCard({
   progress,
   categoryName,
@@ -28,42 +29,51 @@ export function BudgetProgressCard({
   const clampedPercentage = Math.min(Math.max(percentage, 0), 1) * 100;
 
   return (
-    <Card className="border-border/70 bg-card/80 p-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3">
-          <span
-            className="h-3 w-3 shrink-0 rounded-full"
-            style={{ backgroundColor: categoryColor ?? '#94a3b8' }}
-            aria-hidden
-          />
-          <div>
-            <p className="text-lg font-semibold">{categoryName}</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {formatDate(budget.periodStart)} – {formatDate(budget.periodEnd)}
-            </p>
-          </div>
+    <li className="grid gap-x-6 gap-y-2 px-4 py-3.5 sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_auto] sm:items-center">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span
+          className="size-2.5 shrink-0 rounded-full"
+          style={{
+            backgroundColor: categoryColor ?? 'var(--faint-foreground)',
+          }}
+          aria-hidden
+        />
+        <div className="min-w-0">
+          <p className="truncate font-medium" title={categoryName}>
+            {categoryName}
+          </p>
+          <p className="text-muted-foreground text-xs">
+            {formatDate(budget.periodStart)} – {formatDate(budget.periodEnd)}
+          </p>
         </div>
-
-        <DeleteBudgetButton id={budget.id} />
       </div>
 
-      <div className="mt-4">
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="dimension-figure">
-            {formatCurrency(spent, budget.currency)} de{' '}
-            {formatCurrency(budget.amount, budget.currency)}
+      <div className="min-w-0">
+        <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
+          <span className="dimension-figure whitespace-nowrap">
+            {formatCurrency(spent, budget.currency)}{' '}
+            <span className="text-muted-foreground">
+              de {formatCurrency(budget.amount, budget.currency)}
+            </span>
           </span>
           <span className="text-muted-foreground dimension-figure">
-            {Math.round(percentage * 100)}%
+            {formatPercent(percentage * 100)}
           </span>
         </div>
-        <div className="bg-muted h-1.5">
+        <div
+          aria-hidden
+          className="bg-muted h-1.5 overflow-hidden rounded-full"
+        >
           <div
-            className={`h-1.5 ${progressBarColor(percentage)}`}
+            className={`h-full rounded-full ${progressBarColor(percentage)}`}
             style={{ width: `${clampedPercentage}%` }}
           />
         </div>
       </div>
-    </Card>
+
+      <div className="justify-self-start sm:justify-self-end">
+        <DeleteBudgetButton id={budget.id} />
+      </div>
+    </li>
   );
 }

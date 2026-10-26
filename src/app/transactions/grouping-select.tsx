@@ -37,7 +37,7 @@ export function GroupingSelect({ value, className }: GroupingSelectProps) {
             await setViewPreferenceAction('transactions', mode);
           });
         }}
-        className="border-input bg-background text-foreground focus-visible:ring-ring h-9 rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-60"
+        className="border-input bg-card text-foreground focus-visible:outline-ring h-8 rounded-md border px-2 text-sm focus-visible:outline-2 disabled:opacity-60"
       >
         {(Object.keys(VIEW_MODE_LABELS) as TransactionViewMode[]).map(
           (mode) => (

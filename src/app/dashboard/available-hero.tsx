@@ -45,7 +45,7 @@ export function AvailableHero({
   projectedNetWorth,
 }: AvailableHeroProps) {
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-8">
       <div className="min-w-0">
         {available ? (
           <FreeToSpend available={available} />
@@ -54,12 +54,16 @@ export function AvailableHero({
         )}
       </div>
 
-      <dl className="border-border grid content-start gap-4 border-t pt-6 sm:grid-cols-3 lg:grid-cols-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
+      <dl className="border-border lg:divide-border grid grid-cols-2 content-start gap-x-6 gap-y-4 border-t pt-5 sm:grid-cols-3 lg:grid-cols-1 lg:gap-y-0 lg:divide-y lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8 lg:[&>div]:py-3.5 lg:[&>div:first-child]:pt-0 lg:[&>div:last-child]:pb-0">
         <Figure label="Recebido no mês" value={monthToDate.received} />
         <Figure label="Gasto no mês" value={monthToDate.spent}>
           <SpendingComparison monthToDate={monthToDate} />
         </Figure>
-        <Figure label="Patrimônio" value={netWorth}>
+        <Figure
+          label="Patrimônio"
+          value={netWorth}
+          className="col-span-2 sm:col-span-1"
+        >
           {Math.abs(projectedNetWorth - netWorth) >= 0.005 && (
             <>
               Com as parcelas futuras,{' '}
@@ -82,10 +86,10 @@ function FreeToSpend({ available }: { available: AvailableToSpend }) {
   if (inChecking <= 0) {
     return (
       <>
-        <p className="font-display text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm font-medium">
           Conta corrente no negativo
         </p>
-        <p className="dimension-figure text-destructive mt-2 text-4xl font-semibold whitespace-nowrap md:text-5xl">
+        <p className="dimension-figure text-destructive md:text-display mt-2 text-4xl font-semibold whitespace-nowrap">
           {formatCurrency(inChecking)}
         </p>
         <p className="text-muted-foreground mt-2 max-w-prose text-sm">
@@ -137,7 +141,7 @@ function FreeToSpend({ available }: { available: AvailableToSpend }) {
 
   return (
     <>
-      <p className="font-display text-muted-foreground text-sm">
+      <p className="text-muted-foreground text-sm font-medium">
         {short
           ? `Comprometido além do saldo até ${until}`
           : available.horizonKind === 'income'
@@ -146,7 +150,7 @@ function FreeToSpend({ available }: { available: AvailableToSpend }) {
       </p>
       <p
         className={cn(
-          'dimension-figure mt-2 text-4xl font-semibold whitespace-nowrap md:text-5xl',
+          'dimension-figure md:text-display mt-2 text-4xl font-semibold whitespace-nowrap',
           short && 'text-destructive',
         )}
       >
@@ -178,7 +182,7 @@ function FreeToSpend({ available }: { available: AvailableToSpend }) {
         )}
       </p>
 
-      <div className="mt-8" aria-hidden>
+      <div className="mt-7" aria-hidden>
         {/* Overall dimension: the checking balance the chain adds up to. */}
         <div
           className="flex items-center gap-2"
@@ -194,18 +198,18 @@ function FreeToSpend({ available }: { available: AvailableToSpend }) {
           <span className="dimension-line min-w-4 flex-1" />
         </div>
 
-        <div className="mt-2 flex h-3.5 gap-0.5">
+        <div className="mt-2 flex h-3 gap-0.5">
           {segments.map((segment) => (
             <span
               key={segment.key}
-              className={cn('h-full shrink-0', segment.fill)}
+              className={cn('h-full shrink-0 rounded-[3px]', segment.fill)}
               style={{ width: width(segment.value) }}
             />
           ))}
         </div>
         {short && (
           <div
-            className="border-destructive -mt-3.5 h-3.5 border-r-2 border-dashed"
+            className="border-destructive -mt-3 h-3 border-r-2 border-dashed"
             style={{ width: width(inChecking) }}
           />
         )}
@@ -230,7 +234,10 @@ function FreeToSpend({ available }: { available: AvailableToSpend }) {
           >
             <span
               aria-hidden
-              className={cn('inline-block size-2.5 shrink-0', segment.fill)}
+              className={cn(
+                'inline-block size-2.5 shrink-0 rounded-[3px]',
+                segment.fill,
+              )}
             />
             <dt className="text-muted-foreground">{segment.label}</dt>
             <dd className="dimension-figure ml-auto whitespace-nowrap sm:ml-0">
@@ -242,7 +249,7 @@ function FreeToSpend({ available }: { available: AvailableToSpend }) {
           <div className="flex items-baseline gap-2 sm:whitespace-nowrap">
             <span
               aria-hidden
-              className="border-destructive inline-block size-2.5 shrink-0 border-2 border-dashed"
+              className="border-destructive inline-block size-2.5 shrink-0 rounded-[3px] border-2 border-dashed"
             />
             <dt className="text-muted-foreground">Falta</dt>
             <dd className="dimension-figure text-destructive ml-auto whitespace-nowrap sm:ml-0">
@@ -258,10 +265,10 @@ function FreeToSpend({ available }: { available: AvailableToSpend }) {
 function NoChecking({ owedOnCards }: { owedOnCards: number }) {
   return (
     <>
-      <p className="font-display text-muted-foreground text-sm">
+      <p className="text-muted-foreground text-sm font-medium">
         Devido nos cartões
       </p>
-      <p className="dimension-figure mt-2 text-4xl font-semibold whitespace-nowrap md:text-5xl">
+      <p className="dimension-figure md:text-display mt-2 text-4xl font-semibold whitespace-nowrap">
         {formatCurrency(owedOnCards)}
       </p>
       <p className="text-muted-foreground mt-2 text-sm">
@@ -277,16 +284,18 @@ function NoChecking({ owedOnCards }: { owedOnCards: number }) {
 function Figure({
   label,
   value,
+  className,
   children,
 }: {
   label: string;
   value: number;
+  className?: string;
   children?: React.ReactNode;
 }) {
   return (
-    <div>
+    <div className={className}>
       <dt className="text-muted-foreground text-sm">{label}</dt>
-      <dd className="dimension-figure mt-1 text-xl font-semibold whitespace-nowrap">
+      <dd className="dimension-figure text-figure mt-0.5 font-semibold whitespace-nowrap">
         {formatCurrency(value)}
       </dd>
       {children && (

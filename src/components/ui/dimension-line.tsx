@@ -7,7 +7,7 @@ interface DimensionLineProps {
 }
 
 /**
- * The signature element of the "Prancheta" design system: a dimension-line
+ * The signature element of Hermes' "Prancheta" identity: a dimension-line
  * annotation, exactly like the tick-marked measurement lines under a span
  * in a technical drawing. Used to mark the *relationship* between two
  * adjacent figures (e.g. saldo atual vs. projetado) instead of just
@@ -18,9 +18,7 @@ export function DimensionLine({ label, className }: DimensionLineProps) {
   return (
     <div className={cn('flex items-center gap-2', className)}>
       <span className="dimension-line flex-1" />
-      <span className="text-muted-foreground font-mono text-[0.6875rem] tracking-wide uppercase">
-        {label}
-      </span>
+      <span className="text-muted-foreground text-xs">{label}</span>
       <span className="dimension-line flex-1" />
     </div>
   );

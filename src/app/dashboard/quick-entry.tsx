@@ -226,12 +226,12 @@ export function QuickEntry({
   return (
     <section
       aria-label="Registro rápido"
-      className="sheet-surface focus-within:ring-ring/70 overflow-hidden focus-within:ring-2"
+      className="bg-subtle border-border focus-within:bg-card focus-within:border-ring focus-within:ring-ring/20 overflow-hidden rounded-lg border transition-[border-color,box-shadow,background-color] duration-[var(--duration-fast)] focus-within:ring-[3px]"
     >
       <form onSubmit={record} className="flex items-stretch">
         <label
           htmlFor={id}
-          className="font-display border-border hidden shrink-0 items-center border-r px-4 text-sm font-semibold sm:flex"
+          className="font-display border-border text-muted-foreground hidden shrink-0 items-center border-r px-4 text-sm font-medium sm:flex"
         >
           Registro rápido
         </label>
@@ -258,7 +258,7 @@ export function QuickEntry({
           autoComplete="off"
           spellCheck={false}
           enterKeyHint="send"
-          className="placeholder:text-muted-foreground/70 min-w-0 flex-1 bg-transparent px-4 py-3 text-base outline-none"
+          className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent px-4 py-2.5 text-base outline-none sm:text-sm"
         />
         <div className="flex items-center py-2 pr-2">
           <Button type="submit" size="sm" disabled={blocked}>

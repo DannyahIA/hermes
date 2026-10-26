@@ -1,40 +1,33 @@
 import './globals.css';
 
-import type { Metadata } from 'next';
-import { IBM_Plex_Mono, IBM_Plex_Sans, Space_Grotesk } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 
 import { Toaster } from '@/components/ui/toaster';
 import { APP_DESCRIPTION, APP_NAME } from '@/config/constants';
 
-// Display face — Space Grotesk carries the drafting-table personality (a
-// geometric grotesk with a technical, instrument-panel character) but is
-// used sparingly: page titles and hero figures only, never body copy.
-const spaceGrotesk = Space_Grotesk({
-  variable: '--font-display',
-  subsets: ['latin'],
-});
-
-// Body/UI face — IBM Plex Sans, drawn from the same technical type family
-// as the mono figures below, for everything a person reads or clicks:
-// labels, buttons, navigation, paragraphs.
-const ibmPlexSans = IBM_Plex_Sans({
+// One family for the whole interface, like the system font it stands in
+// for: Inter is the closest freely-licensed match to SF Pro. Hierarchy comes
+// from size, weight and tracking, not from a second typeface. Currency
+// figures use the same face with tabular numerals (`.dimension-figure`).
+const inter = Inter({
   variable: '--font-body',
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
-});
-
-// Every currency figure in the app renders in this — tabular lining
-// numerals so amounts line up down a column, like a dimensioned drawing's
-// measurements read in sequence.
-const ibmPlexMono = IBM_Plex_Mono({
-  variable: '--font-ledger-mono',
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
   title: APP_NAME,
   description: APP_DESCRIPTION,
+};
+
+// The browser chrome takes the window colour (--background in globals.css);
+// a meta tag can't read a CSS variable, so the two values are repeated here.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f5f5f5' },
+    { media: '(prefers-color-scheme: dark)', color: '#101010' },
+  ],
 };
 
 // Runs before hydration to apply the stored theme without a flash of the
@@ -56,7 +49,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${spaceGrotesk.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

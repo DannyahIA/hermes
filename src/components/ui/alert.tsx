@@ -3,14 +3,14 @@ import * as React from 'react';
 
 import { cn } from '@/shared/lib/cn';
 
-const alertVariants = cva('rounded-lg border p-4', {
+const alertVariants = cva('rounded-lg border p-4 text-sm', {
   variants: {
     variant: {
-      default: 'border-border bg-card text-card-foreground',
-      success: 'border-success/30 bg-success/10 text-success',
-      warning: 'border-warning/30 bg-warning/10 text-warning-strong',
-      error: 'border-destructive/30 bg-destructive/10 text-destructive',
-      info: 'border-info/30 bg-info/10 text-info',
+      default: 'border-border bg-subtle text-card-foreground',
+      success: 'border-success/20 bg-success/8 text-success',
+      warning: 'border-warning/30 bg-warning/8 text-warning-strong',
+      error: 'border-destructive/20 bg-destructive/8 text-destructive',
+      info: 'border-info/20 bg-info/8 text-info',
     },
   },
   defaultVariants: {

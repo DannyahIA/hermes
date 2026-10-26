@@ -261,7 +261,7 @@ export function TransactionList({
   function renderGroup(group: TransactionGroup, byDay: boolean) {
     return (
       <section key={group.key} aria-label={group.label}>
-        <h3 className="border-border flex items-baseline justify-between gap-3 border-b px-4 pt-4 pb-1.5 text-sm font-medium">
+        <h3 className="bg-subtle border-border text-muted-foreground flex items-baseline justify-between gap-3 border-y px-4 py-2 text-xs font-medium">
           <span className="flex min-w-0 items-center gap-2">
             {grouping === 'category' && group.key !== BETWEEN_ACCOUNTS && (
               <CategoryDot color={group.color} />
@@ -269,7 +269,7 @@ export function TransactionList({
             <span className="truncate">{group.label}</span>
           </span>
           {group.total !== undefined && Math.abs(group.total) >= 0.005 && (
-            <span className="dimension-figure text-muted-foreground shrink-0 font-normal whitespace-nowrap">
+            <span className="dimension-figure shrink-0 whitespace-nowrap">
               <span className="sr-only">Total: </span>
               {signedNet(group.total)}
             </span>
@@ -287,7 +287,7 @@ export function TransactionList({
     <div
       aria-busy={pending}
       className={cn(
-        'sheet-surface @container transition-opacity',
+        'sheet-surface @container overflow-clip transition-opacity duration-[var(--duration-base)]',
         grouping === 'day' ? '[--lead:3rem]' : '[--lead:4.5rem]',
         pending && 'opacity-60',
       )}
@@ -300,7 +300,7 @@ export function TransactionList({
             aria-expanded={showScheduled}
             aria-controls={scheduledId}
             onClick={() => setShowScheduled((open) => !open)}
-            className="hover:bg-accent/60 focus-visible:ring-ring flex w-full items-center gap-2 px-4 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+            className="hover:bg-subtle focus-visible:ring-ring flex w-full items-center gap-2 px-4 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
           >
             <ChevronRight
               aria-hidden

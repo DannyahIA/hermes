@@ -1,12 +1,6 @@
 import Link from 'next/link';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Section, SectionHeader } from '@/components/ui/section';
 import { ROUTES } from '@/config/routes';
 import type {
   Upcoming,
@@ -42,14 +36,12 @@ export function UpcomingList({ upcoming, today }: UpcomingListProps) {
   const rest = upcoming.items.slice(VISIBLE_ITEMS);
 
   return (
-    <Card className="p-6">
-      <CardHeader className="p-0">
-        <CardTitle className="text-xl">Próximos 30 dias</CardTitle>
-        <CardDescription>
-          Contas, parcelas, faturas e entradas até {dayMonth.format(through)}.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="mt-2 p-0">
+    <Section>
+      <SectionHeader
+        title="Próximos 30 dias"
+        description={`Contas, parcelas, faturas e entradas até ${dayMonth.format(through)}.`}
+      />
+      <div>
         {upcoming.items.length === 0 ? (
           <p className="text-muted-foreground mt-2 text-sm">
             Nada agendado para os próximos 30 dias.{' '}
@@ -102,8 +94,8 @@ export function UpcomingList({ upcoming, today }: UpcomingListProps) {
             </p>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }
 

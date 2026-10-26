@@ -9,7 +9,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<'input'>>(
       <input
         type={type}
         ref={ref}
-        className={cn(FIELD_BASE_CLASSES, 'flex h-11', className)}
+        className={cn(FIELD_BASE_CLASSES, 'flex h-10', className)}
         {...props}
       />
     );

@@ -103,10 +103,10 @@ export function TransactionRow({
   const AccountIcon = account ? ACCOUNT_ICONS[account.type] : Wallet;
 
   return (
-    <li className="border-border border-b border-dashed last:border-b-0">
+    <li className="border-border hover:bg-subtle border-b transition-colors duration-[var(--duration-fast)] last:border-b-0">
       <div className={cn(ROW_GRID, 'px-4 py-2.5')}>
         <p className="col-start-1 row-start-1 flex min-w-0 items-baseline gap-2 @3xl:col-start-2">
-          <span className="truncate font-medium" title={description}>
+          <span className="truncate" title={description}>
             {description}
           </span>
           {origin && (
@@ -159,7 +159,7 @@ export function TransactionRow({
                 aria-expanded={picking}
                 disabled={creating}
                 onClick={onTogglePicking}
-                className="border-muted-foreground/50 hover:border-foreground hover:text-foreground focus-visible:ring-ring shrink-0 rounded border border-dashed px-1.5 py-0.5 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                className="border-input hover:border-foreground hover:text-foreground focus-visible:ring-ring bg-muted/50 shrink-0 rounded border px-1.5 py-0.5 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
               >
                 Sem categoria
               </button>

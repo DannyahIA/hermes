@@ -3,55 +3,83 @@
 /*
  * Design tokens (ui-ux.md: "Toda estilização deve utilizar tokens").
  *
- * Concept: "Prancheta" — Hermes borrows its visual language from technical
- * drafting: a personal finance app treated as something engineered and
- * measured, not just recorded. Light mode reads like a modern blueline
- * diazo print (blue lines on pale paper); dark mode reads like a true
- * cyanotype (pale lines on deep Prussian blue). Amounts run in tabular
- * monospace like a dimensioned drawing's measurements; income/expense use a
- * drafting convention instead of generic green/red pills — "redlining" is
- * the literal term for marking up a drawing with corrections, which maps
- * directly onto marking an expense. Every color still carries semantic
- * meaning per ui-ux.md; components only ever reference the semantic
- * Tailwind utility (bg-primary, text-muted-foreground, ...), never a raw
- * hex value, so both themes stay correct automatically.
+ * Concept: "Prancheta" in ink. Hermes is still a drafting table for money —
+ * amounts are measurements, the dimension line marks the one measured span
+ * on the home screen — but the drawing is now done in black ink on white
+ * paper: a monochrome system where colour is reserved for meaning.
+ *
+ *   Sileo  → strong black/white/neutral contrast, compact precise icons,
+ *            inverse (ink) surfaces for transient feedback: toasts, tips.
+ *   Apple  → one typeface, hierarchy from size and weight, solid surfaces,
+ *            moderate radii, short ease-out motion, predictable states.
+ *   Linear → a quiet sidebar on the window colour, one content canvas,
+ *            hairline dividers instead of boxes, dense tables.
+ *
+ * Surface levels (light / dark):
+ *   window  --background  #f5f5f5 / #101010  sidebar and page behind canvas
+ *   canvas  --card        #ffffff / #181818  content, cards, lists
+ *   subtle  --subtle      #fafafa / #1e1e1e  wells: table heads, hover rows
+ *   raised  --popover     #ffffff / #1f1f1f  menus, dialogs (+ shadow)
+ *   ink     --inverse     #111111 / #f5f5f5  toasts, tooltips
+ *
+ * Colour meaning is fixed and never decorative: ink (--primary) = the
+ * primary action; blue (--ring/--info) = focus, selection, neutral info;
+ * green = income/success; red = expense/destructive; amber = attention.
+ * Components reference the semantic utility only (bg-primary,
+ * text-muted-foreground, ...), never a hex value.
+ *
+ * Contrast (WCAG, measured; light on canvas/window · dark on canvas):
+ *   foreground 18.9/17.3 · 16.3     muted-foreground 5.7/5.3 · 7.0
+ *   success 5.0/4.6 · 10.2          destructive 5.7/5.3 · 6.4
+ *   warning-strong 5.0/4.6 · 10.6   info/ring 5.2/4.7 · 4.8
+ * --faint-foreground (2.5 light) is for decoration only — never for text a
+ * person needs to read. Field borders (--input) are below 3:1 on purpose
+ * (quiet edges); every field carries a visible label, which is what
+ * identifies it.
  */
 :root {
-  --background: #f4f7fa;
-  --foreground: #12233d;
+  --background: #f5f5f5;
+  --foreground: #111111;
 
-  --card: #fbfdfe;
-  --card-foreground: #12233d;
-  --popover: #fbfdfe;
-  --popover-foreground: #12233d;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --subtle: #fafafa;
 
-  --primary: #1d4e89;
-  --primary-foreground: #f4f7fa;
-  --secondary: #dce8f0;
-  --secondary-foreground: #12233d;
-  --muted: #e5edf3;
-  --muted-foreground: #5a7185;
-  --accent: #fce8cf;
-  --accent-foreground: #8a5a16;
+  --primary: #111111;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f0f0;
+  --secondary-foreground: #111111;
+  --muted: #efefef;
+  --muted-foreground: #666666;
+  --faint-foreground: #a3a3a3;
+  /* Hover / open surface for rows, menu items and ghost controls. */
+  --accent: #f2f2f2;
+  --accent-foreground: #111111;
 
-  --destructive: #b23a2c;
-  --destructive-foreground: #fbeeea;
-  --success: #1d4e89;
-  --success-foreground: #f4f7fa;
-  --warning: #e8a23d;
-  --warning-foreground: #4a2e05;
-  --warning-strong-text: #4a2e05;
-  --info: #3e7cb1;
-  --info-foreground: #f4f7fa;
+  --inverse: #111111;
+  --inverse-foreground: #fafafa;
+  --inverse-muted: #a3a3a3;
+
+  --destructive: #c81e1e;
+  --destructive-foreground: #ffffff;
+  --success: #15803d;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #2e1d03;
+  --warning-strong-text: #b45309;
+  --info: #2563eb;
+  --info-foreground: #ffffff;
 
   /*
    * Categorical chart palette — identity only (which category/account is
-   * this?), never status. Validated against this project's own card surfaces
-   * with the dataviz validator: worst adjacent CVD ΔE 9.1 light / 8.4 dark,
-   * worst adjacent normal-vision ΔE 19.6 light / 19.3 dark. The slot ORDER is
-   * the colorblind-safety mechanism, not decoration — don't reorder, and
-   * never add a 7th: anything past slot 6 folds into "Outros" (see
-   * shared/constants/chart-colors.ts).
+   * this?), never status. Validated against white and near-black card
+   * surfaces with the dataviz validator: worst adjacent CVD ΔE 9.1 light /
+   * 8.4 dark, worst adjacent normal-vision ΔE 19.6 light / 19.3 dark. The
+   * slot ORDER is the colorblind-safety mechanism, not decoration — don't
+   * reorder, and never add a 7th: anything past slot 6 folds into "Outros"
+   * (see shared/constants/chart-colors.ts).
    */
   --chart-1: #2a78d6;
   --chart-2: #eb6834;
@@ -60,47 +88,60 @@
   --chart-5: #e87ba4;
   --chart-6: #4a3aa7;
 
-  --border: #b8cedd;
-  --input: #b8cedd;
-  --ring: #e8a23d;
+  --border: #e5e5e5;
+  --input: #d4d4d4;
+  --ring: #2563eb;
 
-  --sidebar: #0f2a4a;
-  --sidebar-foreground: #dceaf3;
-  --sidebar-accent: #1d4e89;
-  --sidebar-accent-foreground: #f4f7fa;
+  --sidebar: #f5f5f5;
+  --sidebar-foreground: #404040;
+  --sidebar-accent: #e8e8e8;
+  --sidebar-accent-foreground: #111111;
 
-  --radius: 0.125rem;
-  --shell-radius: 0.5rem;
-  --shadow-elevation: 0 12px 32px -20px rgba(15, 42, 74, 0.35);
+  --radius: 0.75rem;
+  --shadow-elevation:
+    0 12px 32px -8px rgb(0 0 0 / 0.16), 0 2px 6px -2px rgb(0 0 0 / 0.06),
+    0 0 0 1px rgb(0 0 0 / 0.06);
+
+  /* Motion: one ease-out curve, three durations, nothing else. */
+  --ease-out-soft: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
 }
 
 .dark {
-  --background: #0b2038;
-  --foreground: #c9e4f2;
+  --background: #101010;
+  --foreground: #f5f5f5;
 
-  --card: #10294a;
-  --card-foreground: #c9e4f2;
-  --popover: #10294a;
-  --popover-foreground: #c9e4f2;
+  --card: #181818;
+  --card-foreground: #f5f5f5;
+  --popover: #1f1f1f;
+  --popover-foreground: #f5f5f5;
+  --subtle: #1e1e1e;
 
-  --primary: #8fd3e8;
-  --primary-foreground: #0b2038;
-  --secondary: #16375c;
-  --secondary-foreground: #c9e4f2;
-  --muted: #16375c;
-  --muted-foreground: #7fa3be;
-  --accent: #3a2e12;
-  --accent-foreground: #e8a23d;
+  --primary: #f5f5f5;
+  --primary-foreground: #111111;
+  --secondary: #262626;
+  --secondary-foreground: #f5f5f5;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --faint-foreground: #6b6b6b;
+  --accent: #232323;
+  --accent-foreground: #f5f5f5;
 
-  --destructive: #e0685a;
-  --destructive-foreground: #2a0e09;
-  --success: #8fd3e8;
-  --success-foreground: #0b2038;
-  --warning: #e8a23d;
+  --inverse: #f5f5f5;
+  --inverse-foreground: #111111;
+  --inverse-muted: #5c5c5c;
+
+  --destructive: #f87171;
+  --destructive-foreground: #111111;
+  --success: #4ade80;
+  --success-foreground: #052e13;
+  --warning: #fbbf24;
   --warning-foreground: #2e1d03;
-  --warning-strong-text: #e8a23d;
-  --info: #6fb3d8;
-  --info-foreground: #0b2038;
+  --warning-strong-text: #fbbf24;
+  --info: #60a5fa;
+  --info-foreground: #0b1530;
 
   /* Same six hues, re-stepped for the dark surface — a selected dark
      palette, not an automatic flip of the light one. */
@@ -111,16 +152,17 @@
   --chart-5: #d55181;
   --chart-6: #9085e9;
 
-  --border: #244567;
-  --input: #244567;
-  --ring: #e8a23d;
+  --border: #2e2e2e;
+  --input: #404040;
+  --ring: #3b82f6;
 
-  --sidebar: #081729;
-  --sidebar-foreground: #c9e4f2;
-  --sidebar-accent: #16375c;
-  --sidebar-accent-foreground: #e8a23d;
+  --sidebar: #101010;
+  --sidebar-foreground: #c8c8c8;
+  --sidebar-accent: #222222;
+  --sidebar-accent-foreground: #f5f5f5;
 
-  --shadow-elevation: 0 24px 48px -28px rgba(0, 0, 0, 0.65);
+  --shadow-elevation:
+    0 16px 40px -8px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.07);
 }
 
 @theme inline {
@@ -130,6 +172,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-subtle: var(--subtle);
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
@@ -137,8 +180,13 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-faint-foreground: var(--faint-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+
+  --color-inverse: var(--inverse);
+  --color-inverse-foreground: var(--inverse-foreground);
+  --color-inverse-muted: var(--inverse-muted);
 
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
@@ -166,16 +214,85 @@
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
 
-  --radius-lg: var(--radius);
+  /* Radii: tag 6 · control 8 · card/panel 12 · dialog/canvas 16. */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 
   --font-sans: var(--font-body);
-  --font-display: var(--font-display);
-  --font-mono: var(--font-ledger-mono);
+  --font-display: var(--font-body);
+
+  /*
+   * Type scale — one family, hierarchy from size and weight:
+   *   text-xs 12 meta · text-sm 14 body/controls · text-heading 15 section
+   *   text-figure 20 secondary figures · text-title 22 page title
+   *   text-headline 30 a page's summary figure (patrimônio total)
+   *   text-display 40 the home screen's headline figure
+   */
+  --text-heading: 0.9375rem;
+  --text-heading--line-height: 1.375rem;
+  --text-heading--letter-spacing: -0.006em;
+  --text-figure: 1.25rem;
+  --text-figure--line-height: 1.75rem;
+  --text-figure--letter-spacing: -0.02em;
+  --text-headline: 1.875rem;
+  --text-headline--line-height: 2.25rem;
+  --text-headline--letter-spacing: -0.03em;
+  --text-title: 1.375rem;
+  --text-title--line-height: 1.75rem;
+  --text-title--letter-spacing: -0.022em;
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.035em;
+
+  --ease-out-soft: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+html {
+  color-scheme: light;
+  /* Native checkboxes, radios and ranges mark selection in the one
+     functional blue, like every other selected state. */
+  accent-color: var(--ring);
+}
+html.dark {
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-feature-settings:
+    'cv11' 1,
+    'ss03' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--ring) 22%, transparent);
+}
+
+/* Precise icons: one stroke weight for every Lucide glyph, a touch lighter
+   than the library default so 16px icons sit with 14px text. */
+svg.lucide {
+  stroke-width: 1.75;
+}
+
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
+
+/* No double-tap zoom delay on controls; the pressed state is drawn by the
+   control itself, so the platform's grey tap flash is turned off. */
+a,
+button,
+input,
+select,
+label,
+[role='button'] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Layered as Tailwind "components" — not left unlayered — so an explicit
@@ -184,6 +301,12 @@ body {
    `@layer utilities` in the cascade regardless of source order, which would
    otherwise make such overrides silently fail. */
 @layer components {
+  .font-display {
+    letter-spacing: -0.014em;
+  }
+
+  /* A card on the canvas: same fill, hairline edge, no shadow — grouping
+     comes from the edge, never from elevation. */
   .sheet-surface {
     background: var(--color-card);
     color: var(--color-card-foreground);
@@ -191,71 +314,37 @@ body {
     border: 1px solid var(--color-border);
   }
 
-  /* The base row treatment: used for every transaction, account and budget
-     line instead of a boxed card. A dashed rule stands in for a drafted
-     construction/guide line (dashed strokes are how a technical drawing
-     marks a non-permanent reference edge); figures stay tabular so decimal
-     points line up down the column, like a dimensioned drawing's
-     measurements read in sequence. */
+  /* The base row for every transaction, account and budget line: a hairline
+     between rows, dense padding. */
   .dimension-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding-block: 0.875rem;
-    border-bottom: 1px dashed var(--color-border);
+    padding-block: 0.625rem;
+    border-bottom: 1px solid var(--color-border);
   }
   .dimension-row:last-child {
     border-bottom: none;
   }
 
+  /* Every currency figure: tabular, lining numerals so a column of amounts
+     compares at a glance. Name kept from the drafting vocabulary — a figure
+     is a measurement. */
   .dimension-figure {
-    font-family: var(--font-ledger-mono);
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum' 1;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings:
+      'tnum' 1,
+      'lnum' 1;
     letter-spacing: -0.01em;
   }
 
-  /* Corner registration marks — the small crosshair/target marks printed
-     at the edges of a technical drawing sheet to align overlaid layers.
-     Reserved for the one or two most important surfaces per screen (see
-     docs/ui-ux.md's "Hierarquia Visual": not every surface gets one) —
-     spending this signature everywhere would cancel it out. */
-  .registration-frame {
-    position: relative;
-    border: 1px solid var(--color-border);
-  }
-  .registration-frame::before,
-  .registration-frame::after {
-    content: '';
-    position: absolute;
-    width: 0.625rem;
-    height: 0.625rem;
-    pointer-events: none;
-  }
-  .registration-frame::before {
-    top: -1px;
-    left: -1px;
-    border-top: 1.5px solid var(--ring);
-    border-left: 1.5px solid var(--ring);
-  }
-  .registration-frame::after {
-    bottom: -1px;
-    right: -1px;
-    border-bottom: 1.5px solid var(--ring);
-    border-right: 1.5px solid var(--ring);
-  }
-
-  /* The signature element: a dimension-line annotation, exactly like a
-     measured span in a technical drawing — tick marks at both ends of a
-     hairline, a centered label. Used to annotate the gap between two
-     related figures (e.g. saldo atual vs. projetado) instead of just
-     stacking the two numbers, so the *relationship* between them is what
-     the eye reads first. */
+  /* A measured span: tick marks at both ends of a hairline. Hermes' one
+     signature, spent on the home screen's headline figure only. */
   .dimension-line {
     position: relative;
     height: 1px;
-    background: var(--color-border);
+    background: var(--color-faint-foreground);
     margin-block: 0.375rem;
   }
   .dimension-line::before,
@@ -265,13 +354,108 @@ body {
     top: -0.25rem;
     width: 1px;
     height: 0.5rem;
-    background: var(--color-border);
+    background: var(--color-faint-foreground);
   }
   .dimension-line::before {
     left: 0;
   }
   .dimension-line::after {
     right: 0;
+  }
+
+  /* Dialogs: a centred sheet on a wide screen, a bottom sheet on a phone
+     (see dialog.tsx for the phone geometry). Opening is a short fade +
+     settle; closing is faster than opening. The backdrop is a plain dim. */
+  .dialog-sheet {
+    overscroll-behavior: contain;
+    opacity: 0;
+    transform: translateY(0.375rem) scale(0.985);
+    transition:
+      opacity var(--duration-fast) ease-in,
+      transform var(--duration-fast) ease-in,
+      overlay var(--duration-fast) allow-discrete,
+      display var(--duration-fast) allow-discrete;
+  }
+  .dialog-sheet[open] {
+    opacity: 1;
+    transform: none;
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--ease-out-soft);
+  }
+  .dialog-sheet::backdrop {
+    background: rgb(0 0 0 / 0.4);
+    opacity: 0;
+    transition:
+      opacity var(--duration-base) ease-out,
+      overlay var(--duration-base) allow-discrete,
+      display var(--duration-base) allow-discrete;
+  }
+  .dialog-sheet[open]::backdrop {
+    opacity: 1;
+  }
+  @starting-style {
+    .dialog-sheet[open] {
+      opacity: 0;
+      transform: translateY(0.375rem) scale(0.985);
+    }
+    .dialog-sheet[open]::backdrop {
+      opacity: 0;
+    }
+  }
+  @media (max-width: 39.999rem) {
+    .dialog-sheet {
+      transform: translateY(100%);
+    }
+    @starting-style {
+      .dialog-sheet[open] {
+        transform: translateY(100%);
+      }
+    }
+  }
+
+  /* Menus pop from their trigger: quick fade + settle. */
+  .popover-pop {
+    opacity: 0;
+    transform: scale(0.97);
+    transition:
+      opacity var(--duration-fast) ease-in,
+      transform var(--duration-fast) ease-in,
+      overlay var(--duration-fast) allow-discrete,
+      display var(--duration-fast) allow-discrete;
+  }
+  .popover-pop:popover-open {
+    opacity: 1;
+    transform: none;
+    transition-timing-function: var(--ease-out-soft);
+  }
+  @starting-style {
+    .popover-pop:popover-open {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+
+  /* Toasts rise from the edge and settle; the icon badge lands a beat
+     later, so the eye reads state, then message. */
+  .toast-in {
+    animation: toast-in var(--duration-slow) var(--ease-out-soft) both;
+  }
+  .toast-in [data-toast-icon] {
+    animation: toast-icon-in var(--duration-slow) var(--ease-out-soft) 80ms both;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.97);
+  }
+}
+
+@keyframes toast-icon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
   }
 }
 
@@ -280,6 +464,7 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;

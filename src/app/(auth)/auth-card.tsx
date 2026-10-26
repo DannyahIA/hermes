@@ -30,10 +30,10 @@ export function AuthCard({
 }: AuthCardProps) {
   return (
     <div className="flex min-h-[calc(100vh-88px)] items-center justify-center px-6 py-16">
-      <Card className="registration-frame w-full max-w-md p-0">
+      <Card className="w-full max-w-md p-0">
         <div className="border-border flex items-baseline justify-between border-b px-6 py-3">
           <span
-            className={`font-display text-xs tracking-[0.2em] uppercase italic ${
+            className={`font-display text-xs font-medium ${
               tone === 'error' ? 'text-destructive' : 'text-muted-foreground'
             }`}
           >
@@ -46,9 +46,7 @@ export function AuthCard({
 
         <div className="p-6">
           <div className="mb-6 space-y-1.5">
-            <h1 className="font-display text-2xl leading-tight font-semibold">
-              {title}
-            </h1>
+            <h1 className="font-display text-title font-semibold">{title}</h1>
             <p className="text-muted-foreground text-sm">{description}</p>
           </div>
           {children}

@@ -8,7 +8,7 @@ interface CardSkeletonProps {
  * `loading.tsx` fallback for dashboard/account/budget summary cards. */
 export function CardSkeleton({ lines = 3 }: CardSkeletonProps) {
   return (
-    <div className="border-border/70 space-y-3 rounded-xl border p-6">
+    <div className="sheet-surface space-y-3 p-5">
       <Skeleton className="h-4 w-1/3" />
       {Array.from({ length: lines }).map((_, index) => (
         <Skeleton key={index} className="h-3 w-full" />

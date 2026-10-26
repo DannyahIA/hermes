@@ -42,10 +42,10 @@ interface TransactionsBrowserProps {
 
 function chipClasses(pressed: boolean) {
   return cn(
-    'focus-visible:ring-ring rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none',
+    'focus-visible:outline-ring h-7 rounded-md border px-2.5 text-xs font-medium whitespace-nowrap transition-colors duration-[var(--duration-fast)] focus-visible:outline-2 focus-visible:outline-offset-2',
     pressed
-      ? 'border-primary bg-primary/10 text-primary'
-      : 'border-border bg-background hover:bg-accent',
+      ? 'border-primary bg-primary text-primary-foreground'
+      : 'border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground',
   );
 }
 
@@ -124,8 +124,8 @@ export function TransactionsBrowser({
 
   return (
     <>
-      <div className="bg-background/95 border-border sticky top-0 z-20 -mx-4 border-b px-4 py-2 backdrop-blur-sm sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
-        <div className="sm:bg-card sm:border-border flex flex-col gap-3 sm:rounded-[var(--radius)] sm:border sm:p-3">
+      <div className="bg-card border-border sticky top-0 z-20 -mx-4 border-b px-4 py-2 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <form
               role="search"
@@ -133,7 +133,7 @@ export function TransactionsBrowser({
                 event.preventDefault();
                 search(text);
               }}
-              className="border-input bg-background focus-within:border-ring focus-within:ring-ring/20 flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border px-3 focus-within:ring-2"
+              className="border-input bg-card focus-within:border-ring focus-within:ring-ring/20 flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border px-3 shadow-[0_1px_1px_rgb(0_0_0/0.03)] transition-[border-color,box-shadow] duration-[var(--duration-fast)] focus-within:ring-[3px]"
             >
               <Search
                 aria-hidden
@@ -156,7 +156,7 @@ export function TransactionsBrowser({
                 aria-label="Buscar na descrição"
                 autoComplete="off"
                 enterKeyHint="search"
-                className="placeholder:text-muted-foreground/80 min-w-0 flex-1 bg-transparent text-base outline-none sm:text-sm"
+                className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent text-base outline-none sm:text-sm"
               />
             </form>
 
@@ -190,7 +190,7 @@ export function TransactionsBrowser({
                   choosePeriod(value as PeriodPreset);
                 }
               }}
-              className="border-input bg-background focus-visible:ring-ring h-9 max-w-[8.5rem] shrink-0 truncate rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none sm:hidden"
+              className="border-input bg-card focus-visible:outline-ring h-9 max-w-[8.5rem] shrink-0 truncate rounded-md border px-2 text-sm focus-visible:outline-2 sm:hidden"
             >
               <option value="all">Todo o período</option>
               {PERIOD_PRESETS.map(({ preset, label }) => (

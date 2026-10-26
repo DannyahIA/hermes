@@ -1,6 +1,9 @@
 import Link from 'next/link';
 
-import { cn } from '@/shared/lib/cn';
+import {
+  TAB_LIST_CLASSES,
+  tabLinkClasses,
+} from '@/shared/constants/tab-styles';
 
 export type ReportTab = 'overview' | 'accounts' | 'comparisons';
 
@@ -26,21 +29,13 @@ export function ReportTabsNav({
   periodQueryString,
 }: ReportTabsNavProps) {
   return (
-    <nav
-      aria-label="Seções do relatório"
-      className="border-border flex gap-1 border-b"
-    >
+    <nav aria-label="Seções do relatório" className={TAB_LIST_CLASSES}>
       {TABS.map((tab) => (
         <Link
           key={tab.id}
           href={`?${periodQueryString}&tab=${tab.id}`}
           aria-current={activeTab === tab.id ? 'page' : undefined}
-          className={cn(
-            'rounded-t-md border-b-2 px-4 py-2 text-sm font-medium transition-colors',
-            activeTab === tab.id
-              ? 'border-primary text-primary'
-              : 'text-muted-foreground hover:text-foreground border-transparent',
-          )}
+          className={tabLinkClasses(activeTab === tab.id)}
         >
           {tab.label}
         </Link>

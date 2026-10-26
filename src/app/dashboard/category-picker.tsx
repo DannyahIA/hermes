@@ -44,7 +44,7 @@ export function CategoryDot({ color }: { color?: string }) {
 /**
  * The suggested categories as one-tap buttons, then "Outra…" with every
  * category (spec 2026-10-17-inicio-hub-design.md §4.2). A common category
- * the user does not have yet comes first, dashed; "Outra…" ends with
+ * the user does not have yet comes first; "Outra…" ends with
  * "＋ Nova categoria…", which asks for a name.
  */
 export function CategoryPicker({
@@ -82,7 +82,7 @@ export function CategoryPicker({
         <button
           type="button"
           onClick={() => onCreate(newCategory.name, newCategory.color)}
-          className="border-border bg-background hover:bg-accent focus-visible:ring-ring inline-flex h-8 max-w-full items-center gap-1.5 rounded-md border border-dashed px-2.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+          className="border-border bg-background hover:bg-accent focus-visible:ring-ring inline-flex h-8 max-w-full items-center gap-1.5 rounded-md border px-2.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
         >
           <CategoryDot color={newCategory.color} />
           <span className="truncate">＋ {newCategory.name}</span>{' '}

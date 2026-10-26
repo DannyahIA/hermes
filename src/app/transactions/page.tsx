@@ -18,6 +18,8 @@ import {
 import { TransactionsBrowser } from '@/app/transactions/transactions-browser';
 import { TransactionsMoreMenu } from '@/app/transactions/transactions-more-menu';
 import { AppShell } from '@/components/layout/app-shell';
+import { buttonVariants } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   TRANSACTION_VIEW_MODES,
   type TransactionViewMode,
@@ -32,7 +34,7 @@ import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/driz
 import { DrizzleViewPreferenceRepository } from '@/infra/repositories/drizzle-view-preference.repository';
 import { GetViewPreferenceUseCase } from '@/modules/preferences/application/get-view-preference.use-case';
 import { GetRecurringTransactionsUseCase } from '@/modules/recurring-transactions/application/get-recurring-transactions.use-case';
-import { cn } from '@/shared/lib/cn';
+import { tabLinkClasses } from '@/shared/constants/tab-styles';
 import { toDateInput } from '@/shared/lib/local-day';
 import {
   readTransactionQuery,
@@ -192,19 +194,16 @@ export default async function TransactionsPage({
   return (
     <AppShell>
       <div className="space-y-4">
+        <h1 className="sr-only">Transações</h1>
+
         <div className="border-border flex items-end justify-between gap-3 border-b">
-          <nav aria-label="Transações e recorrências" className="flex gap-1">
+          <nav aria-label="Transações e recorrências" className="flex gap-5">
             {tabs.map((item) => (
               <Link
                 key={item.id}
                 href={item.href}
                 aria-current={tab === item.id ? 'page' : undefined}
-                className={cn(
-                  '-mb-px flex items-baseline gap-2 rounded-t-md border-b-2 px-3 py-2 text-sm font-medium transition-colors sm:px-4',
-                  tab === item.id
-                    ? 'border-primary text-primary'
-                    : 'text-muted-foreground hover:text-foreground border-transparent',
-                )}
+                className={tabLinkClasses(tab === item.id)}
               >
                 {item.label}
                 {item.count !== undefined && item.count > 0 && (
@@ -227,20 +226,19 @@ export default async function TransactionsPage({
         </div>
 
         {accounts.length === 0 ? (
-          <div className="sheet-surface px-6 py-12 text-center">
-            <p className="font-medium">Nenhuma conta cadastrada.</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {tab === 'transactions'
+          <EmptyState
+            title="Nenhuma conta cadastrada."
+            description={
+              tab === 'transactions'
                 ? 'Crie uma conta para registrar transações.'
-                : 'Crie uma conta antes de configurar uma recorrência.'}
-            </p>
-            <Link
-              href={ROUTES.accounts}
-              className="bg-primary text-primary-foreground mt-4 inline-block rounded-md px-4 py-2 text-sm font-medium"
-            >
-              Criar conta
-            </Link>
-          </div>
+                : 'Crie uma conta antes de configurar uma recorrência.'
+            }
+            action={
+              <Link href={ROUTES.accounts} className={buttonVariants()}>
+                Criar conta
+              </Link>
+            }
+          />
         ) : tab === 'recurring' ? (
           <section
             aria-labelledby="recurring-heading"
@@ -250,7 +248,7 @@ export default async function TransactionsPage({
               <div className="min-w-0">
                 <h2
                   id="recurring-heading"
-                  className="font-display text-base font-semibold"
+                  className="font-display text-heading font-semibold"
                 >
                   Recorrências
                 </h2>

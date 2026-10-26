@@ -90,7 +90,7 @@ export function RecurringTransactionRow({ rule }: { rule: RecurringRuleView }) {
   return (
     <li
       className={cn(
-        'border-border border-b border-dashed last:border-b-0',
+        'border-border border-b last:border-b-0',
         isPending && 'opacity-60',
       )}
     >

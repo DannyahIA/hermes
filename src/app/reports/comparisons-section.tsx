@@ -37,9 +37,9 @@ export function ComparisonsSection({
 }: ComparisonsSectionProps) {
   return (
     <div className="space-y-6">
-      <Card className="p-6">
+      <Card>
         <CardHeader className="p-0">
-          <CardTitle className="text-xl">Ano a ano</CardTitle>
+          <CardTitle>Ano a ano</CardTitle>
           <CardDescription>
             1º de janeiro até hoje, comparado ao mesmo intervalo no ano
             anterior. Não segue o filtro de período acima.
@@ -61,9 +61,9 @@ export function ComparisonsSection({
         </CardContent>
       </Card>
 
-      <Card className="p-6">
+      <Card>
         <CardHeader className="p-0">
-          <CardTitle className="text-xl">Mesmo mês, ano passado</CardTitle>
+          <CardTitle>Mesmo mês, ano passado</CardTitle>
           <CardDescription>
             O mês atual comparado ao mesmo mês do ano anterior. Não segue o
             filtro de período acima.
@@ -85,9 +85,9 @@ export function ComparisonsSection({
         </CardContent>
       </Card>
 
-      <Card className="p-6">
+      <Card>
         <CardHeader className="p-0">
-          <CardTitle className="text-xl">Tendência por categoria</CardTitle>
+          <CardTitle>Tendência por categoria</CardTitle>
           <CardDescription>
             Média, mediana e direção da despesa mensal no período selecionado.
           </CardDescription>

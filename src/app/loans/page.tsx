@@ -2,6 +2,7 @@ import { CreateLoanDialog } from '@/app/loans/create-loan-dialog';
 import { LoanCard } from '@/app/loans/loan-card';
 import { AppShell } from '@/components/layout/app-shell';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleInstallmentPlanRepository } from '@/infra/repositories/drizzle-installment-plan.repository';
@@ -55,22 +56,17 @@ export default async function LoansPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight">
-              Empréstimos
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Registre um empréstimo recebido e acompanhe o cronograma de
-              pagamento pelo sistema Price.
-            </p>
-          </div>
-          {accountOptions.length > 0 ? (
-            <CreateLoanDialog accounts={accountOptions} />
-          ) : null}
-        </section>
+        <PageHeader
+          title="Empréstimos"
+          description="Registre um empréstimo recebido e acompanhe o cronograma de pagamento pelo sistema Price."
+          actions={
+            accountOptions.length > 0 ? (
+              <CreateLoanDialog accounts={accountOptions} />
+            ) : undefined
+          }
+        />
 
-        <section className="grid gap-4">
+        <section className="grid gap-3">
           {loanCards.length === 0 ? (
             <EmptyState
               title="Nenhum empréstimo cadastrado."

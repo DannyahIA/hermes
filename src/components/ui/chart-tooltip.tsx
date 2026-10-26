@@ -24,9 +24,9 @@ export function ChartTooltipContent({
   if (!active || !payload || payload.length === 0) return null;
 
   return (
-    <div className="border-border bg-card rounded-md border p-3 text-sm shadow-lg">
+    <div className="bg-inverse text-inverse-foreground min-w-40 rounded-lg px-3 py-2.5 text-sm shadow-[var(--shadow-elevation)]">
       {label !== undefined && (
-        <p className="text-muted-foreground mb-1.5 text-xs capitalize">
+        <p className="text-inverse-muted mb-1.5 text-xs capitalize">
           {String(label)}
         </p>
       )}
@@ -35,10 +35,10 @@ export function ChartTooltipContent({
           <div key={String(entry.name)} className="flex items-center gap-2">
             <span
               aria-hidden
-              className="inline-block h-0.5 w-3 rounded-full"
+              className="inline-block size-2 rounded-full"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="text-muted-foreground">{String(entry.name)}</span>
+            <span className="text-inverse-muted">{String(entry.name)}</span>
             <span className="dimension-figure ml-auto font-semibold">
               {formatCurrency(Number(entry.value))}
             </span>

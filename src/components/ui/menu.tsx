@@ -154,7 +154,7 @@ export function Menu({
         role="menu"
         aria-label={label}
         onKeyDown={onMenuKeyDown}
-        className="bg-popover text-popover-foreground border-border [inset:auto] m-0 min-w-44 rounded-md border p-1 shadow-[var(--shadow-elevation)]"
+        className="popover-pop bg-popover text-popover-foreground [inset:auto] m-0 min-w-48 rounded-lg p-1 shadow-[var(--shadow-elevation)]"
       >
         <MenuContext.Provider value={context}>{children}</MenuContext.Provider>
       </div>
@@ -163,7 +163,7 @@ export function Menu({
 }
 
 const ITEM_CLASSES =
-  'hover:bg-accent focus-visible:bg-accent flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm outline-none';
+  'hover:bg-accent focus-visible:bg-accent flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none [&_svg]:text-muted-foreground';
 
 interface MenuItemProps {
   children: React.ReactNode;

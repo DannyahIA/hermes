@@ -1,4 +1,6 @@
 import { AppShell } from '@/components/layout/app-shell';
+import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
 import { DrizzleBudgetRepository } from '@/infra/repositories/drizzle-budget.repository';
@@ -8,6 +10,7 @@ import { DrizzleTransactionRepository } from '@/infra/repositories/drizzle-trans
 import { GetFinancialReportUseCase } from '@/modules/reports/application/get-financial-report.use-case';
 import { defaultPeriod } from '@/modules/reports/default-period';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
+import { cn } from '@/shared/lib/cn';
 import { toDateInput } from '@/shared/lib/local-day';
 
 import { AccountsSection } from './accounts-section';
@@ -48,41 +51,43 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          {/* Period selector — a plain GET form, same pattern as the
-              transactions filters: filtering works with zero client JS. */}
-          <form
-            className="grid flex-1 gap-3 sm:grid-cols-[1fr_1fr_auto]"
-            method="get"
-          >
-            {/* Keeps the active tab across a period change. */}
-            <input type="hidden" name="tab" value={tab} />
+        <PageHeader
+          title="Relatórios"
+          actions={
+            <ExportButtons
+              periodQueryString={periodQueryString}
+              activeTab={tab}
+            />
+          }
+        />
+
+        {/* Period selector — a plain GET form, same pattern as the
+            transactions filters: filtering works with zero client JS. */}
+        <form className="flex flex-wrap items-end gap-x-3 gap-y-2" method="get">
+          {/* Keeps the active tab across a period change. */}
+          <input type="hidden" name="tab" value={tab} />
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            De
             <input
               type="date"
               name="from"
-              aria-label="De"
               defaultValue={toDateInput(from)}
-              className={FIELD_BASE_CLASSES}
+              className={cn(FIELD_BASE_CLASSES, 'h-9 w-40 sm:text-sm')}
             />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            Até
             <input
               type="date"
               name="to"
-              aria-label="Até"
               defaultValue={toDateInput(to)}
-              className={FIELD_BASE_CLASSES}
+              className={cn(FIELD_BASE_CLASSES, 'h-9 w-40 sm:text-sm')}
             />
-            <button
-              type="submit"
-              className="border-input bg-background hover:bg-accent rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
-            >
-              Filtrar período
-            </button>
-          </form>
-          <ExportButtons
-            periodQueryString={periodQueryString}
-            activeTab={tab}
-          />
-        </div>
+          </label>
+          <Button type="submit" variant="outline">
+            Aplicar período
+          </Button>
+        </form>
 
         <ReportTabsNav activeTab={tab} periodQueryString={periodQueryString} />
 

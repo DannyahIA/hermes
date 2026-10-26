@@ -1,14 +1,8 @@
 import { AccountCard } from '@/app/accounts/account-card';
 import { CreateAccountDialog } from '@/app/accounts/create-account-dialog';
 import { AppShell } from '@/components/layout/app-shell';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { netWorthContribution } from '@/core/value-objects/net-worth';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleAccountRepository } from '@/infra/repositories/drizzle-account.repository';
@@ -45,29 +39,20 @@ export default async function AccountsPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight">
-              Contas
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Suas contas financeiras e seus saldos.
-            </p>
-          </div>
-          <CreateAccountDialog />
-        </section>
+        <PageHeader
+          title="Contas"
+          description="Suas contas financeiras e seus saldos."
+          actions={<CreateAccountDialog />}
+        />
 
-        <Card className="p-6">
-          <CardHeader className="p-0">
-            <CardTitle className="text-xl">Patrimônio total</CardTitle>
-            <CardDescription>Soma das contas ativas.</CardDescription>
-          </CardHeader>
-          <CardContent className="mt-4 p-0">
-            <p className="dimension-figure text-3xl font-semibold">
-              {formatCurrency(total)}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="border-border border-b pb-6">
+          <p className="text-muted-foreground text-sm">
+            Patrimônio total, soma das contas ativas
+          </p>
+          <p className="dimension-figure text-headline mt-1 font-semibold">
+            {formatCurrency(total)}
+          </p>
+        </div>
 
         {accounts.length === 0 ? (
           <EmptyState
@@ -76,7 +61,7 @@ export default async function AccountsPage() {
             action={<CreateAccountDialog />}
           />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {accountsWithBalances.map(
               ({ account, currentBalance, projectedBalance }) => {
                 const nextDue = account.nextDueDate(now);

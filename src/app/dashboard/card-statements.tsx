@@ -1,13 +1,7 @@
 import Link from 'next/link';
 
 import { PayBillDialog } from '@/app/accounts/pay-bill-dialog';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Section, SectionHeader } from '@/components/ui/section';
 import { ROUTES } from '@/config/routes';
 import type {
   CardCycle,
@@ -39,21 +33,19 @@ export function CardStatements({
   today,
 }: CardStatementsProps) {
   return (
-    <Card className="p-6">
-      <CardHeader className="p-0">
-        <CardTitle className="text-xl">Cartões</CardTitle>
-        <CardDescription>
-          Quanto você deve em cada cartão e quando vence.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="mt-2 p-0">
+    <Section>
+      <SectionHeader
+        title="Cartões"
+        description="Quanto você deve em cada cartão e quando vence."
+      />
+      <div>
         {statements.map((statement) => (
           <div key={statement.accountId} className="dimension-row block">
             <div className="flex items-baseline justify-between gap-3">
               <p className="truncate font-medium" title={statement.name}>
                 {statement.name}
               </p>
-              <p className="dimension-figure text-lg font-semibold whitespace-nowrap">
+              <p className="dimension-figure text-base font-semibold whitespace-nowrap">
                 {formatCurrency(statement.owed)}
               </p>
             </div>
@@ -104,8 +96,8 @@ export function CardStatements({
             )}
           </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }
 

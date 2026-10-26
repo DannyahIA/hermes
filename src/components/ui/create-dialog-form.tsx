@@ -129,7 +129,7 @@ export interface RepeatToggleProps {
  * devem sempre possuir o mesmo comportamento"). */
 export function RepeatToggle({ checked, onChange, label }: RepeatToggleProps) {
   return (
-    <label className="text-muted-foreground flex items-center gap-2 text-sm">
+    <label className="text-muted-foreground flex items-center gap-2 text-sm max-sm:w-full">
       <input
         type="checkbox"
         checked={checked}

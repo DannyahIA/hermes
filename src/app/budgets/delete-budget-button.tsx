@@ -31,7 +31,12 @@ export function DeleteBudgetButton({ id }: DeleteBudgetButtonProps) {
   return (
     <ConfirmDialog
       trigger={
-        <Button variant="destructive" size="sm" disabled={isPending}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="hover:text-destructive"
+          disabled={isPending}
+        >
           {isPending ? 'Excluindo…' : 'Excluir'}
         </Button>
       }

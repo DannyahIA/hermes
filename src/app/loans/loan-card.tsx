@@ -12,6 +12,7 @@ import { calculatePriceInstallments } from '@/core/value-objects/loan-amortizati
 import { toast } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/format-currency';
+import { formatPercent } from '@/shared/lib/format-percent';
 
 interface LoanCardProps {
   id: string;
@@ -47,7 +48,7 @@ export function LoanCard({
   const progress = Math.min(paidCount / installmentCount, 1) * 100;
 
   return (
-    <Card className="p-6">
+    <Card>
       <CardHeader className="mb-4 flex flex-row items-start justify-between gap-4 space-y-0">
         <div>
           <CardTitle>{description}</CardTitle>
@@ -66,7 +67,12 @@ export function LoanCard({
 
         <ConfirmDialog
           trigger={
-            <Button variant="destructive" size="sm" disabled={isPending}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hover:text-destructive"
+              disabled={isPending}
+            >
               {isPending ? 'Excluindo…' : 'Excluir'}
             </Button>
           }
@@ -94,34 +100,40 @@ export function LoanCard({
             {paidCount} de {installmentCount} parcelas
           </span>
           <span className="text-muted-foreground dimension-figure">
-            {Math.round(progress)}%
+            {formatPercent(progress)}
           </span>
         </div>
-        <div className="bg-muted h-1.5">
-          <div className="bg-primary h-1.5" style={{ width: `${progress}%` }} />
+        <div
+          aria-hidden
+          className="bg-muted h-1.5 overflow-hidden rounded-full"
+        >
+          <div
+            className="bg-primary h-full rounded-full"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
 
       <button
         type="button"
         onClick={() => setShowSchedule((v) => !v)}
-        className="text-muted-foreground hover:text-foreground mb-3 flex items-center gap-1 text-xs font-semibold tracking-wide uppercase transition-colors"
+        className="text-muted-foreground hover:text-foreground focus-visible:outline-ring flex items-center gap-1 rounded-sm text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
         aria-expanded={showSchedule}
       >
         {showSchedule ? 'Ocultar parcelas' : 'Ver parcelas detalhadas'}
         <ChevronDown
           className={cn(
-            'h-3.5 w-3.5 transition-transform',
+            'size-3.5 transition-transform duration-[var(--duration-base)]',
             showSchedule && 'rotate-180',
           )}
         />
       </button>
 
       {showSchedule && (
-        <div className="overflow-x-auto">
+        <div className="border-border mt-3 overflow-x-auto rounded-md border">
           <table className="w-full text-left text-sm">
-            <thead className="border-border/70 border-b">
-              <tr className="text-muted-foreground text-xs uppercase">
+            <thead className="border-border bg-subtle border-b">
+              <tr className="text-muted-foreground text-xs [&>th]:px-3">
                 <th className="py-2 pr-4 font-medium">Parcela</th>
                 <th className="py-2 pr-4 text-right font-medium">Valor</th>
                 <th className="py-2 pr-4 text-right font-medium">Juros</th>
@@ -135,7 +147,7 @@ export function LoanCard({
               {schedule.map((installment) => (
                 <tr
                   key={installment.number}
-                  className="border-border/70 border-b last:border-none"
+                  className="border-border border-b last:border-none [&>td]:px-3"
                 >
                   <td className="py-2 pr-4">{installment.number}</td>
                   <td className="dimension-figure py-2 pr-4 text-right">

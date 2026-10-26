@@ -1,4 +1,5 @@
 import { AppShell } from '@/components/layout/app-shell';
+import { PageHeader } from '@/components/ui/page-header';
 import { env, getTelegramBot } from '@/config/env';
 import type { CaptureEvent } from '@/core/entities/capture-event';
 import { requireCurrentUserId } from '@/infra/auth/session';
@@ -59,13 +60,13 @@ function Section({
 }) {
   return (
     <section aria-labelledby={id} className="sheet-surface">
-      <header className="border-border border-b px-4 py-3 sm:px-6">
-        <h2 id={id} className="font-display text-base font-semibold">
+      <header className="border-border border-b px-4 py-3.5 sm:px-5">
+        <h2 id={id} className="font-display text-heading font-semibold">
           {title}
         </h2>
         <p className="text-muted-foreground text-sm">{description}</p>
       </header>
-      <div className="px-4 py-4 sm:px-6">{children}</div>
+      <div className="px-4 py-4 sm:px-5">{children}</div>
     </section>
   );
 }
@@ -198,6 +199,11 @@ export default async function SettingsPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl space-y-4">
+        <PageHeader
+          title="Configurações"
+          description="Integrações que trazem suas compras para o Hermes."
+          className="mb-4"
+        />
         {pendingViews.length > 0 && (
           <Section
             id="pending-heading"

@@ -132,13 +132,13 @@ export function RecentTransactions({
         <section key={day.key} aria-label={day.label}>
           <div
             className={cn(
-              'border-border flex items-baseline justify-between gap-3 border-b pb-1.5 text-sm',
+              'border-border text-muted-foreground flex items-baseline justify-between gap-3 border-b pb-1.5 text-xs font-medium',
               index > 0 && 'mt-5',
             )}
           >
-            <h4 className="font-medium">{day.label}</h4>
+            <h3>{day.label}</h3>
             {Math.abs(day.net) >= 0.005 && (
-              <span className="dimension-figure text-muted-foreground whitespace-nowrap">
+              <span className="dimension-figure whitespace-nowrap">
                 {signed(Math.abs(day.net), day.net > 0 ? 'income' : 'expense')}
               </span>
             )}
@@ -190,7 +190,7 @@ export function RecentTransactions({
                         onClick={() =>
                           setPicking(picking === row.id ? null : row.id)
                         }
-                        className="border-muted-foreground/50 hover:border-foreground hover:text-foreground focus-visible:ring-ring shrink-0 rounded border border-dashed px-1.5 py-0.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                        className="border-input hover:border-foreground hover:text-foreground focus-visible:ring-ring bg-muted/50 shrink-0 rounded border px-1.5 py-0.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                       >
                         Sem categoria
                       </button>

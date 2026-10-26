@@ -1,3 +1,5 @@
+import { formatPercent } from '@/shared/lib/format-percent';
+
 interface StatTileProps {
   label: string;
   value: string;
@@ -22,16 +24,15 @@ export function StatTile({
   const isGoodDirection = isUp === upIsGood;
 
   return (
-    <div className="border-border rounded-lg border p-4">
+    <div className="sheet-surface p-4">
       <p className="text-muted-foreground text-sm">{label}</p>
-      <p className="dimension-figure mt-1 text-2xl font-semibold">{value}</p>
+      <p className="dimension-figure text-figure mt-1 font-semibold">{value}</p>
       {deltaPercent !== null ? (
         <p
-          className={`mt-1 text-sm ${isGoodDirection ? 'text-success' : 'text-destructive'}`}
+          className={`dimension-figure mt-1 text-sm ${isGoodDirection ? 'text-success' : 'text-destructive'}`}
         >
-          <span aria-hidden>{isUp ? '↑' : '↓'}</span>{' '}
-          {isUp ? '+' : ''}
-          {deltaPercent.toFixed(1)}%
+          <span aria-hidden>{isUp ? '↑' : '↓'}</span> {isUp ? '+' : ''}
+          {formatPercent(deltaPercent, 1)}
         </p>
       ) : (
         <p className="text-muted-foreground mt-1 text-sm">Sem dado anterior</p>

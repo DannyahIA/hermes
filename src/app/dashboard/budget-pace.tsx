@@ -1,12 +1,6 @@
 import Link from 'next/link';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Section, SectionHeader } from '@/components/ui/section';
 import { ROUTES } from '@/config/routes';
 import type {
   BudgetPace,
@@ -14,6 +8,7 @@ import type {
 } from '@/modules/dashboard/application/metrics/calculate-budget-pace';
 import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/format-currency';
+import { formatPercent } from '@/shared/lib/format-percent';
 
 const VISIBLE_BUDGETS = 5;
 
@@ -53,18 +48,18 @@ export function BudgetPaceList({ paces, categoryNames }: BudgetPaceListProps) {
     : undefined;
 
   return (
-    <Card className="p-6">
-      <CardHeader className="p-0">
-        <CardTitle className="text-xl">Orçamentos</CardTitle>
-        <CardDescription>
-          {paces.length === 0
+    <Section>
+      <SectionHeader
+        title="Orçamentos"
+        description={
+          paces.length === 0
             ? 'Quanto você pode gastar em cada categoria.'
             : sharedElapsed !== undefined
-              ? `A marca em cada barra é hoje: ${Math.round(sharedElapsed * 100)}% do período já passou.`
-              : 'A marca em cada barra mostra quanto do período já passou.'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="mt-2 p-0">
+              ? `A marca em cada barra é hoje: ${formatPercent(sharedElapsed * 100)} do período já passou.`
+              : 'A marca em cada barra mostra quanto do período já passou.'
+        }
+      />
+      <div>
         {paces.length === 0 ? (
           <p className="text-muted-foreground mt-2 text-sm">
             Nenhum orçamento em andamento. Crie um para acompanhar o ritmo de
@@ -96,8 +91,8 @@ export function BudgetPaceList({ paces, categoryNames }: BudgetPaceListProps) {
             )}
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }
 
@@ -128,9 +123,9 @@ function BudgetPaceRow({ pace, name }: { pace: BudgetPace; name: string }) {
         </span>
         {left < 0 ? ' acima' : ''}
       </p>
-      <div aria-hidden className="bg-muted relative mt-2.5 h-1.5">
+      <div aria-hidden className="bg-muted relative mt-2.5 h-1.5 rounded-full">
         <div
-          className={cn('h-full', status.bar)}
+          className={cn('h-full rounded-full', status.bar)}
           style={{ width: `${Math.min(pace.spentShare, 1) * 100}%` }}
         />
         <span

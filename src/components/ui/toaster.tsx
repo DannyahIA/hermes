@@ -1,22 +1,26 @@
 'use client';
 
-import { CheckCircle2, Info, TriangleAlert, X, XCircle } from 'lucide-react';
+import { Check, Info, TriangleAlert, X } from 'lucide-react';
 
 import { dismissToast, useToasts } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/lib/cn';
 
-const VARIANT_STYLES = {
-  default: 'border-border bg-card text-card-foreground',
-  success: 'border-success/30 bg-success/10 text-success',
-  warning: 'border-warning/30 bg-warning/10 text-warning-strong',
-  error: 'border-destructive/30 bg-destructive/10 text-destructive',
+// Toasts are drawn in ink — the inverse of the page (black on a light page,
+// white on a dark one) — so a passing message is unmistakable without
+// covering anything for long. State is carried twice: by the badge colour
+// and by the glyph inside it, never by colour alone.
+const VARIANT_BADGE_STYLES = {
+  default: 'bg-info text-info-foreground',
+  success: 'bg-success text-success-foreground',
+  warning: 'bg-warning text-warning-foreground',
+  error: 'bg-destructive text-destructive-foreground',
 } as const;
 
 const VARIANT_ICONS = {
   default: Info,
-  success: CheckCircle2,
+  success: Check,
   warning: TriangleAlert,
-  error: XCircle,
+  error: X,
 } as const;
 
 /**
@@ -28,26 +32,35 @@ const VARIANT_ICONS = {
 export function Toaster() {
   const toasts = useToasts();
 
-  if (toasts.length === 0) return null;
-
   return (
-    <div className="fixed inset-x-4 bottom-4 z-50 flex flex-col gap-2 sm:left-auto sm:w-full sm:max-w-sm">
+    <div
+      aria-live="polite"
+      className="pointer-events-none fixed inset-x-3 bottom-3 z-50 flex flex-col items-center gap-2 sm:inset-x-auto sm:right-4 sm:bottom-4 sm:items-end"
+    >
       {toasts.map((t) => {
         const Icon = VARIANT_ICONS[t.variant];
         return (
           <div
             key={t.id}
-            role="status"
-            className={cn(
-              'flex items-start gap-3 rounded-lg border p-4 shadow-[var(--shadow-elevation)]',
-              VARIANT_STYLES[t.variant],
-            )}
+            role={t.variant === 'error' ? 'alert' : 'status'}
+            className="toast-in bg-inverse text-inverse-foreground pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[0.875rem] py-2.5 pr-2.5 pl-3 shadow-[var(--shadow-elevation)]"
           >
-            <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+            <span
+              data-toast-icon
+              aria-hidden
+              className={cn(
+                'flex size-6 shrink-0 items-center justify-center rounded-full',
+                VARIANT_BADGE_STYLES[t.variant],
+              )}
+            >
+              <Icon className="size-3.5 [stroke-width:2.5]" />
+            </span>
             <div className="min-w-0 flex-1 text-sm">
               <p className="font-medium">{t.title}</p>
               {t.description && (
-                <p className="mt-0.5 opacity-80">{t.description}</p>
+                <p className="text-inverse-muted mt-0.5 text-[0.8125rem]">
+                  {t.description}
+                </p>
               )}
             </div>
             {t.action && (
@@ -57,17 +70,18 @@ export function Toaster() {
                   t.action?.onClick();
                   dismissToast(t.id);
                 }}
-                className="focus-visible:ring-ring -my-1 shrink-0 rounded-md border border-current/30 px-2.5 py-1 text-sm font-medium transition-colors hover:bg-current/10 focus-visible:ring-2 focus-visible:outline-none"
+                className="bg-inverse-foreground/12 hover:bg-inverse-foreground/20 focus-visible:outline-ring h-7 shrink-0 rounded-md px-2.5 text-[0.8125rem] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 {t.action.label}
               </button>
             )}
             <button
+              type="button"
               onClick={() => dismissToast(t.id)}
               aria-label="Fechar notificação"
-              className="opacity-60 transition-opacity hover:opacity-100"
+              className="text-inverse-muted hover:text-inverse-foreground focus-visible:outline-ring flex size-7 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:outline-2"
             >
-              <X className="h-4 w-4" />
+              <X aria-hidden className="size-4" />
             </button>
           </div>
         );

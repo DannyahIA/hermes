@@ -15,6 +15,7 @@ import { ROUTES } from '@/config/routes';
 import type { FinancialReport } from '@/modules/reports/application/get-financial-report.use-case';
 import { formatCurrency } from '@/shared/lib/format-currency';
 import { formatDate } from '@/shared/lib/format-date';
+import { formatPercent } from '@/shared/lib/format-percent';
 
 interface OverviewSectionProps {
   report: FinancialReport;
@@ -32,30 +33,34 @@ export function OverviewSection({ report, from, to }: OverviewSectionProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="registration-frame p-6 sm:p-8">
-        <p className="font-display text-muted-foreground text-sm italic">
-          Relatório · {formatDate(from)} — {formatDate(to)}
+      <div className="border-border border-b pb-6">
+        <p className="text-muted-foreground text-sm">
+          De {formatDate(from)} a {formatDate(to)}
         </p>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <dl className="sm:divide-border mt-3 grid grid-cols-1 gap-x-10 gap-y-4 sm:grid-cols-2 sm:divide-x [&>div]:sm:pr-10 [&>div:last-child]:sm:pr-0">
           <div>
-            <p className="text-muted-foreground text-sm">Receitas no período</p>
-            <p className="dimension-figure text-success mt-1 text-2xl font-semibold">
-              {formatCurrency(report.totalIncome)}
-            </p>
+            <dt className="text-muted-foreground text-sm">
+              Receitas no período
+            </dt>
+            <dd className="dimension-figure text-success text-headline mt-0.5 font-semibold">
+              + {formatCurrency(report.totalIncome)}
+            </dd>
           </div>
           <div>
-            <p className="text-muted-foreground text-sm">Despesas no período</p>
-            <p className="dimension-figure text-destructive mt-1 text-2xl font-semibold">
-              {formatCurrency(report.totalExpense)}
-            </p>
+            <dt className="text-muted-foreground text-sm">
+              Despesas no período
+            </dt>
+            <dd className="dimension-figure text-destructive text-headline mt-0.5 font-semibold">
+              − {formatCurrency(report.totalExpense)}
+            </dd>
           </div>
-        </div>
-      </Card>
+        </dl>
+      </div>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Card className="p-6">
+      <section className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <Card>
           <CardHeader className="p-0">
-            <CardTitle className="text-xl">Evolução do patrimônio</CardTitle>
+            <CardTitle>Evolução do patrimônio</CardTitle>
             <CardDescription>
               Saldo consolidado das contas visíveis, mês a mês.
             </CardDescription>
@@ -71,9 +76,9 @@ export function OverviewSection({ report, from, to }: OverviewSectionProps) {
           </CardContent>
         </Card>
 
-        <Card className="p-6">
+        <Card>
           <CardHeader className="p-0">
-            <CardTitle className="text-xl">Receitas vs. despesas</CardTitle>
+            <CardTitle>Receitas vs. despesas</CardTitle>
             <CardDescription>
               Comparativo mensal no período selecionado.
             </CardDescription>
@@ -91,9 +96,9 @@ export function OverviewSection({ report, from, to }: OverviewSectionProps) {
       </section>
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-        <Card className="p-6">
+        <Card>
           <CardHeader className="p-0">
-            <CardTitle className="text-xl">Gastos por categoria</CardTitle>
+            <CardTitle>Gastos por categoria</CardTitle>
             <CardDescription>
               Despesas do período, da maior para a menor.
             </CardDescription>
@@ -106,9 +111,9 @@ export function OverviewSection({ report, from, to }: OverviewSectionProps) {
         {/* Budgets at a glance — status color (good/warning/over), never
             a categorical hue, and never color alone: percentage is also
             printed as text. */}
-        <Card className="p-6">
+        <Card>
           <CardHeader className="p-0">
-            <CardTitle className="text-xl">Orçamentos</CardTitle>
+            <CardTitle>Orçamentos</CardTitle>
             <CardDescription>
               {overBudget.length > 0
                 ? `${overBudget.length} acima do limite.`
@@ -166,14 +171,12 @@ export function OverviewSection({ report, from, to }: OverviewSectionProps) {
         </Card>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <section className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         {/* Comparação com o período anterior — categories whose spending
             grew, ranked; red ink for growth in expense. */}
-        <Card className="p-6">
+        <Card>
           <CardHeader className="p-0">
-            <CardTitle className="text-xl">
-              Comparação com o período anterior
-            </CardTitle>
+            <CardTitle>Comparação com o período anterior</CardTitle>
             <CardDescription>
               Categorias que mais cresceram em valor.
             </CardDescription>
@@ -197,7 +200,7 @@ export function OverviewSection({ report, from, to }: OverviewSectionProps) {
                       </span>
                       {comparison.deltaPercent !== null && (
                         <span className="text-muted-foreground text-xs">
-                          (+{comparison.deltaPercent.toFixed(0)}%)
+                          (+{formatPercent(comparison.deltaPercent)})
                         </span>
                       )}
                     </span>
@@ -211,12 +214,11 @@ export function OverviewSection({ report, from, to }: OverviewSectionProps) {
         {/* Gastos recorrentes — share of average monthly income committed
             to active recurring expenses; status color, never a
             categorical hue, and the percentage is always printed too. */}
-        <Card className="p-6">
+        <Card>
           <CardHeader className="p-0">
-            <CardTitle className="text-xl">Gastos recorrentes</CardTitle>
+            <CardTitle>Gastos recorrentes</CardTitle>
             <CardDescription>
-              Quanto da sua renda mensal é comprometido com recorrências
-              ativas.
+              Quanto da sua renda mensal é comprometido com recorrências ativas.
             </CardDescription>
           </CardHeader>
           <CardContent className="mt-4 p-0">
@@ -227,8 +229,8 @@ export function OverviewSection({ report, from, to }: OverviewSectionProps) {
             ) : (
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between">
-                  <span className="dimension-figure text-2xl font-semibold">
-                    {report.recurringExpenseShare.percentage.toFixed(0)}%
+                  <span className="dimension-figure text-figure font-semibold">
+                    {formatPercent(report.recurringExpenseShare.percentage)}
                   </span>
                   <span className="text-muted-foreground text-xs">
                     {formatCurrency(

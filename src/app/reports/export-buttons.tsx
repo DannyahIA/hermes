@@ -1,3 +1,5 @@
+import { buttonVariants } from '@/components/ui/button';
+
 import type { ReportTab } from './report-tabs-nav';
 
 interface ExportButtonsProps {
@@ -19,13 +21,13 @@ export function ExportButtons({
     <div className="flex gap-2">
       <a
         href={`/api/reports/export?${periodQueryString}&format=csv`}
-        className="border-input bg-background hover:bg-accent rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+        className={buttonVariants({ variant: 'outline' })}
       >
         Exportar CSV
       </a>
       <a
         href={`/api/reports/export?${periodQueryString}&tab=${activeTab}&format=pdf`}
-        className="border-input bg-background hover:bg-accent rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+        className={buttonVariants({ variant: 'outline' })}
       >
         Exportar PDF
       </a>

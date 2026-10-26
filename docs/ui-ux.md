@@ -458,3 +458,20 @@ Antes de implementar qualquer tela, responder:
 - O componente pode ser reutilizado?
 
 Se alguma resposta for "não", a implementação deve ser revisada.
+
+---
+
+# Sistema visual ("Prancheta" a tinta)
+
+Monocromático, com cor reservada a significado. Referências: Sileo (contraste preto/branco, feedback em superfície invertida), Apple (uma família tipográfica, superfícies sólidas, movimento curto), Linear (sidebar discreta, um canvas de conteúdo, divisórias finas em vez de caixas). Valores em `src/app/globals.css`; componentes usam só utilitários semânticos.
+
+- **Superfícies:** janela (`--background`, sidebar e fundo) · canvas (`--card`, todo o conteúdo) · sutil (`--subtle`, cabeçalhos de tabela, hover de linha) · elevada (`--popover` + sombra, menus e diálogos) · tinta (`--inverse`, toasts e tooltips).
+- **Cor com significado fixo:** preto/branco (`--primary`) = ação principal · azul (`--ring`, `--info`) = foco, seleção, informação neutra · verde = receita/sucesso · vermelho = despesa/erro · âmbar = atenção (`text-warning-strong` para texto). Nunca só cor: valores levam sinal (+/−), estados levam ícone ou texto.
+- **Texto:** `--muted-foreground` (#666 / #a3a3a3) para metadados; `--faint-foreground` só decorativo (2,5:1 no claro).
+- **Composição:** card só para um objeto (conta, empréstimo, número principal) ou um gráfico. Listas, resumos e seções ficam abertos no canvas (`Section`), separados por divisórias. Cabeçalho de página com `PageHeader`; o título vai para o cabeçalho global quando sai da tela.
+- **Raios:** tag 6 · controle 8 · card 12 · diálogo/canvas 16.
+- **Tipografia (Inter):** 12 meta · 14 corpo · `text-heading` 15 seção · `text-figure` 20 valor secundário · `text-title` 22 título de página · `text-headline` 30 número de resumo da página · `text-display` 40 só o número principal do Início. Valores sempre com `.dimension-figure` (algarismos tabulares); percentuais com `formatPercent`.
+- **Controles:** botão 36 (sm 32, lg 40), campo 40, linha de navegação 32 (40 no drawer do celular). Foco: contorno azul de 2px.
+- **Movimento:** `--ease-out-soft`, `--duration-fast` 120ms · `--duration-base` 200ms · `--duration-slow` 320ms; só `transform`/`opacity`/cor. Diálogo vira bottom sheet abaixo de 640px. `prefers-reduced-motion` zera as transições.
+- **Feedback:** `toast()` de `shared/hooks/use-toast` (store próprio). Sileo 0.1.6 avaliado e **não adotado**: cada toast é um `<button>` com a ação ("Desfazer") num `<a href="#">` aninhado dentro dele, não há botão de fechar nem `role="alert"` para erros, e traz a dependência `motion`. A estética (tinta invertida, selo de estado colorido, entrada curta) foi trazida para o `Toaster` próprio.
+- **Assinatura:** a linha de cota (`.dimension-line`) só no herói do Início.

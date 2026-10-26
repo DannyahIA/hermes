@@ -15,6 +15,7 @@ import { CreateCategoryDialog } from '@/app/categories/create-category-dialog';
 import { AppShell } from '@/components/layout/app-shell';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { ROUTES } from '@/config/routes';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleBudgetRepository } from '@/infra/repositories/drizzle-budget.repository';
@@ -58,12 +59,7 @@ export default async function CategoriesPage({
   return (
     <AppShell>
       <div className="space-y-5">
-        <section className="flex items-center justify-between gap-3">
-          <h1 className="font-display text-2xl font-semibold tracking-tight">
-            Categorias
-          </h1>
-          <CreateCategoryDialog />
-        </section>
+        <PageHeader title="Categorias" actions={<CreateCategoryDialog />} />
 
         {hasCategories ? (
           <>
@@ -73,7 +69,7 @@ export default async function CategoriesPage({
             >
               <Link
                 href={`${ROUTES.categories}?mes=${overview.previousMonth}`}
-                className="text-muted-foreground hover:text-foreground justify-self-start"
+                className="text-muted-foreground hover:text-foreground focus-visible:outline-ring justify-self-start rounded-sm px-1 focus-visible:outline-2"
               >
                 ‹ {previousName}
               </Link>
@@ -83,7 +79,7 @@ export default async function CategoriesPage({
               {canGoNext ? (
                 <Link
                   href={`${ROUTES.categories}?mes=${nextMonth}`}
-                  className="text-muted-foreground hover:text-foreground justify-self-end"
+                  className="text-muted-foreground hover:text-foreground focus-visible:outline-ring justify-self-end rounded-sm px-1 focus-visible:outline-2"
                 >
                   {monthNameFrom(nextMonth, month)} ›
                 </Link>
@@ -96,7 +92,7 @@ export default async function CategoriesPage({
               <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
                 <div>
                   <p className="text-muted-foreground text-sm">Gasto no mês</p>
-                  <p className="dimension-figure mt-1 text-2xl font-semibold">
+                  <p className="dimension-figure text-figure mt-0.5 font-semibold">
                     {formatCurrency(overview.spent)}
                   </p>
                 </div>

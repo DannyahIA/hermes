@@ -2,6 +2,7 @@ import { BudgetProgressCard } from '@/app/budgets/budget-progress-card';
 import { CreateBudgetDialog } from '@/app/budgets/create-budget-dialog';
 import { AppShell } from '@/components/layout/app-shell';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleBudgetRepository } from '@/infra/repositories/drizzle-budget.repository';
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
@@ -31,22 +32,17 @@ export default async function BudgetsPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight">
-              Orçamentos
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Defina quanto pretende gastar em cada categoria e acompanhe seu
-              progresso ao longo do mês.
-            </p>
-          </div>
-          {categoryOptions.length > 0 ? (
-            <CreateBudgetDialog categories={categoryOptions} />
-          ) : null}
-        </section>
+        <PageHeader
+          title="Orçamentos"
+          description="Defina quanto pretende gastar em cada categoria e acompanhe seu progresso ao longo do mês."
+          actions={
+            categoryOptions.length > 0 ? (
+              <CreateBudgetDialog categories={categoryOptions} />
+            ) : undefined
+          }
+        />
 
-        <section className="grid gap-4">
+        <section>
           {progressList.length === 0 ? (
             <EmptyState
               title="Nenhum orçamento cadastrado."
@@ -62,17 +58,19 @@ export default async function BudgetsPage() {
               }
             />
           ) : (
-            progressList.map((progress) => {
-              const category = categoryById.get(progress.budget.categoryId);
-              return (
-                <BudgetProgressCard
-                  key={progress.budget.id}
-                  progress={progress}
-                  categoryName={category?.name ?? 'Categoria removida'}
-                  categoryColor={category?.color}
-                />
-              );
-            })
+            <ul className="sheet-surface divide-border divide-y">
+              {progressList.map((progress) => {
+                const category = categoryById.get(progress.budget.categoryId);
+                return (
+                  <BudgetProgressCard
+                    key={progress.budget.id}
+                    progress={progress}
+                    categoryName={category?.name ?? 'Categoria removida'}
+                    categoryColor={category?.color}
+                  />
+                );
+              })}
+            </ul>
           )}
         </section>
       </div>

@@ -24,7 +24,7 @@ interface AccountsSectionProps {
 export function AccountsSection({ accountSeries }: AccountsSectionProps) {
   if (accountSeries.length === 0) {
     return (
-      <Card className="p-6">
+      <Card>
         <EmptyState
           title="Nenhuma conta visível."
           description="Crie uma conta para acompanhar sua evolução ao longo do tempo."
@@ -35,9 +35,9 @@ export function AccountsSection({ accountSeries }: AccountsSectionProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6">
+      <Card>
         <CardHeader className="p-0">
-          <CardTitle className="text-xl">Saldo por conta</CardTitle>
+          <CardTitle>Saldo por conta</CardTitle>
           <CardDescription>
             Evolução mensal do saldo de cada conta visível.
           </CardDescription>
@@ -47,9 +47,9 @@ export function AccountsSection({ accountSeries }: AccountsSectionProps) {
         </CardContent>
       </Card>
 
-      <Card className="p-6">
+      <Card>
         <CardHeader className="p-0">
-          <CardTitle className="text-xl">Tabela de saldos</CardTitle>
+          <CardTitle>Tabela de saldos</CardTitle>
           <CardDescription>
             Mesmos dados do gráfico acima, em formato de tabela.
           </CardDescription>
@@ -78,10 +78,7 @@ export function AccountsSection({ accountSeries }: AccountsSectionProps) {
                   key={series.accountId}
                   className="border-border border-b last:border-0"
                 >
-                  <th
-                    scope="row"
-                    className="py-2 pr-4 text-left font-medium"
-                  >
+                  <th scope="row" className="py-2 pr-4 text-left font-medium">
                     {series.accountName}
                   </th>
                   {series.balanceByMonth.map((point) => (

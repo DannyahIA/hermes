@@ -72,7 +72,7 @@ export function SocialSignInButtons({
       </div>
       <div className="flex items-center gap-3">
         <div className="border-border h-px flex-1 border-t" />
-        <span className="text-muted-foreground text-xs uppercase">ou</span>
+        <span className="text-muted-foreground text-xs">ou</span>
         <div className="border-border h-px flex-1 border-t" />
       </div>
     </div>

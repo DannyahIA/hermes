@@ -3,13 +3,7 @@
 import Link from 'next/link';
 import { useOptimistic, useTransition } from 'react';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Section, SectionHeader } from '@/components/ui/section';
 import type { NewCategoryHint } from '@/modules/categories/domain/category-catalog';
 import { toast } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/lib/cn';
@@ -89,22 +83,13 @@ export function ReviewQueue({
   }
 
   return (
-    <Card className="p-6">
-      <CardHeader className="p-0">
-        <CardTitle className="flex items-baseline gap-2 text-xl">
-          Para revisar
-          {remaining > 0 && (
-            <span className="dimension-figure text-muted-foreground text-base font-normal">
-              {remaining}
-            </span>
-          )}
-        </CardTitle>
-        <CardDescription>
-          Sem categoria nos últimos 30 dias. O que você escolher passa a ser
-          sugerido nas próximas compras no mesmo lugar.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="mt-2 p-0">
+    <Section>
+      <SectionHeader
+        title="Para revisar"
+        count={remaining > 0 ? remaining : undefined}
+        description="Sem categoria nos últimos 30 dias. O que você escolher passa a ser sugerido nas próximas compras no mesmo lugar."
+      />
+      <div>
         {visible.length === 0 ? (
           <p className="text-muted-foreground mt-2 text-sm">
             Tudo classificado.
@@ -156,7 +141,7 @@ export function ReviewQueue({
             Ver todas ({remaining})
           </Link>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }
