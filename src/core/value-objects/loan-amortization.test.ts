@@ -122,6 +122,19 @@ describe('summarizeLoan', () => {
     expect(summary.remaining).toBe(0);
   });
 
+  it('never shows negative interest when the rounding lands on the last installment', () => {
+    const summary = summarizeLoan({
+      principal: 1000,
+      monthlyInterestRate: 0,
+      installmentCount: 3,
+      paidCount: 0,
+    });
+
+    expect(summary.totalInterest).toBe(0);
+    expect(summary.totalCost).toBe(1000);
+    expect(summary.remaining).toBe(1000);
+  });
+
   it('has no interest at a rate of zero', () => {
     const summary = summarizeLoan({
       principal: 1200,

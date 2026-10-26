@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { deleteLoanAction } from '@/app/loans/actions';
 import { LoanRow } from '@/app/loans/loan-card';
 import { toast } from '@/shared/hooks/use-toast';
+import { formatCurrency } from '@/shared/lib/format-currency';
 
 vi.mock('@/app/loans/actions', () => ({
   deleteLoanAction: vi.fn(async () => ({ success: true })),
@@ -20,6 +21,12 @@ const base = {
   paidCount: 3,
   currency: 'BRL',
 };
+
+/** Matches an element by its exact text, however the currency spaces it. */
+function withText(text: string) {
+  return (_content: string, element: Element | null) =>
+    element?.children.length === 0 && element.textContent === text;
+}
 
 function renderRow(props: Partial<typeof base> = {}) {
   return render(
@@ -51,8 +58,12 @@ describe('LoanRow', () => {
     expect(screen.getByText('Financiamento do carro')).toBeInTheDocument();
     expect(screen.getByText('2% ao mês')).toBeInTheDocument();
     expect(screen.getByText(/R\$\s1\.841,25/)).toBeInTheDocument();
-    expect(screen.getByText(/^Pago R\$\s/)).toBeInTheDocument();
-    expect(screen.getByText(/^Falta R\$\s/)).toBeInTheDocument();
+    expect(
+      screen.getByText(withText(`Pago ${formatCurrency(5523.75)}`)),
+    ).toBeVisible();
+    expect(
+      screen.getByText(withText(`Falta ${formatCurrency(23936.29)}`)),
+    ).toBeVisible();
     expect(screen.getByText('13 parcelas restantes')).toBeInTheDocument();
     expect(screen.getByText('3 de 16 parcelas')).toBeInTheDocument();
   });
@@ -62,7 +73,9 @@ describe('LoanRow', () => {
 
     expect(
       screen.getByText(
-        /^Custo total R\$\s29\.460,00 \(R\$\s4\.460,00 de juros\)$/,
+        withText(
+          `Custo total ${formatCurrency(29460.04)} (${formatCurrency(4460.04)} de juros)`,
+        ),
       ),
     ).toBeInTheDocument();
   });

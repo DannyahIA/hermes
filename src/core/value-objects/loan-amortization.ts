@@ -112,7 +112,7 @@ export interface LoanSummary {
   remainingCount: number;
   /** What the loan costs beyond what was borrowed. */
   totalInterest: number;
-  /** Installment × count: what is paid back in all. */
+  /** The sum of every installment: what is paid back in all. */
   totalCost: number;
 }
 
@@ -134,14 +134,16 @@ export function summarizeLoan(input: {
     round2(parts.reduce((total, part) => total + part.amount, 0));
 
   const installment = schedule[0].amount;
-  const totalCost = round2(installment * count);
+  // The schedule puts the rounding on its last installment, so the total is
+  // the sum of the parts, not installment x count.
+  const totalCost = sum(schedule);
 
   return {
     installment,
     paid: sum(schedule.slice(0, paidCount)),
     remaining: sum(schedule.slice(paidCount)),
     remainingCount: count - paidCount,
-    totalInterest: round2(totalCost - principal),
+    totalInterest: Math.max(0, round2(totalCost - principal)),
     totalCost,
   };
 }
