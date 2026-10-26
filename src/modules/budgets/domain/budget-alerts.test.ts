@@ -103,7 +103,7 @@ describe('budgetAlertFor', () => {
       expect(alert).toBeNull();
       return;
     }
-    expect(alert?.text.startsWith(text)).toBe(true);
+    expect(alert?.text).toBe(text);
     expect(alert?.claims).toEqual(claims);
   });
 
@@ -135,6 +135,12 @@ describe('budgetAlertFor', () => {
     });
     expect(alert?.text).toBe(
       `Mercado: 75% do orçamento (${brl(400)} de ${brl(500)}). No ritmo de hoje, passa do limite no fim do período.`,
+    );
+  });
+
+  it('says "1 dia", not "1 dias", when half the limit is gone on the first day', () => {
+    expect(alertFor(250, 1, [])?.text).toBe(
+      'Mercado: metade do orçamento em 1 dia. No ritmo de hoje, passa do limite dia 2. Hora de segurar um pouco.',
     );
   });
 

@@ -130,8 +130,9 @@ export function budgetAlertFor(input: BudgetAlertInput): BudgetAlert | null {
     elapsedShare < PACE_ELAPSED_SHARE &&
     !warned.has('pace')
   ) {
+    const daysGone = period.daysGoneBy(today);
     return {
-      text: `${categoryName}: metade do orçamento em ${period.daysGoneBy(today)} dias. ${projectionPhrase(limitDay, period)} Hora de segurar um pouco.`,
+      text: `${categoryName}: metade do orçamento em ${daysGone} ${daysGone === 1 ? 'dia' : 'dias'}. ${projectionPhrase(limitDay, period)} Hora de segurar um pouco.`,
       claims: ['pace'],
     };
   }
