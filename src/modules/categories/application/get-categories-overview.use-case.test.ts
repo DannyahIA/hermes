@@ -456,6 +456,38 @@ describe('GetCategoriesOverviewUseCase', () => {
     expect(overview.suggestions.archive).toEqual([]);
   });
 
+  it('does not suggest archiving a category already offered for a merge', async () => {
+    const transactions = new FakeTransactionRepository();
+    const categories = new FakeCategoryRepository();
+    await categories.save(makeCategory('mercado', 'Mercado', daysAgo(90)));
+    await categories.save(
+      makeCategory('supermercado', 'Supermercado', daysAgo(90)),
+    );
+    // Both unused for 61 days: each would be an archive suggestion on its own.
+    await transactions.save(
+      makeTransaction('m1', 'Mercado Condor', daysAgo(61), 60, {
+        categoryId: 'mercado',
+      }),
+    );
+    await transactions.save(
+      makeTransaction('s1', 'Bom Preço', daysAgo(61), 40, {
+        categoryId: 'supermercado',
+      }),
+    );
+
+    const overview = await overviewUseCase(transactions, categories).execute({
+      userId: USER_ID,
+      month: '2026-10',
+      now: NOW,
+    });
+
+    expect(overview.suggestions.merge).toHaveLength(1);
+    expect(
+      overview.suggestions.merge.flatMap((m) => [m.keepId, m.mergeId]).sort(),
+    ).toEqual(['mercado', 'supermercado']);
+    expect(overview.suggestions.archive).toEqual([]);
+  });
+
   it('has no NaN or Infinity, and a zero share, in a month without spending', async () => {
     const { get } = await buildFixture();
 

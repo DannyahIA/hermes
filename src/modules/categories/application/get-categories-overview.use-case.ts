@@ -347,6 +347,10 @@ export class GetCategoriesOverviewUseCase {
     const incomeOnly = (c: Category) =>
       earnedIds.has(c.id) && !spentIds.has(c.id);
 
+    const merge = await this.mergeSuggestions(input.userId, active);
+    // A category already offered for a merge is not also offered for archiving.
+    const mergeIds = new Set(merge.flatMap((m) => [m.keepId, m.mergeId]));
+
     return {
       month: input.month,
       previousMonth: previous.key,
@@ -375,8 +379,13 @@ export class GetCategoriesOverviewUseCase {
           transactions,
           suggestNewCategories({ transactions, categories, rules }),
         ),
-        archive: archiveSuggestions(active, transactions, progress, now),
-        merge: await this.mergeSuggestions(input.userId, active),
+        archive: archiveSuggestions(
+          active.filter((c) => !mergeIds.has(c.id)),
+          transactions,
+          progress,
+          now,
+        ),
+        merge,
       },
     };
   }
