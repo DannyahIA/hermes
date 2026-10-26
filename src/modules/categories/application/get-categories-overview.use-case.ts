@@ -150,7 +150,11 @@ function keepAndMerge(
   return a.props.createdAt <= b.props.createdAt ? [a, b] : [b, a];
 }
 
-/** The category's budget that covers the month; the latest-starting one when several do. */
+/**
+ * The category's budget that covers the month; the latest-starting one when
+ * several do. `progress` is measured on the month's first day, so a monthly
+ * budget's period is that month and a fixed one keeps its own dates.
+ */
 function budgetFor(
   categoryId: string,
   progress: BudgetProgress[],
@@ -158,19 +162,17 @@ function budgetFor(
 ): CategoryRow['budget'] {
   const covering = progress
     .filter(
-      ({ budget }) =>
+      ({ budget, period }) =>
         budget.categoryId === categoryId &&
-        budget.periodStart < current.end &&
-        budget.periodEnd >= current.start,
+        period.start < current.end &&
+        period.end >= current.start,
     )
-    .sort(
-      (a, b) => b.budget.periodStart.getTime() - a.budget.periodStart.getTime(),
-    );
+    .sort((a, b) => b.period.start.getTime() - a.period.start.getTime());
   const latest = covering[0];
   if (!latest) return null;
   return {
     spent: cents(latest.spent),
-    amount: cents(latest.budget.amount),
+    amount: cents(latest.amount),
   };
 }
 
@@ -264,7 +266,11 @@ function archiveSuggestions(
   );
   const running = new Set(
     progress
-      .filter(({ budget }) => budget.periodEnd >= now)
+      // `progress` is measured on the month shown, so a monthly budget is
+      // running whatever month that is; a fixed one until its end date.
+      .filter(
+        ({ budget, period }) => budget.kind === 'monthly' || period.end >= now,
+      )
       .map(({ budget }) => budget.categoryId),
   );
   return active
@@ -322,7 +328,7 @@ export class GetCategoriesOverviewUseCase {
       new GetBudgetProgressUseCase(
         this.budgetRepository,
         this.transactionRepository,
-      ).execute(input.userId),
+      ).execute(input.userId, current.start),
     ]);
 
     const expenses = transactions.filter((t) => t.countsAs('expense'));

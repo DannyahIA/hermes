@@ -374,6 +374,37 @@ describe('GetCategoriesOverviewUseCase', () => {
     expect(overview.rows[0].budget).toEqual({ spent: 900, amount: 1500 });
   });
 
+  it('measures a monthly budget over the month shown', async () => {
+    const { get, budgets, mercado } = await buildFixture();
+    await budgets.save(
+      new Budget({
+        id: 'budget-monthly',
+        userId: USER_ID,
+        categoryId: mercado.id,
+        amount: 1500,
+        currency: 'BRL',
+        kind: 'monthly',
+        limits: [],
+        periodStart: new Date(2026, 7, 1),
+        periodEnd: null,
+        createdAt: NOW,
+        updatedAt: NOW,
+      }),
+    );
+
+    const overview = await get.execute({
+      userId: USER_ID,
+      month: '2026-10',
+      now: NOW,
+    });
+
+    // The whole of October, not from the budget's first month on.
+    expect(overview.rows[0].budget).toEqual({
+      spent: overview.rows[0].spent,
+      amount: 1500,
+    });
+  });
+
   it('takes no row budget from a budget that ended before the month', async () => {
     const { get, budgets, mercado } = await buildFixture();
     await budgets.save(

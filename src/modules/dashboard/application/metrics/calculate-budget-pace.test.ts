@@ -30,6 +30,9 @@ function progress(
   });
   return {
     budget,
+    period: budget.periodFor(TODAY),
+    amount: budget.amountFor(TODAY),
+    running: budget.runsOn(TODAY),
     spent,
     remaining: amount - spent,
     percentage: spent / amount,
@@ -95,5 +98,39 @@ describe('calculateBudgetPace', () => {
       new Date(2026, 9, 31, 9),
     );
     expect(pace.elapsedShare).toBe(1);
+  });
+
+  it('paces a monthly budget over the month it is asked about', () => {
+    const monthly = new Budget({
+      id: 'monthly',
+      userId: 'u1',
+      categoryId: 'cat-monthly',
+      amount: 1000,
+      currency: 'BRL',
+      kind: 'monthly',
+      limits: [],
+      periodStart: new Date(2026, 7, 1),
+      periodEnd: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const [pace] = calculateBudgetPace(
+      [
+        {
+          budget: monthly,
+          period: monthly.periodFor(TODAY),
+          amount: monthly.amountFor(TODAY),
+          running: monthly.runsOn(TODAY),
+          spent: 500,
+          remaining: 500,
+          percentage: 0.5,
+        },
+      ],
+      TODAY,
+    );
+
+    expect(pace.periodStart).toEqual(new Date(2026, 9, 1));
+    expect(pace.periodEnd).toEqual(new Date(2026, 9, 31, 23, 59, 59, 999));
+    expect(pace.elapsedShare).toBeCloseTo(17 / 31);
   });
 });

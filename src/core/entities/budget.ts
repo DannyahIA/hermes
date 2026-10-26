@@ -90,11 +90,6 @@ export class Budget {
     return this.props.periodStart;
   }
 
-  /** The end of `period`: the fixed end date, or the end of a monthly one's first month. */
-  get periodEnd() {
-    return this.period.end;
-  }
-
   /** Whether the budget is in force on `date`. */
   runsOn(date: Date): boolean {
     if (this.kind === 'fixed') return this.period.contains(date);

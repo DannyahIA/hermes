@@ -55,14 +55,10 @@ export function calculateBudgetPace(
   today: Date,
 ): BudgetPace[] {
   return progress
-    .filter(({ budget }) => budget.period.contains(today))
-    .map(({ budget, spent }) => {
-      const spentShare = spent / budget.amount;
-      const elapsedShare = elapsedShareOf(
-        budget.periodStart,
-        budget.periodEnd,
-        today,
-      );
+    .filter(({ running }) => running)
+    .map(({ budget, period, amount, spent }) => {
+      const spentShare = spent / amount;
+      const elapsedShare = elapsedShareOf(period.start, period.end, today);
       const status: BudgetPaceStatus =
         spentShare > 1
           ? 'over'
@@ -74,13 +70,13 @@ export function calculateBudgetPace(
         budgetId: budget.id,
         categoryId: budget.categoryId,
         spent,
-        amount: budget.amount,
+        amount,
         currency: budget.currency,
         spentShare,
         elapsedShare,
         status,
-        periodStart: budget.periodStart,
-        periodEnd: budget.periodEnd,
+        periodStart: period.start,
+        periodEnd: period.end,
       };
     })
     .sort(

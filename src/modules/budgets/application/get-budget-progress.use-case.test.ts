@@ -128,4 +128,115 @@ describe('GetBudgetProgressUseCase', () => {
     expect(progress.spent).toBe(600);
     expect(progress.remaining).toBe(-100);
   });
+  describe('a budget asked about on a given day', () => {
+    function expense(id: string, amount: number, occurredAt: Date) {
+      return new Transaction({
+        id,
+        accountId: 'acc-1',
+        categoryId: 'mercado',
+        description: 'Mercado',
+        amount,
+        type: 'expense',
+        occurredAt,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    function budget(
+      overrides: Partial<ConstructorParameters<typeof Budget>[0]>,
+    ) {
+      return new Budget({
+        id: 'budget-1',
+        userId: USER_ID,
+        categoryId: 'mercado',
+        amount: 500,
+        currency: 'BRL',
+        kind: 'monthly',
+        limits: [],
+        periodStart: new Date(2026, 8, 1),
+        periodEnd: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...overrides,
+      });
+    }
+
+    async function setup(budgets: Budget[]) {
+      const budgetRepository = new FakeBudgetRepository();
+      for (const b of budgets) await budgetRepository.save(b);
+      const transactionRepository = new FakeTransactionRepository();
+      await transactionRepository.save(
+        expense('sep', 200, new Date(2026, 8, 30, 12)),
+      );
+      await transactionRepository.save(
+        expense('oct-1', 120, new Date(2026, 9, 2, 12)),
+      );
+      await transactionRepository.save(
+        expense('oct-2', 80, new Date(2026, 9, 20, 12)),
+      );
+      return new GetBudgetProgressUseCase(
+        budgetRepository,
+        transactionRepository,
+      );
+    }
+
+    it('counts a monthly budget from the 1st of the month asked for', async () => {
+      const useCase = await setup([budget({})]);
+
+      const [october] = await useCase.execute(USER_ID, new Date(2026, 9, 26));
+      expect(october.spent).toBe(200);
+      expect(october.period.start).toEqual(new Date(2026, 9, 1));
+      expect(october.running).toBe(true);
+
+      const [september] = await useCase.execute(USER_ID, new Date(2026, 8, 15));
+      expect(september.spent).toBe(200);
+      expect(september.period.start).toEqual(new Date(2026, 8, 1));
+    });
+
+    it('uses the limit in force on the day asked for', async () => {
+      const useCase = await setup([
+        budget({
+          amount: 800,
+          limits: [
+            { startsOn: new Date(2026, 8, 1), amount: 500 },
+            { startsOn: new Date(2026, 9, 1), amount: 800 },
+          ],
+        }),
+      ]);
+
+      const [september] = await useCase.execute(USER_ID, new Date(2026, 8, 15));
+      const [october] = await useCase.execute(USER_ID, new Date(2026, 9, 26));
+
+      expect(september.amount).toBe(500);
+      expect(october.amount).toBe(800);
+      expect(october.remaining).toBe(600);
+      expect(october.percentage).toBe(0.25);
+    });
+
+    it('lists a fixed budget that ended, not running, over its own dates', async () => {
+      const useCase = await setup([
+        budget({
+          kind: 'fixed',
+          periodStart: new Date(2026, 8, 1),
+          periodEnd: new Date(2026, 8, 30, 23, 59, 59, 999),
+        }),
+      ]);
+
+      const [ended] = await useCase.execute(USER_ID, new Date(2026, 9, 26));
+
+      expect(ended.running).toBe(false);
+      expect(ended.spent).toBe(200);
+      expect(ended.period.end).toEqual(new Date(2026, 8, 30, 23, 59, 59, 999));
+    });
+
+    it('defaults to today', async () => {
+      const useCase = await setup([
+        budget({ periodStart: new Date(2020, 0, 1) }),
+      ]);
+      const [progress] = await useCase.execute(USER_ID);
+      expect(progress.running).toBe(true);
+      expect(progress.period.contains(new Date())).toBe(true);
+    });
+  });
 });

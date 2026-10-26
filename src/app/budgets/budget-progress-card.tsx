@@ -25,7 +25,7 @@ export function BudgetProgressCard({
   categoryName,
   categoryColor,
 }: BudgetProgressCardProps) {
-  const { budget, spent, percentage } = progress;
+  const { budget, amount, spent, percentage } = progress;
   const clampedPercentage = Math.min(Math.max(percentage, 0), 1) * 100;
 
   return (
@@ -43,7 +43,8 @@ export function BudgetProgressCard({
             {categoryName}
           </p>
           <p className="text-muted-foreground text-xs">
-            {formatDate(budget.periodStart)} – {formatDate(budget.periodEnd)}
+            {formatDate(progress.period.start)} –{' '}
+            {formatDate(progress.period.end)}
           </p>
         </div>
       </div>
@@ -53,7 +54,7 @@ export function BudgetProgressCard({
           <span className="dimension-figure whitespace-nowrap">
             {formatCurrency(spent, budget.currency)}{' '}
             <span className="text-muted-foreground">
-              de {formatCurrency(budget.amount, budget.currency)}
+              de {formatCurrency(amount, budget.currency)}
             </span>
           </span>
           <span className="text-muted-foreground dimension-figure">

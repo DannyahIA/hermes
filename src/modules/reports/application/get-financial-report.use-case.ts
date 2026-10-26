@@ -128,7 +128,7 @@ export class GetFinancialReportUseCase {
       new GetBudgetProgressUseCase(
         this.budgetRepository,
         this.transactionRepository,
-      ).execute(userId),
+      ).execute(userId, period.to),
       this.recurringTransactionRepository.findByUserId(userId),
       // No upper bound: net worth is walked back from today's balance (see
       // netWorthFetchRange).

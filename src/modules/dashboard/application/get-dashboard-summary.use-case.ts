@@ -150,7 +150,7 @@ export class GetDashboardSummaryUseCase {
       new GetBudgetProgressUseCase(
         this.budgetRepository,
         this.transactionRepository,
-      ).execute(userId),
+      ).execute(userId, now),
       this.recurringTransactionRepository.findByUserId(userId),
       this.categoryRepository.findByUserId(userId),
       this.merchantRuleRepository.findByUserId(userId),

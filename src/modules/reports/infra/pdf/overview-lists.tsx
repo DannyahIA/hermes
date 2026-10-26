@@ -127,7 +127,7 @@ export function BudgetMeters({
   ];
   return (
     <View>
-      {ordered.map(({ budget, spent, percentage }) => (
+      {ordered.map(({ budget, amount, spent, percentage }) => (
         <View
           key={budget.id}
           wrap={false}
@@ -146,7 +146,7 @@ export function BudgetMeters({
             </Text>
             <Text style={[styles.figure, { color: INK.graphite }]}>
               {formatCurrency(spent, budget.currency)} de{' '}
-              {formatCurrency(budget.amount, budget.currency)}
+              {formatCurrency(amount, budget.currency)}
             </Text>
             <Text
               style={[

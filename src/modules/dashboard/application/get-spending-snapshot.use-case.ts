@@ -51,7 +51,7 @@ export class GetSpendingSnapshotUseCase {
         new GetBudgetProgressUseCase(
           this.budgetRepository,
           this.transactionRepository,
-        ).execute(userId),
+        ).execute(userId, now),
       ]);
 
     return {

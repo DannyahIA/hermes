@@ -137,12 +137,12 @@ export function OverviewSection({ report, from, to }: OverviewSectionProps) {
             ) : (
               <div className="space-y-4">
                 {[...overBudget, ...withinBudget].map(
-                  ({ budget, percentage, spent }) => (
+                  ({ budget, amount, percentage, spent }) => (
                     <div key={budget.id} className="dimension-row block">
                       <div className="mb-2 flex items-center justify-between text-sm">
                         <span className="dimension-figure">
                           {formatCurrency(spent, budget.currency)} /{' '}
-                          {formatCurrency(budget.amount, budget.currency)}
+                          {formatCurrency(amount, budget.currency)}
                         </span>
                         <span className="text-muted-foreground dimension-figure">
                           {Math.round(percentage * 100)}%
