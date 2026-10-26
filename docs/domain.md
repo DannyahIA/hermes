@@ -205,6 +205,19 @@ Não é persistido.
 - Um orçamento vale para dias inteiros: do começo do primeiro dia ao fim do último.
 - O ritmo compara o quanto já foi gasto com o quanto do período já passou. Até 10 pontos acima
   do calendário ainda conta como "no ritmo"; acima do limite, o orçamento está estourado.
+- Um orçamento é mensal (recomeça todo mês, o padrão) ou por prazo (vale de uma data a outra).
+- Mudar o limite de um orçamento mensal vale do mês corrente em diante; os meses anteriores
+  ficam como eram.
+- O Hermes avisa quando o gasto chega a 75%, 90%, 95% e 100% do limite, e a cada compra acima
+  do limite, dizendo quanto passou. Exatamente no limite é "No limite"; só acima dele é
+  "Passou do limite".
+- Cada etapa (75, 90, 95, 100) avisa uma vez por período. Se o gasto voltar a ficar abaixo dela
+  (uma compra desfeita, um limite maior), a etapa é re-armada e avisa de novo ao chegar lá.
+- O aviso de ritmo aparece quando metade do limite foi gasta antes da metade do período, e
+  também vale uma vez por período, re-armado se o gasto cair abaixo de metade do limite.
+- Os avisos chegam pelo Telegram, quando há um chat ligado; sem chat, aparecem só no app.
+- Editar uma transação só avisa quando o valor aumenta ou a categoria ou a data mudam; corrigir
+  a descrição, por exemplo, não repete o aviso.
 
 ---
 

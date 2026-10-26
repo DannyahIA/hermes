@@ -16,7 +16,7 @@ export async function BudgetsTab({
 }: {
   userId: string;
   now: Date;
-  /** What the card installments add up to this month. */
+  /** What the card and loan installments add up to this month. */
   installmentsThisMonth: number;
 }) {
   const [categories, progressList] = await Promise.all([

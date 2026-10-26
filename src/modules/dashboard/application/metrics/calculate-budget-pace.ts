@@ -3,6 +3,7 @@ import {
   elapsedShareOf,
   isAheadOfPace,
 } from '@/modules/budgets/domain/budget-pace';
+import { limitState } from '@/modules/budgets/domain/limit-state';
 
 export type BudgetPaceStatus = 'on-pace' | 'ahead' | 'over';
 
@@ -44,7 +45,7 @@ export function calculateBudgetPace(
       const spentShare = spent / amount;
       const elapsedShare = elapsedShareOf(period, today);
       const status: BudgetPaceStatus =
-        spentShare > 1
+        limitState(spent, amount) === 'over'
           ? 'over'
           : isAheadOfPace(spentShare, elapsedShare)
             ? 'ahead'

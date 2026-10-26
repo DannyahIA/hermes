@@ -106,7 +106,7 @@ describe('BudgetRow', () => {
 
     rerender(
       <ul>
-        <BudgetRow {...base} spent={500} status="over" limitDay={undefined} />
+        <BudgetRow {...base} spent={500} status="at" limitDay={undefined} />
       </ul>,
     );
     expect(figure()).toHaveClass('text-destructive');
@@ -128,10 +128,11 @@ describe('BudgetRow', () => {
     );
   });
 
-  it('says only "Passou do limite" at exactly the limit, with no stage or overage', () => {
-    renderRow({ spent: 500, status: 'over', limitDay: undefined });
+  it('says "No limite" at exactly the limit, red, with no stage or overage', () => {
+    renderRow({ spent: 500, status: 'at', limitDay: undefined });
 
-    expect(screen.getByText('Passou do limite')).toBeInTheDocument();
+    expect(screen.getByText('No limite')).toBeInTheDocument();
+    expect(screen.queryByText('Passou do limite')).not.toBeInTheDocument();
     expect(screen.queryByText(/^Passou de /)).not.toBeInTheDocument();
     expect(screen.queryByText(/acima$/)).not.toBeInTheDocument();
     expect(screen.getByText('R$ 500,00 de R$ 500,00')).toHaveClass(

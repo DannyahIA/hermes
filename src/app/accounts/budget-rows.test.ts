@@ -140,7 +140,7 @@ describe('buildBudgetRows', () => {
 });
 
 describe('buildBudgetRows at the limit', () => {
-  it('counts a budget at exactly 100% as over, sorted with the blown ones', () => {
+  it('gives a budget at exactly 100% its own "at" status, sorted with the blown ones', () => {
     const { running } = buildBudgetRows(
       [
         progress('mercado', 400, 500),
@@ -153,7 +153,7 @@ describe('buildBudgetRows at the limit', () => {
 
     expect(running.map((row) => [row.budgetId, row.status])).toEqual([
       ['viagem', 'over'],
-      ['lazer', 'over'],
+      ['lazer', 'at'],
       ['mercado', 'ahead'],
     ]);
     expect(running[1]?.limitDay).toBeUndefined();

@@ -7,6 +7,7 @@ import { deleteBudgetAction } from '@/app/budgets/actions';
 import { ChangeBudgetLimitDialog } from '@/app/budgets/change-budget-limit-dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Menu, MenuItem } from '@/components/ui/menu';
+import { limitState } from '@/modules/budgets/domain/limit-state';
 import type { BudgetPaceStatus } from '@/modules/dashboard/application/metrics/calculate-budget-pace';
 import { toast } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/lib/cn';
@@ -24,16 +25,18 @@ export interface BudgetRowProps {
   spent: number;
   amount: number;
   currency?: string;
-  status: BudgetPaceStatus | 'ended';
+  /** "at" is exactly the limit; the pace calculation only says "over" past it. */
+  status: BudgetPaceStatus | 'at' | 'ended';
   /** The day of the month spending reaches the limit, formatted on the server. */
   limitDay?: string;
 }
 
 const STAGES = [100, 95, 90, 75] as const;
 
-const PACE_LABELS: Record<BudgetPaceStatus, string> = {
+const PACE_LABELS: Record<BudgetPaceStatus | 'at', string> = {
   'on-pace': 'No ritmo',
   ahead: 'Acima do ritmo',
+  at: 'No limite',
   over: 'Passou do limite',
 };
 
@@ -42,8 +45,9 @@ function stageReached(share: number): number | null {
 }
 
 /** Colour comes from the share spent, never from the pace. */
-function tone(share: number) {
-  if (share >= 1) return { text: 'text-destructive', bar: 'bg-destructive' };
+function tone(share: number, state: ReturnType<typeof limitState>) {
+  if (state !== 'under')
+    return { text: 'text-destructive', bar: 'bg-destructive' };
   if (share >= 0.75) {
     return { text: 'text-warning-strong', bar: 'bg-warning-strong' };
   }
@@ -69,9 +73,10 @@ export function BudgetRow({
   const [deleting, setDeleting] = useState(false);
 
   const share = amount > 0 ? spent / amount : 0;
-  const colours = tone(share);
+  const state = limitState(spent, amount);
+  const colours = tone(share, state);
   // Once the limit is reached the pace label says so; a stage would repeat it.
-  const stage = share < 1 ? stageReached(share) : null;
+  const stage = state === 'under' ? stageReached(share) : null;
   const pace = status === 'ended' ? null : PACE_LABELS[status];
   const filled = Math.min(Math.max(share, 0), 1) * 100;
 
@@ -152,7 +157,7 @@ export function BudgetRow({
         <p className="text-muted-foreground mt-1.5 flex flex-wrap gap-x-3 text-xs">
           {stage && <span>{`Passou de ${stage}%`}</span>}
           {pace && <span>{pace}</span>}
-          {share > 1 && (
+          {state === 'over' && (
             <span className="dimension-figure">{`${formatCurrency(spent - amount, currency)} acima`}</span>
           )}
           {limitDay && <span>{`Estoura dia ${limitDay}`}</span>}

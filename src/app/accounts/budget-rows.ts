@@ -1,16 +1,16 @@
 import type { BudgetRowProps } from '@/app/budgets/budget-row';
 import type { BudgetProgress } from '@/modules/budgets/application/get-budget-progress.use-case';
 import { projectedLimitDay } from '@/modules/budgets/domain/budget-alerts';
-import {
-  type BudgetPaceStatus,
-  calculateBudgetPace,
-} from '@/modules/dashboard/application/metrics/calculate-budget-pace';
+import { limitState } from '@/modules/budgets/domain/limit-state';
+import { calculateBudgetPace } from '@/modules/dashboard/application/metrics/calculate-budget-pace';
 import { formatCurrency } from '@/shared/lib/format-currency';
 
-const STATUS_ORDER: Record<BudgetPaceStatus, number> = {
+const STATUS_ORDER: Record<BudgetRowProps['status'], number> = {
   over: 0,
+  at: 0,
   ahead: 1,
   'on-pace': 2,
+  ended: 3,
 };
 
 interface CategoryLook {
@@ -47,7 +47,7 @@ export function buildBudgetRows(
     const category = categoryById.get(budget.categoryId);
     const running = status !== 'ended';
     const limitDay =
-      running && spent < amount
+      running && limitState(spent, amount) === 'under'
         ? projectedLimitDay(amount, spent, period, today)?.getDate()
         : undefined;
 
@@ -68,19 +68,18 @@ export function buildBudgetRows(
     };
   }
 
-  // Reaching the limit is "over" for the label and for the order alike,
-  // though the pace calculation only says so once spending passes it.
+  // Reaching the limit is "at" for the label and sorts with the blown ones,
+  // though the pace calculation only says "over" once spending passes it.
   const running = calculateBudgetPace(progressList, today)
     .flatMap((pace) => {
       const progress = progressById.get(pace.budgetId);
       if (!progress) return [];
-      const reached = progress.spent >= progress.amount;
-      return [rowOf(progress, reached ? 'over' : pace.status)];
+      const atLimit = limitState(progress.spent, progress.amount) === 'at';
+      return [rowOf(progress, atLimit ? 'at' : pace.status)];
     })
     .sort(
       (a, b) =>
-        STATUS_ORDER[a.status as BudgetPaceStatus] -
-          STATUS_ORDER[b.status as BudgetPaceStatus] ||
+        STATUS_ORDER[a.status] - STATUS_ORDER[b.status] ||
         b.spent / b.amount - a.spent / a.amount,
     );
 
