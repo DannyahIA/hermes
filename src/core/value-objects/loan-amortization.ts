@@ -101,3 +101,47 @@ export function calculatePriceInstallments(input: {
 
   return schedule;
 }
+
+export interface LoanSummary {
+  /** The fixed monthly installment. */
+  installment: number;
+  /** Sum of the installments already paid. */
+  paid: number;
+  /** Sum of the installments still to pay. */
+  remaining: number;
+  remainingCount: number;
+  /** What the loan costs beyond what was borrowed. */
+  totalInterest: number;
+  /** Installment × count: what is paid back in all. */
+  totalCost: number;
+}
+
+/**
+ * What a loan costs, what is paid and what is left, from the same schedule
+ * the breakdown shows. Nothing here is stored, and no taxes or fees are
+ * counted: only the principal and the monthly rate are known.
+ */
+export function summarizeLoan(input: {
+  principal: number;
+  monthlyInterestRate: number;
+  installmentCount: number;
+  paidCount: number;
+}): LoanSummary {
+  const { principal, installmentCount: count } = input;
+  const schedule = calculatePriceInstallments(input);
+  const paidCount = Math.min(Math.max(Math.trunc(input.paidCount), 0), count);
+  const sum = (parts: AmortizationInstallment[]) =>
+    round2(parts.reduce((total, part) => total + part.amount, 0));
+
+  const installment = schedule[0].amount;
+  const totalCost = round2(installment * count);
+
+  return {
+    installment,
+    paid: sum(schedule.slice(0, paidCount)),
+    remaining: sum(schedule.slice(paidCount)),
+    remainingCount: count - paidCount,
+    totalInterest: round2(totalCost - principal),
+    totalCost,
+  };
+}
