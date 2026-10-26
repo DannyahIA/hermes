@@ -8,8 +8,8 @@ import type { ChatUnitOfWork } from './chat-dependencies';
  * sent right after the purchase's. The check — which also marks each stage as
  * told — runs inside the unit of work; the chat is spoken to once that is
  * kept. Without a connected chat nothing is said, and the lines are still
- * returned. A chat that can't be reached never fails the purchase: logs carry
- * ids, never what was spent.
+ * returned. Neither a chat that can't be reached nor a check that fails ever
+ * fails the purchase: logs carry ids, never what was spent.
  */
 export class AnnounceBudgetAlertsUseCase {
   constructor(
@@ -25,20 +25,32 @@ export class AnnounceBudgetAlertsUseCase {
     if (input.transactionIds.length === 0) return [];
     const now = input.now ?? new Date();
 
-    const { lines, chatId } = await this.run(async (deps) => {
-      const link = await deps.chatLinks.findActiveByUserId(input.userId);
-      const lines = await new CheckBudgetAlertsUseCase(
-        deps.transactions,
-        deps.budgets,
-        deps.categories,
-        deps.budgetAlerts,
-      ).execute({
-        userId: input.userId,
-        transactionIds: input.transactionIds,
-        now,
+    let checked: { lines: string[]; chatId?: string };
+    try {
+      checked = await this.run(async (deps) => {
+        const link = await deps.chatLinks.findActiveByUserId(input.userId);
+        const lines = await new CheckBudgetAlertsUseCase(
+          deps.transactions,
+          deps.budgets,
+          deps.categories,
+          deps.budgetAlerts,
+        ).execute({
+          userId: input.userId,
+          transactionIds: input.transactionIds,
+          now,
+        });
+        return { lines, chatId: link?.externalChatId };
       });
-      return { lines, chatId: link?.externalChatId };
-    });
+    } catch (error) {
+      // The purchase is kept and its message told; a warning that couldn't
+      // be worked out is missed, not a reason to fail what came before it.
+      console.error(
+        `budget alert check of ${input.transactionIds.join(', ')} failed:`,
+        error instanceof Error ? error.message : 'unknown error',
+      );
+      return [];
+    }
+    const { lines, chatId } = checked;
 
     if (lines.length > 0 && chatId) {
       try {

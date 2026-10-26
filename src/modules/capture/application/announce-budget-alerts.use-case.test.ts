@@ -162,4 +162,24 @@ describe('announcing a budget stage in the chat', () => {
     expect(log.mock.calls[0].join(' ')).not.toMatch(/80|75%/);
     log.mockRestore();
   });
+  it('returns no lines and logs only ids when the check itself fails', async () => {
+    await link();
+    await purchase('t1', 80);
+    world.deps.budgetAlerts.warned = async () => {
+      throw new Error('database down');
+    };
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const lines = await announce.execute({
+      userId: USER_ID,
+      transactionIds: ['t1'],
+      now: NOW,
+    });
+
+    expect(lines).toEqual([]);
+    expect(channel.sent).toEqual([]);
+    expect(log).toHaveBeenCalledOnce();
+    expect(log.mock.calls[0].join(' ')).toContain('t1');
+    log.mockRestore();
+  });
 });

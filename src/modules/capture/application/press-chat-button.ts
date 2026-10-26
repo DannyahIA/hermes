@@ -200,7 +200,7 @@ export async function pressChatButton(
         deps.transactions,
         deps.accounts,
       ).execute({ userId, transactionId: transaction.id, accountId: target });
-      return { ...(await current()), touched: [transaction.id] };
+      return current();
     }
 
     case 'installments': {

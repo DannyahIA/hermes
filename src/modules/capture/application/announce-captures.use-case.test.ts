@@ -385,5 +385,27 @@ describe('announcing captured payments in the chat', () => {
       expect(String(log.mock.calls[0])).not.toMatch(/23[,.]9/);
       log.mockRestore();
     });
+
+    it('does not fail the announcement when the alert check fails', async () => {
+      await mercadoAt30();
+      const captureId = await capture();
+      world.deps.budgetAlerts.warned = async () => {
+        throw new Error('database down');
+      };
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await announce.execute({
+        userId: USER_ID,
+        captureIds: [captureId],
+        now: NOW,
+      });
+
+      expect(channel.sent).toHaveLength(1);
+      expect(
+        (await world.deps.captureEvents.findById(captureId))?.chatMessageId,
+      ).toBe(channel.sent[0].messageId);
+      expect(log).toHaveBeenCalledOnce();
+      log.mockRestore();
+    });
   });
 });

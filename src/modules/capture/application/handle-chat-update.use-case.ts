@@ -248,6 +248,7 @@ export class HandleChatUpdateUseCase {
     if (outcome.announce) {
       await this.announcer.execute({ ...outcome.announce, now });
     }
+    await this.channel.answerButton(update.buttonQueryId, outcome.notice);
     if (outcome.touched && outcome.userId) {
       await this.budgetAlerts.execute({
         userId: outcome.userId,
@@ -255,6 +256,5 @@ export class HandleChatUpdateUseCase {
         now,
       });
     }
-    await this.channel.answerButton(update.buttonQueryId, outcome.notice);
   }
 }

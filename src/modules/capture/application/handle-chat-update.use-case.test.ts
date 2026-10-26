@@ -626,12 +626,12 @@ describe('talking with Hermes in the chat', () => {
   describe('budget alerts', () => {
     const SEVENTY_FIVE = /^Mercado: 75% do orçamento/;
 
-    async function mercadoBudget(amount: number) {
+    async function mercadoBudget(amount: number, categoryId = MERCADO) {
       await world.deps.budgets.save(
         new Budget({
           id: id(40),
           userId: USER_ID,
-          categoryId: MERCADO,
+          categoryId,
           amount,
           currency: 'BRL',
           kind: 'monthly',
@@ -703,6 +703,58 @@ describe('talking with Hermes in the chat', () => {
 
       expect((await transactionOf(captureId))?.categoryId).toBe(MERCADO);
       expect(channel.answered).toHaveLength(1);
+      log.mockRestore();
+    });
+
+    it('alerts when "＋ Saúde" files a purchase that crosses a stage', async () => {
+      const saude = id(12);
+      await world.deps.categories.save(category(saude, 'Saúde'));
+      await mercadoBudget(30, saude);
+      const { captureId, messageId } = await announced({
+        merchant: 'DROGASIL 24H',
+      });
+      expect(channel.sent).toHaveLength(1);
+
+      await tap({ kind: 'new-category', captureId, key: 'saude' }, messageId);
+
+      expect((await transactionOf(captureId))?.categoryId).toBe(saude);
+      expect(channel.sent).toHaveLength(2);
+      expect(channel.sent[1].text).toMatch(/^Saúde: 75% do orçamento/);
+    });
+
+    it('says nothing when the purchase only moves to the other account', async () => {
+      await mercadoBudget(20);
+      const { captureId, messageId } = await announced();
+      await tap(
+        { kind: 'category', captureId, categoryId: MERCADO },
+        messageId,
+      );
+      expect(channel.sent).toHaveLength(2);
+      expect(channel.sent[1].text).toContain('acima do orçamento');
+
+      await tap({ kind: 'switch-account', captureId }, messageId);
+
+      expect((await transactionOf(captureId))?.accountId).toBe(CONTA);
+      expect(channel.sent).toHaveLength(2);
+    });
+
+    it('still answers the tap when the alert check fails', async () => {
+      await mercadoBudget(30);
+      const { captureId, messageId } = await announced();
+      world.deps.budgetAlerts.warned = async () => {
+        throw new Error('database down');
+      };
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await tap(
+        { kind: 'category', captureId, categoryId: MERCADO },
+        messageId,
+      );
+
+      expect((await transactionOf(captureId))?.categoryId).toBe(MERCADO);
+      expect(channel.answered).toHaveLength(1);
+      expect(channel.sent).toHaveLength(1);
+      expect(log).toHaveBeenCalledOnce();
       log.mockRestore();
     });
 
