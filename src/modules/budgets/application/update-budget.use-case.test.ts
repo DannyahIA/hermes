@@ -33,4 +33,32 @@ describe('UpdateBudgetUseCase', () => {
     expect(updated.props.periodEnd).toBeNull();
     expect(updated.kind).toBe('monthly');
   });
+
+  it('ignores an end date given for a monthly budget', async () => {
+    const repository = new FakeBudgetRepository();
+    await repository.save(
+      new Budget({
+        id: 'budget-1',
+        userId: 'user-1',
+        categoryId: 'mercado',
+        amount: 500,
+        currency: 'BRL',
+        kind: 'monthly',
+        limits: [],
+        periodStart: new Date(2026, 8, 1),
+        periodEnd: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+
+    const updated = await new UpdateBudgetUseCase(repository).execute({
+      id: 'budget-1',
+      userId: 'user-1',
+      periodEnd: new Date(2026, 8, 30),
+    });
+
+    expect(updated.props.periodEnd).toBeNull();
+    expect((await repository.findById('budget-1'))?.props.periodEnd).toBeNull();
+  });
 });

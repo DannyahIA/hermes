@@ -20,9 +20,10 @@ describe('CreateBudgetDialog', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: 'Criar mais um orçamento' }),
     );
+    fireEvent.click(screen.getByRole('radio', { name: 'Por prazo' }));
 
-    const startInput = screen.getByLabelText('Início do período');
-    const endInput = screen.getByLabelText('Fim do período');
+    const startInput = screen.getByLabelText('De');
+    const endInput = screen.getByLabelText('Até');
     fireEvent.change(startInput, { target: { value: '2026-08-01' } });
     fireEvent.change(endInput, { target: { value: '2026-08-31' } });
 
@@ -33,5 +34,23 @@ describe('CreateBudgetDialog', () => {
     await waitFor(() => expect(amountInput).toHaveValue(null));
     expect(startInput).toHaveValue('2026-08-01');
     expect(endInput).toHaveValue('2026-08-31');
+  });
+
+  it('asks for dates only when "Por prazo" is chosen', () => {
+    render(<CreateBudgetDialog categories={CATEGORIES} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Novo orçamento' }));
+
+    expect(screen.getByRole('radio', { name: 'Todo mês' })).toBeChecked();
+    expect(screen.queryByLabelText('De')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Até')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Por prazo' }));
+
+    expect(screen.getByLabelText('De')).toBeRequired();
+    expect(screen.getByLabelText('Até')).toBeRequired();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Todo mês' }));
+
+    expect(screen.queryByLabelText('De')).not.toBeInTheDocument();
   });
 });

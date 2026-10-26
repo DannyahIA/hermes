@@ -26,7 +26,11 @@ export class UpdateBudgetUseCase {
       amount: input.amount ?? budget.amount,
       currency: input.currency ?? budget.currency,
       periodStart: input.periodStart ?? budget.periodStart,
-      periodEnd: input.periodEnd ?? budget.props.periodEnd,
+      // A monthly budget never ends, whatever the caller sends.
+      periodEnd:
+        budget.kind === 'monthly'
+          ? null
+          : (input.periodEnd ?? budget.props.periodEnd),
       updatedAt: new Date(),
     });
 

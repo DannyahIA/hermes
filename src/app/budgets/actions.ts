@@ -3,17 +3,20 @@
 import { randomUUID } from 'node:crypto';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 
 import { ROUTES } from '@/config/routes';
 import { DomainError } from '@/core/errors/domain-error';
 import { requireCurrentUserId } from '@/infra/auth/session';
 import { DrizzleBudgetRepository } from '@/infra/repositories/drizzle-budget.repository';
 import { DrizzleCategoryRepository } from '@/infra/repositories/drizzle-category.repository';
+import { ChangeBudgetLimitUseCase } from '@/modules/budgets/application/change-budget-limit.use-case';
 import { CreateBudgetUseCase } from '@/modules/budgets/application/create-budget.use-case';
 import { DeleteBudgetUseCase } from '@/modules/budgets/application/delete-budget.use-case';
 import { UpdateBudgetUseCase } from '@/modules/budgets/application/update-budget.use-case';
 import { createBudgetSchema } from '@/modules/budgets/schemas/create-budget.schema';
 import { updateBudgetSchema } from '@/modules/budgets/schemas/update-budget.schema';
+import { revalidateMoneyPages } from '@/shared/server/revalidate-money-pages';
 
 export interface ActionResult {
   success: boolean;
@@ -33,6 +36,7 @@ export async function createBudgetAction(
     categoryId: formData.get('categoryId'),
     amount: formData.get('amount'),
     currency: formData.get('currency'),
+    kind: formData.get('kind') ?? undefined,
     periodStart: formData.get('periodStart'),
     periodEnd: formData.get('periodEnd'),
   });
@@ -101,6 +105,39 @@ export async function deleteBudgetAction(id: string): Promise<ActionResult> {
 
     revalidatePath(ROUTES.budgets);
     revalidatePath(ROUTES.dashboard);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: toUserMessage(error) };
+  }
+}
+
+const changeBudgetLimitSchema = z.object({
+  budgetId: z.uuid('Orçamento inválido.'),
+  amount: z
+    .number('Informe um valor de orçamento maior que zero.')
+    .positive('Informe um valor de orçamento maior que zero.'),
+});
+
+/** A monthly budget uses the new limit from this month on; past months keep theirs. */
+export async function changeBudgetLimitAction(
+  budgetId: string,
+  amount: number,
+): Promise<ActionResult> {
+  const parsed = changeBudgetLimitSchema.safeParse({ budgetId, amount });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? 'Dados inválidos.',
+    };
+  }
+
+  try {
+    const userId = await requireCurrentUserId();
+    const useCase = new ChangeBudgetLimitUseCase(new DrizzleBudgetRepository());
+    await useCase.execute({ userId, ...parsed.data, now: new Date() });
+
+    revalidateMoneyPages();
     return { success: true };
   } catch (error) {
     return { success: false, error: toUserMessage(error) };

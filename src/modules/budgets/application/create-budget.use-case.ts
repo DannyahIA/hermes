@@ -1,7 +1,9 @@
 import type { BudgetRepository } from '@/core/contracts/budget-repository';
 import type { CategoryRepository } from '@/core/contracts/category-repository';
-import { Budget } from '@/core/entities/budget';
+import { Budget, type BudgetKind } from '@/core/entities/budget';
 import { NotFoundError } from '@/core/errors/not-found-error';
+import { ValidationError } from '@/core/errors/validation-error';
+import { DateRange } from '@/core/value-objects/date-range';
 
 export interface CreateBudgetInput {
   id: string;
@@ -9,8 +11,12 @@ export interface CreateBudgetInput {
   categoryId: string;
   amount: number;
   currency: string;
-  periodStart: Date;
-  periodEnd: Date;
+  kind: BudgetKind;
+  /** Only for `fixed`; a monthly budget starts this month and has no end. */
+  periodStart?: Date;
+  periodEnd?: Date;
+  /** Defaults to the present; the month a monthly budget starts in. */
+  now?: Date;
 }
 
 export class CreateBudgetUseCase {
@@ -26,12 +32,24 @@ export class CreateBudgetUseCase {
       throw new NotFoundError('Category', input.categoryId);
     }
 
+    const { now = new Date(), periodStart, periodEnd, ...rest } = input;
+
+    if (input.kind === 'fixed' && (!periodStart || !periodEnd)) {
+      throw new ValidationError(
+        'A budget with dates needs a start and an end.',
+      );
+    }
+
     const budget = new Budget({
-      ...input,
-      kind: 'fixed',
+      ...rest,
       limits: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      periodStart:
+        input.kind === 'monthly'
+          ? DateRange.monthOf(now).start
+          : (periodStart as Date),
+      periodEnd: input.kind === 'monthly' ? null : (periodEnd as Date),
+      createdAt: now,
+      updatedAt: now,
     });
 
     await this.budgetRepository.save(budget);

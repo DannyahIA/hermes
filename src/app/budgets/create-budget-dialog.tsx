@@ -16,7 +16,7 @@ export function CreateBudgetDialog({ categories }: CreateBudgetDialogProps) {
     <CreateDialogForm
       trigger={(open) => <Button onClick={open}>Novo orçamento</Button>}
       title="Novo orçamento"
-      description="Escolha a categoria, o valor limite e o período."
+      description="Escolha a categoria, o valor limite e se ele vale todo mês ou por um prazo."
       action={createBudgetAction}
       initialState={INITIAL_STATE}
     >

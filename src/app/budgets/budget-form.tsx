@@ -12,6 +12,26 @@ import { DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { DEFAULT_CURRENCY } from '@/config/constants';
 import { ROUTES } from '@/config/routes';
+import { cn } from '@/shared/lib/cn';
+
+type BudgetKindChoice = 'monthly' | 'fixed';
+
+const KIND_OPTIONS: Array<{
+  value: BudgetKindChoice;
+  label: string;
+  hint: string;
+}> = [
+  {
+    value: 'monthly',
+    label: 'Todo mês',
+    hint: 'O limite recomeça a cada mês.',
+  },
+  {
+    value: 'fixed',
+    label: 'Por prazo',
+    hint: 'O limite vale entre duas datas.',
+  },
+];
 
 interface BudgetFormProps {
   categories: Array<{ id: string; name: string }>;
@@ -30,6 +50,7 @@ export function BudgetForm({
   onRepeatingChange,
   onCancel,
 }: BudgetFormProps) {
+  const [kind, setKind] = useState<BudgetKindChoice>('monthly');
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
   const formRef = useRef<HTMLFormElement>(null);
@@ -100,37 +121,82 @@ export function BudgetForm({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label
-            htmlFor="periodStart"
-            className="text-muted-foreground text-sm"
-          >
-            Início do período
-          </label>
-          <Input
-            id="periodStart"
-            name="periodStart"
-            type="date"
-            value={periodStart}
-            onChange={(event) => setPeriodStart(event.target.value)}
-            required
-          />
+      <fieldset className="space-y-2">
+        <legend className="text-muted-foreground text-sm">Vale</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {KIND_OPTIONS.map((option) => (
+            <label
+              key={option.value}
+              className={cn(
+                'border-input bg-card hover:border-faint-foreground has-[:focus-visible]:ring-ring/20 flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2 transition-[border-color,box-shadow] duration-[var(--duration-fast)] has-[:focus-visible]:ring-[3px]',
+                kind === option.value && 'border-ring',
+              )}
+            >
+              <input
+                type="radio"
+                name="kind"
+                aria-labelledby={`kind-${option.value}-label`}
+                aria-describedby={`kind-${option.value}-hint`}
+                value={option.value}
+                checked={kind === option.value}
+                onChange={() => setKind(option.value)}
+                className="mt-1 h-4 w-4"
+              />
+              <span className="space-y-0.5">
+                <span
+                  id={`kind-${option.value}-label`}
+                  className="block text-sm font-medium"
+                >
+                  {option.label}
+                </span>
+                <span
+                  id={`kind-${option.value}-hint`}
+                  className="text-muted-foreground block text-xs"
+                >
+                  {option.hint}
+                </span>
+              </span>
+            </label>
+          ))}
         </div>
-        <div className="space-y-2">
-          <label htmlFor="periodEnd" className="text-muted-foreground text-sm">
-            Fim do período
-          </label>
-          <Input
-            id="periodEnd"
-            name="periodEnd"
-            type="date"
-            value={periodEnd}
-            onChange={(event) => setPeriodEnd(event.target.value)}
-            required
-          />
+      </fieldset>
+
+      {kind === 'fixed' ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label
+              htmlFor="periodStart"
+              className="text-muted-foreground text-sm"
+            >
+              De
+            </label>
+            <Input
+              id="periodStart"
+              name="periodStart"
+              type="date"
+              value={periodStart}
+              onChange={(event) => setPeriodStart(event.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <label
+              htmlFor="periodEnd"
+              className="text-muted-foreground text-sm"
+            >
+              Até
+            </label>
+            <Input
+              id="periodEnd"
+              name="periodEnd"
+              type="date"
+              value={periodEnd}
+              onChange={(event) => setPeriodEnd(event.target.value)}
+              required
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <input type="hidden" name="currency" value={DEFAULT_CURRENCY} />
 

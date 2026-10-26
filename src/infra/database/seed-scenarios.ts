@@ -614,6 +614,7 @@ async function build(tx: Executor, userId: string, scenario: Scenario) {
       categoryId,
       amount: budget.amount,
       currency: 'BRL',
+      kind: 'fixed',
       periodStart: monthStart,
       periodEnd: monthEnd,
     });
