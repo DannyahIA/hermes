@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateTransactionDialog } from '@/app/transactions/create-transaction-dialog';
+import { Toaster } from '@/components/ui/toaster';
 
 vi.mock('@/app/transactions/actions', () => ({
   createTransactionOrInstallmentAction: vi.fn(async () => ({ success: true })),
@@ -139,5 +140,37 @@ describe('CreateTransactionDialog', () => {
     expect(
       screen.queryByLabelText('Número de parcelas'),
     ).not.toBeInTheDocument();
+  });
+
+  it('mostra o aviso de orçamento que a nova compra devolveu', async () => {
+    const { createTransactionOrInstallmentAction } =
+      await import('@/app/transactions/actions');
+    vi.mocked(createTransactionOrInstallmentAction).mockResolvedValueOnce({
+      success: true,
+      alerts: ['Mercado: 75% do orçamento (R$ 375,00 de R$ 500,00).'],
+    });
+    render(
+      <>
+        <CreateTransactionDialog accounts={ACCOUNTS} categories={CATEGORIES} />
+        <Toaster />
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nova transação' }));
+    fireEvent.change(screen.getByLabelText('Descrição'), {
+      target: { value: 'Mercado' },
+    });
+    fireEvent.change(screen.getByLabelText('Valor'), {
+      target: { value: '375' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Registrar transação' }),
+    );
+
+    expect(
+      await screen.findByText(
+        'Mercado: 75% do orçamento (R$ 375,00 de R$ 500,00).',
+      ),
+    ).toBeInTheDocument();
   });
 });

@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { CategoriesOverview } from '@/modules/categories/application/get-categories-overview.use-case';
+import { showBudgetAlerts } from '@/shared/hooks/show-budget-alerts';
 import { formatCurrency } from '@/shared/lib/format-currency';
 
 type Suggestions = CategoriesOverview['suggestions'];
@@ -106,6 +107,7 @@ function CreateLine({ suggestion }: { suggestion: CreateSuggestion }) {
                 name,
                 color,
               });
+              if (result.success) showBudgetAlerts(result.alerts);
               return result.success
                 ? {
                     title: `${name} criada; ${pluralize(count, 'compra classificada', 'compras classificadas')}.`,

@@ -14,6 +14,7 @@ import {
   type QuickEntry as Entry,
   type QuickEntryAccount,
 } from '@/modules/capture/domain/parse-quick-entry';
+import { showBudgetAlerts } from '@/shared/hooks/show-budget-alerts';
 import { toast } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/format-currency';
@@ -206,6 +207,7 @@ export function QuickEntry({
             }),
         },
       });
+      showBudgetAlerts(result.alerts);
     });
   }
 

@@ -3,15 +3,19 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 
-import { createTransactionOrInstallmentAction } from '@/app/transactions/actions';
+import {
+  type ActionResult,
+  createTransactionOrInstallmentAction,
+} from '@/app/transactions/actions';
 import {
   type TransactionDraft,
   TransactionForm,
 } from '@/app/transactions/transaction-form';
 import { Button } from '@/components/ui/button';
 import { CreateDialogForm } from '@/components/ui/create-dialog-form';
+import { showBudgetAlerts } from '@/shared/hooks/show-budget-alerts';
 
-const INITIAL_STATE = { success: false };
+const INITIAL_STATE: ActionResult = { success: false };
 
 interface CreateTransactionDialogProps {
   accounts: Array<{ id: string; name: string }>;
@@ -85,7 +89,10 @@ export function CreateTransactionDialog({
       description="Registre uma receita ou despesa."
       action={createTransactionOrInstallmentAction}
       initialState={INITIAL_STATE}
-      onSuccess={onSuccess}
+      onSuccess={(state) => {
+        showBudgetAlerts(state.alerts);
+        onSuccess?.();
+      }}
     >
       {({ state, formAction, repeating, onRepeatingChange, close }) => (
         <TransactionForm

@@ -27,6 +27,7 @@ import { createTransactionSchema } from '@/modules/transactions/schemas/create-t
 import { transferMoneySchema } from '@/modules/transactions/schemas/transfer-money.schema';
 import { updateTransactionSchema } from '@/modules/transactions/schemas/update-transaction.schema';
 import { parseCsv } from '@/shared/lib/csv';
+import { budgetAlertsFor } from '@/shared/server/budget-alerts';
 import { revalidateMoneyPages } from '@/shared/server/revalidate-money-pages';
 
 export interface ActionResult {
@@ -34,6 +35,8 @@ export interface ActionResult {
   error?: string;
   /** Human-readable summary for actions that report more than pass/fail — e.g. an import's row count. */
   message?: string;
+  /** What this purchase tells about the user's budgets: one line per budget. */
+  alerts?: string[];
 }
 
 function toUserMessage(error: unknown): string {
@@ -66,6 +69,8 @@ export async function createTransactionAction(
   try {
     const userId = await requireCurrentUserId();
 
+    const id = randomUUID();
+
     // A single DB transaction backs the account balance update and the new
     // transaction row — see infra/database/transaction.ts.
     await withTransaction(async (tx) => {
@@ -74,11 +79,12 @@ export async function createTransactionAction(
         new DrizzleAccountRepository(tx),
         new DrizzleCategoryRepository(tx),
       );
-      await useCase.execute({ id: randomUUID(), userId, ...parsed.data });
+      await useCase.execute({ id, userId, ...parsed.data });
     });
 
+    const alerts = await budgetAlertsFor(userId, [id]);
     revalidateMoneyPages();
-    return { success: true };
+    return { success: true, alerts };
   } catch (error) {
     return { success: false, error: toUserMessage(error) };
   }
@@ -111,6 +117,10 @@ export async function createInstallmentAction(
 
   try {
     const userId = await requireCurrentUserId();
+    const installmentIds = Array.from(
+      { length: parsed.data.installmentCount },
+      () => randomUUID(),
+    );
 
     await withTransaction(async (tx) => {
       const useCase = new CreateInstallmentPlanUseCase(
@@ -124,15 +134,14 @@ export async function createInstallmentAction(
         userId,
         kind: 'purchase',
         ...parsed.data,
-        installmentIds: Array.from(
-          { length: parsed.data.installmentCount },
-          () => randomUUID(),
-        ),
+        installmentIds,
       });
     });
 
+    // Only the installments in a running period count towards a budget.
+    const alerts = await budgetAlertsFor(userId, installmentIds);
     revalidateMoneyPages();
-    return { success: true };
+    return { success: true, alerts };
   } catch (error) {
     return { success: false, error: toUserMessage(error) };
   }
@@ -232,8 +241,9 @@ export async function updateTransactionAction(
       await useCase.execute({ userId, ...parsed.data });
     });
 
+    const alerts = await budgetAlertsFor(userId, [parsed.data.id]);
     revalidateMoneyPages();
-    return { success: true };
+    return { success: true, alerts };
   } catch (error) {
     return { success: false, error: toUserMessage(error) };
   }

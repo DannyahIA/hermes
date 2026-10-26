@@ -2,6 +2,7 @@ import type { ChatChannel } from '@/core/contracts/chat-channel';
 import { CheckBudgetAlertsUseCase } from '@/modules/budgets/application/check-budget-alerts.use-case';
 
 import type { ChatUnitOfWork } from './chat-dependencies';
+import { sendBudgetAlertLines } from './send-budget-alert-lines';
 
 /**
  * Tells the user's chat where a purchase took a budget: a message of its own,
@@ -52,15 +53,13 @@ export class AnnounceBudgetAlertsUseCase {
     }
     const { lines, chatId } = checked;
 
-    if (lines.length > 0 && chatId) {
-      try {
-        await this.channel.send(chatId, { text: lines.join('\n') });
-      } catch (error) {
-        console.error(
-          `chat budget alert for ${input.transactionIds.join(', ')} failed:`,
-          error instanceof Error ? error.message : 'unknown error',
-        );
-      }
+    if (chatId) {
+      await sendBudgetAlertLines(
+        this.channel,
+        chatId,
+        lines,
+        input.transactionIds.join(', '),
+      );
     }
     return lines;
   }

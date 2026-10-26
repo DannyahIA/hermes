@@ -21,6 +21,7 @@ import {
 import { DialogForm } from '@/components/ui/dialog-form';
 import { Input } from '@/components/ui/input';
 import { FIELD_BASE_CLASSES } from '@/shared/constants/field-styles';
+import { showBudgetAlerts } from '@/shared/hooks/show-budget-alerts';
 
 const INITIAL_STATE: ActionResult = { success: false };
 
@@ -69,6 +70,7 @@ export function TransactionEditDialog({
           : updateTransactionAction
       }
       initialState={INITIAL_STATE}
+      onSuccess={(state) => showBudgetAlerts(state.alerts)}
     >
       {({ state, formAction }) =>
         transaction && (
@@ -135,6 +137,7 @@ function EditForm({
         setNewError(result.error);
         return;
       }
+      showBudgetAlerts(result.alerts);
       setMade((current) => [
         ...current,
         { id: result.category.id, name: result.category.name },

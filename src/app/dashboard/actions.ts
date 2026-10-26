@@ -20,6 +20,7 @@ import {
 } from '@/modules/capture/schemas/record-quick-entry.schema';
 import { CategorizeTransactionUseCase } from '@/modules/transactions/application/categorize-transaction.use-case';
 import { FileUnderNewCategoryUseCase } from '@/modules/transactions/application/file-under-new-category.use-case';
+import { budgetAlertsFor } from '@/shared/server/budget-alerts';
 import { revalidateMoneyPages } from '@/shared/server/revalidate-money-pages';
 
 import type { CategoryOption } from './category-picker';
@@ -27,6 +28,8 @@ import type { CategoryOption } from './category-picker';
 export interface CategorizeResult {
   success: boolean;
   error?: string;
+  /** What filing it tells about the user's budgets: one line per budget. */
+  alerts?: string[];
 }
 
 const categorizeSchema = z.object({
@@ -49,8 +52,9 @@ export async function categorizeTransactionAction(
   const parsed = categorizeSchema.safeParse({ transactionId, categoryId });
   if (!parsed.success) return { success: false, error: FAILED };
 
+  let userId: string;
   try {
-    const userId = await requireCurrentUserId();
+    userId = await requireCurrentUserId();
     await withTransaction(async (tx) => {
       await new CategorizeTransactionUseCase(
         new DrizzleTransactionRepository(tx),
@@ -66,12 +70,14 @@ export async function categorizeTransactionAction(
     return { success: false, error: FAILED };
   }
 
+  const alerts = await budgetAlertsFor(userId, [parsed.data.transactionId]);
   revalidateMoneyPages();
-  return { success: true };
+  return { success: true, alerts };
 }
 
 export type RecordQuickEntryResult =
-  { success: true; transactionId: string } | { success: false; error: string };
+  | { success: true; transactionId: string; alerts?: string[] }
+  | { success: false; error: string };
 
 const NOT_RECORDED = 'Não foi possível registrar. Tente novamente.';
 
@@ -92,8 +98,9 @@ export async function recordQuickEntryAction(
   }
 
   const transactionId = randomUUID();
+  let userId: string;
   try {
-    const userId = await requireCurrentUserId();
+    userId = await requireCurrentUserId();
     await withTransaction(async (tx) => {
       await new RecordQuickEntryUseCase(
         new DrizzleTransactionRepository(tx),
@@ -109,8 +116,9 @@ export async function recordQuickEntryAction(
     return { success: false, error: NOT_RECORDED };
   }
 
+  const alerts = await budgetAlertsFor(userId, [transactionId]);
   revalidateMoneyPages();
-  return { success: true, transactionId };
+  return { success: true, transactionId, alerts };
 }
 
 const fileUnderNewCategorySchema = z.object({
@@ -126,7 +134,7 @@ const NAME_INVALID = 'Informe um nome de até 60 caracteres.';
 const NOT_CREATED = 'Não foi possível criar a categoria. Tente novamente.';
 
 export type FileUnderNewCategoryResult =
-  | { success: true; category: CategoryOption }
+  | { success: true; category: CategoryOption; alerts?: string[] }
   | { success: false; error: string };
 
 /**
@@ -153,11 +161,13 @@ export async function fileUnderNewCategoryAction(input: {
       ).execute({ userId, ...parsed.data }),
     );
 
+    const alerts = await budgetAlertsFor(userId, parsed.data.transactionIds);
     revalidateMoneyPages();
     revalidatePath(ROUTES.categories);
     return {
       success: true,
       category: { id: category.id, name: category.name, color: category.color },
+      alerts,
     };
   } catch {
     return { success: false, error: NOT_CREATED };

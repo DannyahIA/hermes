@@ -17,6 +17,7 @@ import { TransactionEditDialog } from '@/app/transactions/transaction-edit-dialo
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ROUTES } from '@/config/routes';
 import type { TransactionGrouping } from '@/core/contracts/transaction-repository';
+import { showBudgetAlerts } from '@/shared/hooks/show-budget-alerts';
 import { toast } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/lib/cn';
 import { formatDayHeading } from '@/shared/lib/format-date';
@@ -176,7 +177,9 @@ export function TransactionList({
           title: result.error ?? 'Não foi possível salvar a categoria.',
           variant: 'error',
         });
+        return;
       }
+      showBudgetAlerts(result.alerts);
     });
   }
 
@@ -198,6 +201,7 @@ export function TransactionList({
         toast({ title: result.error, variant: 'error' });
         return;
       }
+      showBudgetAlerts(result.alerts);
       const category: ListCategory = { ...result.category, archived: false };
       setMade((current) => [
         ...current.filter((known) => known.id !== category.id),

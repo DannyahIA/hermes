@@ -3,6 +3,7 @@
 import { useOptimistic, useState, useTransition } from 'react';
 
 import type { NewCategoryHint } from '@/modules/categories/domain/category-catalog';
+import { showBudgetAlerts } from '@/shared/hooks/show-budget-alerts';
 import { toast } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/format-currency';
@@ -93,7 +94,9 @@ export function RecentTransactions({
           title: result.error ?? 'Não foi possível salvar a categoria.',
           variant: 'error',
         });
+        return;
       }
+      showBudgetAlerts(result.alerts);
     });
   }
 
@@ -115,6 +118,7 @@ export function RecentTransactions({
         toast({ title: result.error, variant: 'error' });
         return;
       }
+      showBudgetAlerts(result.alerts);
       setCreated((current) => ({
         ...current,
         [result.category.id]: result.category,
