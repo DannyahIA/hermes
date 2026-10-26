@@ -1,14 +1,19 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ChatMessage } from '@/core/contracts/chat-channel';
 import { Account } from '@/core/entities/account';
+import { Budget } from '@/core/entities/budget';
 import { Category } from '@/core/entities/category';
 import { ChatLink } from '@/core/entities/chat-link';
 import { WalletCard } from '@/core/entities/wallet-card';
 import { FakeChatChannel } from '@/tests/fakes/fake-chat-channel';
 import { fakeChatDependencies } from '@/tests/fakes/fake-chat-dependencies';
 
-import { type ChatAction, encodeChatAction } from '../domain/chat-action';
+import {
+  type ChatAction,
+  decodeChatAction,
+  encodeChatAction,
+} from '../domain/chat-action';
 import { AnnounceCapturesUseCase } from './announce-captures.use-case';
 import { CaptureWalletPaymentUseCase } from './capture-wallet-payment.use-case';
 import { CreateChatLinkCodeUseCase } from './chat-links.use-case';
@@ -24,6 +29,10 @@ const CONTA = id(2);
 const RESTAURANTES = id(10);
 const MERCADO = id(11);
 
+const decodeCaptureId = (message: ChatMessage) => {
+  const action = decodeChatAction(message.buttons![0][0].data);
+  return action!.captureId;
+};
 const plain = (text: string | undefined) => text?.replace(/ /g, ' ');
 const labels = (message: ChatMessage | undefined) =>
   message?.buttons?.flat().map((button) => button.text);
@@ -611,6 +620,146 @@ describe('talking with Hermes in the chat', () => {
       expect(channel.latest(question.messageId)?.text).toBe(
         'Ok, ficou como estava.',
       );
+    });
+  });
+
+  describe('budget alerts', () => {
+    const SEVENTY_FIVE = /^Mercado: 75% do orçamento/;
+
+    async function mercadoBudget(amount: number) {
+      await world.deps.budgets.save(
+        new Budget({
+          id: id(40),
+          userId: USER_ID,
+          categoryId: MERCADO,
+          amount,
+          currency: 'BRL',
+          kind: 'monthly',
+          limits: [],
+          periodStart: new Date(2026, 9, 1),
+          periodEnd: null,
+          createdAt: NOW,
+          updatedAt: NOW,
+        }),
+      );
+    }
+
+    it('alerts when a category button files a purchase that crosses a stage', async () => {
+      await mercadoBudget(30);
+      const { captureId, messageId } = await announced();
+      expect(channel.sent).toHaveLength(1);
+
+      await tap(
+        { kind: 'category', captureId, categoryId: MERCADO },
+        messageId,
+      );
+
+      expect(channel.sent).toHaveLength(2);
+      expect(channel.sent[1].text).toMatch(SEVENTY_FIVE);
+      expect(channel.sent[1].buttons).toBeUndefined();
+      expect(channel.answered).toHaveLength(1);
+    });
+
+    it('does not repeat the alert when a button re-renders the purchase message', async () => {
+      await mercadoBudget(30);
+      const { captureId, messageId } = await announced();
+      await tap(
+        { kind: 'category', captureId, categoryId: MERCADO },
+        messageId,
+      );
+
+      await tap({ kind: 'pick-category', captureId, page: 0 }, messageId);
+      await tap({ kind: 'show', captureId }, messageId);
+      await tap({ kind: 'switch-account', captureId }, messageId);
+
+      expect(channel.sent).toHaveLength(2);
+      expect(plain(channel.latest(messageId)?.text)).not.toContain('75%');
+    });
+
+    it('stays quiet when a button files a purchase that reaches no stage', async () => {
+      await mercadoBudget(1000);
+      const { captureId, messageId } = await announced();
+
+      await tap(
+        { kind: 'category', captureId, categoryId: MERCADO },
+        messageId,
+      );
+
+      expect(channel.sent).toHaveLength(1);
+    });
+
+    it('does not fail the tap when the alert cannot be sent', async () => {
+      await mercadoBudget(30);
+      const { captureId, messageId } = await announced();
+      channel.send = async () => {
+        throw new Error('chat unreachable');
+      };
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await tap(
+        { kind: 'category', captureId, categoryId: MERCADO },
+        messageId,
+      );
+
+      expect((await transactionOf(captureId))?.categoryId).toBe(MERCADO);
+      expect(channel.answered).toHaveLength(1);
+      log.mockRestore();
+    });
+
+    it('alerts after a line written in the chat is recorded', async () => {
+      await mercadoBudget(30);
+
+      await handle.execute(
+        {
+          kind: 'text',
+          chatId: CHAT_ID,
+          messageId: '2001',
+          text: 'mercado 25',
+        },
+        NOW,
+      );
+
+      expect(channel.sent).toHaveLength(2);
+      expect(channel.sent[0].buttons).toBeDefined();
+      expect(channel.sent[1].text).toMatch(SEVENTY_FIVE);
+    });
+
+    it('alerts when "Salvar" records a large line', async () => {
+      await mercadoBudget(1000);
+      await handle.execute(
+        {
+          kind: 'text',
+          chatId: CHAT_ID,
+          messageId: '2002',
+          text: 'mercado 870',
+        },
+        NOW,
+      );
+      const question = channel.sent.at(-1)!;
+      expect(channel.sent).toHaveLength(1);
+
+      await tap(
+        { kind: 'confirm', captureId: decodeCaptureId(question) },
+        question.messageId,
+      );
+
+      expect(channel.sent).toHaveLength(2);
+      expect(channel.sent[1].text).toMatch(/^Mercado: 75% do orçamento/);
+    });
+
+    it('does not alert a repeated message', async () => {
+      await mercadoBudget(30);
+      const update = {
+        kind: 'text',
+        chatId: CHAT_ID,
+        messageId: '2003',
+        text: 'mercado 25',
+      } as const;
+      await handle.execute(update, NOW);
+
+      await handle.execute(update, NOW);
+
+      expect(channel.sent).toHaveLength(2);
     });
   });
 });

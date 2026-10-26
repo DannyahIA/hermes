@@ -26,7 +26,6 @@ const recorded: RecordedView = {
     { id: id(3), name: 'Lazer' },
   ],
   free: 'Livre até 05/11: R$ 1.818,20 (R$ 101 por dia)',
-  alerts: [],
   installable: true,
 };
 
@@ -95,7 +94,6 @@ describe('the message about a payment', () => {
       category: { id: id(1), name: 'Restaurantes' },
       learned: true,
       switchLabel: 'Foi no débito',
-      alerts: ['Restaurantes: 84% do orçamento, acima do ritmo'],
     });
 
     expect(plain(message.text)).toBe(
@@ -103,7 +101,6 @@ describe('the message about a payment', () => {
         'Nubank Crédito · R$ 23,90 · Restaurantes',
         'Padaria Real · hoje 12:41',
         'Livre até 05/11: R$ 1.818,20 (R$ 101 por dia)',
-        'Restaurantes: 84% do orçamento, acima do ritmo',
         'Da próxima vez, Padaria Real já entra em Restaurantes.',
       ].join('\n'),
     );

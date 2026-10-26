@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AvailableToSpend } from '@/modules/dashboard/application/metrics/calculate-available-to-spend';
-import type { BudgetPace } from '@/modules/dashboard/application/metrics/calculate-budget-pace';
 
-import { budgetAlert, freeLine } from './spending-lines';
+import { freeLine } from './spending-lines';
 
 const plain = (text: string | undefined) => text?.replace(/ /g, ' ');
 
@@ -18,22 +17,6 @@ const available: AvailableToSpend = {
   daysLeft: 18,
   perDay: 101.01,
 };
-
-function pace(overrides: Partial<BudgetPace>): BudgetPace {
-  return {
-    budgetId: 'b1',
-    categoryId: 'mercado',
-    spent: 840,
-    amount: 1000,
-    currency: 'BRL',
-    spentShare: 0.84,
-    elapsedShare: 0.6,
-    status: 'ahead',
-    periodStart: new Date(2026, 9, 1),
-    periodEnd: new Date(2026, 9, 31),
-    ...overrides,
-  };
-}
 
 describe('freeLine', () => {
   it('says what is free until the next income, and per day', () => {
@@ -53,35 +36,5 @@ describe('freeLine', () => {
 
   it('has nothing to say without a checking account', () => {
     expect(freeLine(null)).toBeUndefined();
-  });
-});
-
-describe('budgetAlert', () => {
-  it('warns from 80% of the category budget on', () => {
-    expect(budgetAlert([pace({})], 'mercado', 'Mercado')).toBe(
-      'Mercado: 84% do orçamento, acima do ritmo',
-    );
-    expect(
-      budgetAlert(
-        [pace({ spentShare: 1.07, status: 'over' })],
-        'mercado',
-        'Mercado',
-      ),
-    ).toBe('Mercado: 107% do orçamento, estourado');
-    expect(
-      budgetAlert(
-        [pace({ spentShare: 0.81, status: 'on-pace' })],
-        'mercado',
-        'Mercado',
-      ),
-    ).toBe('Mercado: 81% do orçamento');
-  });
-
-  it('stays quiet below 80%, without a budget or a category', () => {
-    expect(
-      budgetAlert([pace({ spentShare: 0.5 })], 'mercado', 'Mercado'),
-    ).toBeUndefined();
-    expect(budgetAlert([pace({})], 'lazer', 'Lazer')).toBeUndefined();
-    expect(budgetAlert([pace({})], undefined, undefined)).toBeUndefined();
   });
 });

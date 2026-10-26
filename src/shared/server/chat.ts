@@ -3,6 +3,7 @@ import type { ChatChannel } from '@/core/contracts/chat-channel';
 import type { Executor } from '@/infra/database/client';
 import { withTransaction } from '@/infra/database/transaction';
 import { DrizzleBudgetRepository } from '@/infra/repositories/drizzle-budget.repository';
+import { DrizzleBudgetAlertLogRepository } from '@/infra/repositories/drizzle-budget-alert-log.repository';
 import { DrizzleChatLinkRepository } from '@/infra/repositories/drizzle-chat-link.repository';
 import { DrizzleInstallmentPlanRepository } from '@/infra/repositories/drizzle-installment-plan.repository';
 import { DrizzleRecurringTransactionRepository } from '@/infra/repositories/drizzle-recurring-transaction.repository';
@@ -26,6 +27,7 @@ export function chatDependencies(executor: Executor): ChatDependencies {
     chatLinks: new DrizzleChatLinkRepository(executor),
     installmentPlans: new DrizzleInstallmentPlanRepository(executor),
     budgets: new DrizzleBudgetRepository(executor),
+    budgetAlerts: new DrizzleBudgetAlertLogRepository(executor),
     recurringTransactions: new DrizzleRecurringTransactionRepository(executor),
     viewPreferences: new DrizzleViewPreferenceRepository(executor),
   };

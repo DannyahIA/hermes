@@ -1,3 +1,4 @@
+import type { BudgetAlertLog } from '@/core/contracts/budget-alert-log';
 import type { BudgetRepository } from '@/core/contracts/budget-repository';
 import type { ChatLinkRepository } from '@/core/contracts/chat-link-repository';
 import type { InstallmentPlanRepository } from '@/core/contracts/installment-plan-repository';
@@ -11,6 +12,7 @@ export interface ChatDependencies extends CaptureDependencies {
   chatLinks: ChatLinkRepository;
   installmentPlans: InstallmentPlanRepository;
   budgets: BudgetRepository;
+  budgetAlerts: BudgetAlertLog;
   recurringTransactions: RecurringTransactionRepository;
   viewPreferences: ViewPreferenceRepository;
 }

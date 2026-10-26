@@ -17,7 +17,7 @@ import {
 import { dayLabel, momentLabel } from '../domain/moment-label';
 import { normalizeMerchant } from '../domain/normalize-merchant';
 import { parseAmount } from '../domain/parse-amount';
-import { budgetAlert, freeLine } from '../domain/spending-lines';
+import { freeLine } from '../domain/spending-lines';
 import type { ChatDependencies } from './chat-dependencies';
 import { GetChatPrivacyUseCase } from './chat-privacy.use-case';
 
@@ -123,7 +123,6 @@ export async function recordedView(
     deps.budgets,
     deps.recurringTransactions,
   ).execute(event.userId, now);
-  const alert = budgetAlert(snapshot.budgets, category?.id, category?.name);
 
   return {
     kind: 'recorded',
@@ -150,7 +149,6 @@ export async function recordedView(
     suggestions,
     newCategory: hint ? { key: hint.key, name: hint.name } : undefined,
     free: showFree ? freeLine(snapshot.available) : undefined,
-    alerts: alert ? [alert] : [],
   };
 }
 

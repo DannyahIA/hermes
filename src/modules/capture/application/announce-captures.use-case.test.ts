@@ -1,8 +1,10 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Account } from '@/core/entities/account';
+import { Budget } from '@/core/entities/budget';
 import { Category } from '@/core/entities/category';
 import { ChatLink } from '@/core/entities/chat-link';
+import { MerchantRule } from '@/core/entities/merchant-rule';
 import { WalletCard } from '@/core/entities/wallet-card';
 import { FakeChatChannel } from '@/tests/fakes/fake-chat-channel';
 import { fakeChatDependencies } from '@/tests/fakes/fake-chat-dependencies';
@@ -20,6 +22,7 @@ const id = (n: number) =>
 const CREDITO = id(1);
 const CONTA = id(2);
 const RESTAURANTES = id(10);
+const MERCADO = id(11);
 
 /** `Intl` keeps "R$" and the value together with a no-break space. */
 const plain = (text: string | undefined) => text?.replace(/ /g, ' ');
@@ -265,5 +268,122 @@ describe('announcing captured payments in the chat', () => {
     expect(channel.sent).toHaveLength(1);
     expect(channel.edited).toHaveLength(1);
     expect(channel.edited[0].messageId).toBe(channel.sent[0].messageId);
+  });
+
+  describe('budget alerts', () => {
+    /** A R$ 30 Mercado budget, and a merchant that is always filed there. */
+    async function mercadoAt30() {
+      const { deps } = world;
+      await deps.categories.save(
+        new Category({
+          id: MERCADO,
+          userId: USER_ID,
+          name: 'Mercado',
+          archived: false,
+          createdAt: NOW,
+          updatedAt: NOW,
+        }),
+      );
+      await deps.budgets.save(
+        new Budget({
+          id: id(40),
+          userId: USER_ID,
+          categoryId: MERCADO,
+          amount: 30,
+          currency: 'BRL',
+          kind: 'monthly',
+          limits: [],
+          periodStart: new Date(2026, 9, 1),
+          periodEnd: null,
+          createdAt: NOW,
+          updatedAt: NOW,
+        }),
+      );
+      await deps.merchantRules.save(
+        new MerchantRule({
+          id: id(41),
+          userId: USER_ID,
+          merchantKey: 'padaria real',
+          displayName: 'Padaria Real',
+          categoryId: MERCADO,
+          hits: 3,
+          createdAt: NOW,
+          updatedAt: NOW,
+        }),
+      );
+    }
+
+    it('sends the stage as a second message after the purchase that reached it', async () => {
+      await mercadoAt30();
+      const captureId = await capture();
+
+      await announce.execute({
+        userId: USER_ID,
+        captureIds: [captureId],
+        now: NOW,
+      });
+
+      expect(channel.sent).toHaveLength(2);
+      expect(channel.sent[0].text).not.toContain('orçamento');
+      expect(channel.sent[1]).toEqual({
+        chatId: CHAT_ID,
+        messageId: expect.any(String),
+        text: expect.stringMatching(/^Mercado: 75% do orçamento/),
+      });
+      expect(channel.sent[1].buttons).toBeUndefined();
+    });
+
+    it('does not repeat the stage when the purchase message is brought up to date', async () => {
+      await mercadoAt30();
+      const captureId = await capture();
+      await announce.execute({
+        userId: USER_ID,
+        captureIds: [captureId],
+        now: NOW,
+      });
+
+      await announce.execute({
+        userId: USER_ID,
+        captureIds: [captureId],
+        now: NOW,
+      });
+
+      expect(channel.edited).toHaveLength(1);
+      expect(channel.sent).toHaveLength(2);
+    });
+
+    it('says nothing about a purchase that reaches no stage', async () => {
+      const captureId = await capture();
+
+      await announce.execute({
+        userId: USER_ID,
+        captureIds: [captureId],
+        now: NOW,
+      });
+
+      expect(channel.sent).toHaveLength(1);
+    });
+
+    it('does not fail the announcement when the alert cannot be sent', async () => {
+      await mercadoAt30();
+      const captureId = await capture();
+      const send = channel.send.bind(channel);
+      let calls = 0;
+      channel.send = async (chatId, message) => {
+        if (++calls === 2) throw new Error('chat unreachable');
+        return send(chatId, message);
+      };
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await announce.execute({
+        userId: USER_ID,
+        captureIds: [captureId],
+        now: NOW,
+      });
+
+      expect(log).toHaveBeenCalledOnce();
+      expect(String(log.mock.calls[0])).not.toMatch(/23[,.]9/);
+      log.mockRestore();
+    });
   });
 });

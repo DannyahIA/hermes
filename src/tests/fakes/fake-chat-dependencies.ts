@@ -5,6 +5,7 @@ import type {
 
 import { FakeAccountRepository } from './fake-account.repository';
 import { FakeBudgetRepository } from './fake-budget.repository';
+import { FakeBudgetAlertLog } from './fake-budget-alert-log';
 import { FakeCaptureEventRepository } from './fake-capture-event.repository';
 import { FakeCategoryRepository } from './fake-category.repository';
 import { FakeChatLinkRepository } from './fake-chat-link.repository';
@@ -27,6 +28,7 @@ export function fakeChatDependencies() {
     chatLinks: new FakeChatLinkRepository(),
     installmentPlans: new FakeInstallmentPlanRepository(),
     budgets: new FakeBudgetRepository(),
+    budgetAlerts: new FakeBudgetAlertLog(),
     recurringTransactions: new FakeRecurringTransactionRepository(),
     viewPreferences: new FakeViewPreferenceRepository(),
   } satisfies ChatDependencies;

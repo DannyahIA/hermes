@@ -31,8 +31,6 @@ export interface RecordedView {
   newCategory?: { key: string; name: string };
   /** "Livre até 05/11: R$ 1.818,20 (R$ 101 por dia)" */
   free?: string;
-  /** "Mercado: 84% do orçamento, acima do ritmo" */
-  alerts: string[];
 }
 
 /** A payment from a card that has no account yet. */
@@ -101,7 +99,6 @@ function recordedMessage(view: RecordedView): ChatMessage {
     lines.push('Categoria?');
   }
   if (view.free) lines.push(view.free);
-  lines.push(...view.alerts);
   if (view.learned && view.category) {
     lines.push(
       `Da próxima vez, ${view.description} já entra em ${view.category.name}.`,

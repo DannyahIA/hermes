@@ -9,6 +9,7 @@ import { decodeChatAction } from '../domain/chat-action';
 import { readChatCommand } from '../domain/chat-command';
 import { parseAmount } from '../domain/parse-amount';
 import { MAX_AMOUNT } from '../schemas/record-quick-entry.schema';
+import { AnnounceBudgetAlertsUseCase } from './announce-budget-alerts.use-case';
 import { AnnounceCapturesUseCase } from './announce-captures.use-case';
 import { AnswerChatCommandUseCase } from './answer-chat-command.use-case';
 import { ProvideCaptureAmountUseCase } from './capture-wallet-payment.use-case';
@@ -57,12 +58,14 @@ type TextOutcome =
  */
 export class HandleChatUpdateUseCase {
   private readonly announcer: AnnounceCapturesUseCase;
+  private readonly budgetAlerts: AnnounceBudgetAlertsUseCase;
 
   constructor(
     private readonly channel: ChatChannel,
     private readonly run: ChatUnitOfWork,
   ) {
     this.announcer = new AnnounceCapturesUseCase(channel, run);
+    this.budgetAlerts = new AnnounceBudgetAlertsUseCase(channel, run);
   }
 
   async execute(update: ChatUpdate, now = new Date()): Promise<void> {
@@ -194,7 +197,7 @@ export class HandleChatUpdateUseCase {
     update: Extract<ChatUpdate, { kind: 'button' }>,
     now: Date,
   ): Promise<void> {
-    let outcome: ButtonOutcome & { captureMessageId?: string };
+    let outcome: ButtonOutcome & { captureMessageId?: string; userId?: string };
     try {
       outcome = await this.run(async (deps) => {
         const link = await deps.chatLinks.findActiveByChat(
@@ -218,6 +221,7 @@ export class HandleChatUpdateUseCase {
         return {
           ...(await pressChatButton(deps, action, event, now)),
           captureMessageId: event.chatMessageId,
+          userId: link.userId,
         };
       });
     } catch (error) {
@@ -243,6 +247,13 @@ export class HandleChatUpdateUseCase {
     }
     if (outcome.announce) {
       await this.announcer.execute({ ...outcome.announce, now });
+    }
+    if (outcome.touched && outcome.userId) {
+      await this.budgetAlerts.execute({
+        userId: outcome.userId,
+        transactionIds: outcome.touched,
+        now,
+      });
     }
     await this.channel.answerButton(update.buttonQueryId, outcome.notice);
   }

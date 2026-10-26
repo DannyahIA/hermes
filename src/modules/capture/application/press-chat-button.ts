@@ -44,6 +44,11 @@ export interface ButtonOutcome {
   notice?: string;
   /** Captures whose messages are to be brought up to date instead. */
   announce?: { userId: string; captureIds: string[] };
+  /**
+   * The transactions this button just wrote or reclassified — the ones that
+   * may have taken a budget to a new stage.
+   */
+  touched?: string[];
 }
 
 /**
@@ -79,6 +84,7 @@ export async function pressChatButton(
       message: storyMessage(
         await describeCapture(deps, recorded ?? event, now),
       ),
+      touched: recorded?.transactionId ? [recorded.transactionId] : undefined,
     };
   }
 
@@ -140,6 +146,7 @@ export async function pressChatButton(
         message: storyMessage(
           await describeCapture(deps, event, now, rule !== null),
         ),
+        touched: [transaction.id],
       };
     }
 
@@ -161,6 +168,7 @@ export async function pressChatButton(
       // A catalog match always has a merchant key, so its rule is always written.
       return {
         message: storyMessage(await describeCapture(deps, event, now, true)),
+        touched: [transaction.id],
       };
     }
 
@@ -192,7 +200,7 @@ export async function pressChatButton(
         deps.transactions,
         deps.accounts,
       ).execute({ userId, transactionId: transaction.id, accountId: target });
-      return current();
+      return { ...(await current()), touched: [transaction.id] };
     }
 
     case 'installments': {
